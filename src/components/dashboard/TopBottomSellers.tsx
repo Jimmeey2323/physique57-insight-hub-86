@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { TrendingUp, TrendingDown, Award, AlertTriangle, Eye, BarChart3 } from 'lucide-react';
 import { SalesData } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
+import { cn } from '@/lib/utils';
 
 interface TopBottomSellersProps {
   data: SalesData[];

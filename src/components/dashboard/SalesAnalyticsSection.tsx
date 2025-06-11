@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -248,15 +247,30 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
             <div className="space-y-8">
               <DataTable
+                title="Month-on-Month Performance Analysis"
+                data={filteredData}
+                type="monthly"
+                onRowClick={handleTableRowClick}
+              />
+              
+              <DataTable
                 title="Product Performance Analysis"
                 data={filteredData}
                 type="product"
                 onRowClick={handleTableRowClick}
               />
+              
               <DataTable
                 title="Category Performance Breakdown"
                 data={filteredData}
                 type="category"
+                onRowClick={handleTableRowClick}
+              />
+              
+              <DataTable
+                title="Memberships vs Class Packages Comparison"
+                data={filteredData}
+                type="comparison"
                 onRowClick={handleTableRowClick}
               />
             </div>
@@ -273,3 +287,5 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     </div>
   );
 };
+
+export default SalesAnalyticsSection;

@@ -8,7 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ChevronDown, ChevronUp, Filter, RefreshCw, Calendar as CalendarIcon, User, CreditCard, Package } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
+import { ChevronDown, ChevronUp, Filter, RefreshCw, Calendar as CalendarIcon, User, CreditCard, Package, MapPin, X } from 'lucide-react';
 import { FilterOptions } from '@/types/dashboard';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -18,6 +20,33 @@ interface FilterSectionProps {
   onFiltersChange: (filters: FilterOptions) => void;
   onReset: () => void;
 }
+
+const LOCATION_OPTIONS = [
+  'Kwality House, Kemps Corner',
+  'Supreme HQ, Bandra',
+  'Kenkere House'
+];
+
+const CATEGORY_OPTIONS = [
+  'membership',
+  'class-packages',
+  'personal-training',
+  'merchandise'
+];
+
+const PAYMENT_METHOD_OPTIONS = [
+  'pos',
+  'online',
+  'multiple',
+  'cash',
+  'card'
+];
+
+const SOLD_BY_OPTIONS = [
+  'akshay-rane',
+  'priya-sharma',
+  'rahul-mehta'
+];
 
 export const FilterSection: React.FC<FilterSectionProps> = ({
   filters,
@@ -31,6 +60,11 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   const [endDate, setEndDate] = useState<Date | undefined>(
     filters.dateRange.end ? new Date(filters.dateRange.end) : new Date('2025-05-31')
   );
+
+  const [selectedLocations, setSelectedLocations] = useState<string[]>(filters.location || []);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(filters.category || []);
+  const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>(filters.paymentMethod || []);
+  const [selectedSoldBy, setSelectedSoldBy] = useState<string[]>(filters.soldBy || []);
 
   const handleStartDateChange = (date: Date | undefined) => {
     setStartDate(date);
@@ -54,28 +88,69 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
     });
   };
 
-  const handleCategoryChange = (value: string) => {
-    const newCategories = value === 'all' ? [] : [value];
+  const handleLocationChange = (location: string, checked: boolean) => {
+    const newLocations = checked 
+      ? [...selectedLocations, location]
+      : selectedLocations.filter(l => l !== location);
+    
+    setSelectedLocations(newLocations);
+    onFiltersChange({
+      ...filters,
+      location: newLocations
+    });
+  };
+
+  const handleCategoryChange = (category: string, checked: boolean) => {
+    const newCategories = checked 
+      ? [...selectedCategories, category]
+      : selectedCategories.filter(c => c !== category);
+    
+    setSelectedCategories(newCategories);
     onFiltersChange({
       ...filters,
       category: newCategories
     });
   };
 
-  const handlePaymentMethodChange = (value: string) => {
-    const newMethods = value === 'all' ? [] : [value];
+  const handlePaymentMethodChange = (method: string, checked: boolean) => {
+    const newMethods = checked 
+      ? [...selectedPaymentMethods, method]
+      : selectedPaymentMethods.filter(m => m !== method);
+    
+    setSelectedPaymentMethods(newMethods);
     onFiltersChange({
       ...filters,
       paymentMethod: newMethods
     });
   };
 
-  const handleSoldByChange = (value: string) => {
-    const newSoldBy = value === 'all' ? [] : [value];
+  const handleSoldByChange = (soldBy: string, checked: boolean) => {
+    const newSoldBy = checked 
+      ? [...selectedSoldBy, soldBy]
+      : selectedSoldBy.filter(s => s !== soldBy);
+    
+    setSelectedSoldBy(newSoldBy);
     onFiltersChange({
       ...filters,
       soldBy: newSoldBy
     });
+  };
+
+  const removeFilter = (type: string, value: string) => {
+    switch (type) {
+      case 'location':
+        handleLocationChange(value, false);
+        break;
+      case 'category':
+        handleCategoryChange(value, false);
+        break;
+      case 'paymentMethod':
+        handlePaymentMethodChange(value, false);
+        break;
+      case 'soldBy':
+        handleSoldByChange(value, false);
+        break;
+    }
   };
 
   const applyQuickFilter = (type: string) => {
@@ -94,20 +169,128 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
         start = new Date(today.getFullYear(), today.getMonth(), 1);
         end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         break;
+      case 'high-value':
+        // This would filter for transactions above ₹10,000
+        break;
+      case 'memberships':
+        setSelectedCategories(['membership']);
+        onFiltersChange({
+          ...filters,
+          category: ['membership']
+        });
+        return;
+      case 'new-customers':
+        // This would filter for first-time customers
+        break;
       default:
         return;
     }
 
-    setStartDate(start);
-    setEndDate(end);
-    onFiltersChange({
-      ...filters,
-      dateRange: {
-        start: format(start, 'yyyy-MM-dd'),
-        end: format(end, 'yyyy-MM-dd')
-      }
-    });
+    if (type !== 'high-value' && type !== 'new-customers') {
+      setStartDate(start);
+      setEndDate(end);
+      onFiltersChange({
+        ...filters,
+        dateRange: {
+          start: format(start, 'yyyy-MM-dd'),
+          end: format(end, 'yyyy-MM-dd')
+        }
+      });
+    }
   };
+
+  const MultiSelectDropdown = ({ 
+    label, 
+    icon, 
+    options, 
+    selectedValues, 
+    onSelectionChange, 
+    placeholder,
+    colorClass 
+  }: {
+    label: string;
+    icon: React.ReactNode;
+    options: string[];
+    selectedValues: string[];
+    onSelectionChange: (value: string, checked: boolean) => void;
+    placeholder: string;
+    colorClass: string;
+  }) => (
+    <div className="space-y-2">
+      <Label className={`flex items-center gap-2 font-semibold text-slate-700`}>
+        {icon}
+        {label}
+      </Label>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-full justify-between text-left font-normal bg-white border-slate-200",
+              colorClass
+            )}
+          >
+            <span className="truncate">
+              {selectedValues.length > 0 
+                ? `${selectedValues.length} selected`
+                : placeholder
+              }
+            </span>
+            <ChevronDown className="w-4 h-4 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-0" align="start">
+          <div className="p-4 space-y-2">
+            <div className="text-sm font-medium text-slate-900 mb-3">{label}</div>
+            {options.map((option) => (
+              <div key={option} className="flex items-center space-x-2">
+                <Checkbox
+                  id={option}
+                  checked={selectedValues.includes(option)}
+                  onCheckedChange={(checked) => onSelectionChange(option, checked as boolean)}
+                />
+                <Label
+                  htmlFor={option}
+                  className="text-sm font-normal cursor-pointer capitalize"
+                >
+                  {option.replace(/-/g, ' ')}
+                </Label>
+              </div>
+            ))}
+            {selectedValues.length > 0 && (
+              <div className="pt-2 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    selectedValues.forEach(value => onSelectionChange(value, false));
+                  }}
+                  className="w-full"
+                >
+                  Clear All
+                </Button>
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+      
+      {/* Selected filters display */}
+      {selectedValues.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {selectedValues.map((value) => (
+            <Badge key={value} variant="secondary" className="text-xs">
+              {value.replace(/-/g, ' ')}
+              <X 
+                className="w-3 h-3 ml-1 cursor-pointer hover:text-red-500" 
+                onClick={() => onSelectionChange(value, false)}
+              />
+            </Badge>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <Card className="mb-6 bg-gradient-to-r from-white via-slate-50/50 to-white border-0 shadow-xl">
@@ -129,6 +312,12 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                {/* Active filters indicator */}
+                {(selectedLocations.length + selectedCategories.length + selectedPaymentMethods.length + selectedSoldBy.length) > 0 && (
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    {selectedLocations.length + selectedCategories.length + selectedPaymentMethods.length + selectedSoldBy.length} active
+                  </Badge>
+                )}
                 <span className="text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
                   {isOpen ? 'Hide Filters' : 'Show Filters'}
                 </span>
@@ -146,7 +335,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
           <CardContent className="pt-0 bg-gradient-to-br from-slate-50/30 to-white">
             <div className="space-y-6">
               {/* Date Range Filters with Calendar Popover */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label className="flex items-center gap-2 font-semibold text-slate-700">
                     <CalendarIcon className="w-4 h-4 text-blue-600" />
@@ -171,7 +360,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                         selected={startDate}
                         onSelect={handleStartDateChange}
                         initialFocus
-                        className="p-3 pointer-events-auto"
+                        className="p-3"
                       />
                     </PopoverContent>
                   </Popover>
@@ -201,70 +390,10 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                         selected={endDate}
                         onSelect={handleEndDateChange}
                         initialFocus
-                        className="p-3 pointer-events-auto"
+                        className="p-3"
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 font-semibold text-slate-700">
-                    <Package className="w-4 h-4 text-purple-600" />
-                    Product Category
-                  </Label>
-                  <Select onValueChange={handleCategoryChange} defaultValue="all">
-                    <SelectTrigger className="bg-white border-slate-200 focus:border-purple-500">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="membership">Membership</SelectItem>
-                      <SelectItem value="class-packages">Class Packages</SelectItem>
-                      <SelectItem value="merchandise">Merchandise</SelectItem>
-                      <SelectItem value="personal-training">Personal Training</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 font-semibold text-slate-700">
-                    <CreditCard className="w-4 h-4 text-green-600" />
-                    Payment Method
-                  </Label>
-                  <Select onValueChange={handlePaymentMethodChange} defaultValue="all">
-                    <SelectTrigger className="bg-white border-slate-200 focus:border-green-500">
-                      <SelectValue placeholder="All Methods" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Methods</SelectItem>
-                      <SelectItem value="pos">POS Machine</SelectItem>
-                      <SelectItem value="online">Online Payment</SelectItem>
-                      <SelectItem value="multiple">Multiple Methods</SelectItem>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Advanced Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2 font-semibold text-slate-700">
-                    <User className="w-4 h-4 text-orange-600" />
-                    Sales Representative
-                  </Label>
-                  <Select onValueChange={handleSoldByChange} defaultValue="all">
-                    <SelectTrigger className="bg-white border-slate-200 focus:border-orange-500">
-                      <SelectValue placeholder="All Staff" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Staff</SelectItem>
-                      <SelectItem value="akshay-rane">Akshay Rane</SelectItem>
-                      <SelectItem value="priya-sharma">Priya Sharma</SelectItem>
-                      <SelectItem value="rahul-mehta">Rahul Mehta</SelectItem>
-                    </SelectContent>
-                  </Select>
                 </div>
 
                 <div className="space-y-2">
@@ -278,36 +407,49 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     className="bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-200"
                   />
                 </div>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="max-amount" className="font-semibold text-slate-700">
-                    Max Amount (₹)
-                  </Label>
-                  <Input
-                    id="max-amount"
-                    type="number"
-                    placeholder="999999"
-                    className="bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-200"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="font-semibold text-slate-700">
-                    Payment Status
-                  </Label>
-                  <Select>
-                    <SelectTrigger className="bg-white border-slate-200">
-                      <SelectValue placeholder="All Status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Status</SelectItem>
-                      <SelectItem value="succeeded">Succeeded</SelectItem>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="failed">Failed</SelectItem>
-                      <SelectItem value="refunded">Refunded</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+              {/* Multi-Select Dropdowns */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MultiSelectDropdown
+                  label="Location"
+                  icon={<MapPin className="w-4 h-4 text-red-600" />}
+                  options={LOCATION_OPTIONS}
+                  selectedValues={selectedLocations}
+                  onSelectionChange={handleLocationChange}
+                  placeholder="All Locations"
+                  colorClass="focus:border-red-500"
+                />
+                
+                <MultiSelectDropdown
+                  label="Product Category"
+                  icon={<Package className="w-4 h-4 text-purple-600" />}
+                  options={CATEGORY_OPTIONS}
+                  selectedValues={selectedCategories}
+                  onSelectionChange={handleCategoryChange}
+                  placeholder="All Categories"
+                  colorClass="focus:border-purple-500"
+                />
+                
+                <MultiSelectDropdown
+                  label="Payment Method"
+                  icon={<CreditCard className="w-4 h-4 text-green-600" />}
+                  options={PAYMENT_METHOD_OPTIONS}
+                  selectedValues={selectedPaymentMethods}
+                  onSelectionChange={handlePaymentMethodChange}
+                  placeholder="All Methods"
+                  colorClass="focus:border-green-500"
+                />
+                
+                <MultiSelectDropdown
+                  label="Sales Representative"
+                  icon={<User className="w-4 h-4 text-orange-600" />}
+                  options={SOLD_BY_OPTIONS}
+                  selectedValues={selectedSoldBy}
+                  onSelectionChange={handleSoldByChange}
+                  placeholder="All Staff"
+                  colorClass="focus:border-orange-500"
+                />
               </div>
 
               {/* Quick Filter Buttons */}
@@ -337,13 +479,28 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                 >
                   This Month
                 </Button>
-                <Button variant="outline" size="sm" className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                  onClick={() => applyQuickFilter('high-value')}
+                >
                   High Value (₹10K+)
                 </Button>
-                <Button variant="outline" size="sm" className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                  onClick={() => applyQuickFilter('memberships')}
+                >
                   Memberships Only
                 </Button>
-                <Button variant="outline" size="sm" className="bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100"
+                  onClick={() => applyQuickFilter('new-customers')}
+                >
                   New Customers
                 </Button>
               </div>
@@ -356,7 +513,13 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                 <div className="flex gap-3">
                   <Button 
                     variant="outline" 
-                    onClick={onReset} 
+                    onClick={() => {
+                      setSelectedLocations([]);
+                      setSelectedCategories([]);
+                      setSelectedPaymentMethods([]);
+                      setSelectedSoldBy([]);
+                      onReset();
+                    }} 
                     className="gap-2 hover:bg-slate-100 border-slate-300"
                   >
                     <RefreshCw className="w-4 h-4" />

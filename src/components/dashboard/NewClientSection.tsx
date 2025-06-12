@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -370,6 +369,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                 <DataTable
                   title=""
                   data={trainerPerformanceData.slice(0, 5) as any}
+                  type="category"
                 />
               </CardContent>
             </Card>
@@ -381,6 +381,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                 <DataTable
                   title=""
                   data={trainerPerformanceData.slice(-5).reverse() as any}
+                  type="category"
                 />
               </CardContent>
             </Card>
@@ -392,10 +393,12 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
             <DataTable
               title="Conversion Funnel Analysis"
               data={conversionFunnelData as any}
+              type="category"
             />
             <DataTable
               title="Monthly Performance Metrics"
               data={monthlyData as any}
+              type="monthly"
             />
           </div>
         </TabsContent>
@@ -404,6 +407,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           <DataTable
             title="Revenue Distribution by Payment Method"
             data={revenueDistributionData as any}
+            type="category"
           />
         </TabsContent>
 
@@ -411,6 +415,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           <DataTable
             title="Location Performance Analysis"
             data={locationAnalysisData as any}
+            type="category"
           />
         </TabsContent>
 
@@ -418,6 +423,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           <DataTable
             title="Trainer Performance Metrics"
             data={trainerPerformanceData as any}
+            type="category"
           />
         </TabsContent>
 
@@ -425,6 +431,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           <DataTable
             title="Member Details"
             data={memberDetailData as any}
+            type="category"
           />
         </TabsContent>
       </Tabs>

@@ -5,13 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, BarChart3, PieChart as PieChartIcon, Activity } from 'lucide-react';
-import { SalesData } from '@/types/dashboard';
+import { SalesData, NewClientData } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
 interface InteractiveChartProps {
   title: string;
-  data: SalesData[];
-  type: 'revenue' | 'performance';
+  data: SalesData[] | NewClientData[];
+  type: 'revenue' | 'performance' | 'conversion' | 'retention';
 }
 
 const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4'];
@@ -21,8 +21,9 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
   const [activeMetric, setActiveMetric] = useState('revenue');
 
   const processChartData = () => {
-    if (type === 'revenue') {
-      const monthlyData = data.reduce((acc, item) => {
+    if (type === 'revenue' || type === 'performance') {
+      // Original sales data processing
+      const monthlyData = (data as SalesData[]).reduce((acc, item) => {
         const date = new Date(item.paymentDate);
         const month = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
         if (!acc[month]) {
@@ -41,7 +42,49 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
       });
     }
 
-    const categoryData = data.reduce((acc, item) => {
+    if (type === 'conversion') {
+      // New client conversion data processing
+      const monthlyData = (data as NewClientData[]).reduce((acc, item) => {
+        const date = new Date(item.firstVisitDate);
+        const month = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+        if (!acc[month]) {
+          acc[month] = { month, newClients: 0, conversions: 0, revenue: 0 };
+        }
+        acc[month].newClients += 1;
+        if (item.membershipsBoughtPostTrial === 'Yes') {
+          acc[month].conversions += 1;
+        }
+        acc[month].revenue += item.ltv;
+        return acc;
+      }, {} as Record<string, any>);
+
+      return Object.values(monthlyData).sort((a: any, b: any) => {
+        const dateA = new Date(a.month);
+        const dateB = new Date(b.month);
+        return dateA.getTime() - dateB.getTime();
+      });
+    }
+
+    if (type === 'retention') {
+      // Retention data by location
+      const locationData = (data as NewClientData[]).reduce((acc, item) => {
+        const location = item.firstVisitLocation || 'Unknown';
+        if (!acc[location]) {
+          acc[location] = { name: location, retained: 0, total: 0, revenue: 0 };
+        }
+        acc[location].total += 1;
+        if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
+          acc[location].retained += 1;
+        }
+        acc[location].revenue += item.ltv;
+        return acc;
+      }, {} as Record<string, any>);
+
+      return Object.values(locationData).sort((a: any, b: any) => b.retained - a.retained);
+    }
+
+    // Default category processing for sales data
+    const categoryData = (data as SalesData[]).reduce((acc, item) => {
       const category = item.cleanedCategory || 'Other';
       if (!acc[category]) {
         acc[category] = { name: category, value: 0, count: 0 };
@@ -63,13 +106,30 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
           <p className="font-semibold">{label}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
+              {entry.name}: {typeof entry.value === 'number' && entry.name.toLowerCase().includes('revenue') 
+                ? formatCurrency(entry.value) 
+                : entry.value}
             </p>
           ))}
         </div>
       );
     }
     return null;
+  };
+
+  const getDataKey = () => {
+    if (type === 'conversion') {
+      return activeMetric === 'revenue' ? 'revenue' : activeMetric === 'conversions' ? 'conversions' : 'newClients';
+    }
+    if (type === 'retention') {
+      return activeMetric === 'revenue' ? 'revenue' : activeMetric === 'total' ? 'total' : 'retained';
+    }
+    return activeMetric === 'revenue' ? 'revenue' : activeMetric === 'transactions' ? 'transactions' : 'value';
+  };
+
+  const getXAxisKey = () => {
+    if (type === 'conversion' || type === 'revenue' || type === 'performance') return 'month';
+    return 'name';
   };
 
   const renderChart = () => {
@@ -84,6 +144,9 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
       );
     }
 
+    const dataKey = getDataKey();
+    const xAxisKey = getXAxisKey();
+
     switch (activeChart) {
       case 'bar':
         return (
@@ -91,18 +154,20 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
             <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis 
-                dataKey={type === 'revenue' ? 'month' : 'name'} 
+                dataKey={xAxisKey} 
                 stroke="#64748b"
                 fontSize={12}
               />
               <YAxis 
                 stroke="#64748b"
                 fontSize={12}
-                tickFormatter={(value) => formatCurrency(value)}
+                tickFormatter={(value) => typeof value === 'number' && dataKey.toLowerCase().includes('revenue') 
+                  ? formatCurrency(value) 
+                  : value}
               />
               <Tooltip content={<CustomTooltip />} />
               <Bar 
-                dataKey={activeMetric === 'revenue' ? 'revenue' : activeMetric === 'transactions' ? 'transactions' : 'value'} 
+                dataKey={dataKey} 
                 fill="url(#barGradient)" 
                 radius={[4, 4, 0, 0]}
               />
@@ -122,19 +187,21 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis 
-                dataKey={type === 'revenue' ? 'month' : 'name'} 
+                dataKey={xAxisKey} 
                 stroke="#64748b"
                 fontSize={12}
               />
               <YAxis 
                 stroke="#64748b"
                 fontSize={12}
-                tickFormatter={(value) => formatCurrency(value)}
+                tickFormatter={(value) => typeof value === 'number' && dataKey.toLowerCase().includes('revenue') 
+                  ? formatCurrency(value) 
+                  : value}
               />
               <Tooltip content={<CustomTooltip />} />
               <Line 
                 type="monotone" 
-                dataKey={activeMetric === 'revenue' ? 'revenue' : activeMetric === 'transactions' ? 'transactions' : 'value'} 
+                dataKey={dataKey} 
                 stroke="var(--theme-primary, #3B82F6)" 
                 strokeWidth={3}
                 dot={{ fill: 'var(--theme-primary, #3B82F6)', strokeWidth: 2, r: 4 }}
@@ -153,7 +220,7 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
                 cx="50%"
                 cy="50%"
                 outerRadius={80}
-                dataKey={activeMetric === 'revenue' ? 'revenue' : activeMetric === 'transactions' ? 'transactions' : 'value'}
+                dataKey={dataKey}
                 label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                 labelLine={false}
               >
@@ -161,7 +228,12 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value: any) => [formatCurrency(value), 'Value']} />
+              <Tooltip formatter={(value: any) => [
+                typeof value === 'number' && dataKey.toLowerCase().includes('revenue') 
+                  ? formatCurrency(value) 
+                  : value, 
+                'Value'
+              ]} />
             </PieChart>
           </ResponsiveContainer>
         );
@@ -171,8 +243,30 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
     }
   };
 
-  const maxValue = Math.max(...chartData.map((d: any) => d.revenue || d.value || d.transactions || 0));
-  const totalTransactions = chartData.reduce((sum: number, d: any) => sum + (d.transactions || d.count || 0), 0);
+  const getMetricOptions = () => {
+    if (type === 'conversion') {
+      return [
+        { value: 'revenue', label: 'Revenue' },
+        { value: 'conversions', label: 'Conversions' },
+        { value: 'newClients', label: 'New Clients' }
+      ];
+    }
+    if (type === 'retention') {
+      return [
+        { value: 'retained', label: 'Retained' },
+        { value: 'total', label: 'Total Clients' },
+        { value: 'revenue', label: 'Revenue' }
+      ];
+    }
+    return [
+      { value: 'revenue', label: 'Revenue' },
+      { value: 'transactions', label: 'Transactions' },
+      { value: 'units', label: 'Units' }
+    ];
+  };
+
+  const maxValue = Math.max(...chartData.map((d: any) => d[getDataKey()] || 0));
+  const totalTransactions = chartData.reduce((sum: number, d: any) => sum + (d.transactions || d.conversions || d.total || d.count || 0), 0);
 
   return (
     <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
@@ -215,10 +309,12 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
       
       <CardContent>
         <Tabs value={activeMetric} onValueChange={setActiveMetric} className="mb-4">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="revenue">Revenue</TabsTrigger>
-            <TabsTrigger value="transactions">Transactions</TabsTrigger>
-            <TabsTrigger value="units">Units</TabsTrigger>
+          <TabsList className={`grid w-full grid-cols-${getMetricOptions().length}`}>
+            {getMetricOptions().map(option => (
+              <TabsTrigger key={option.value} value={option.value}>
+                {option.label}
+              </TabsTrigger>
+            ))}
           </TabsList>
         </Tabs>
 
@@ -232,9 +328,13 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
             Advanced Analytics
           </h4>
           <ul className="text-sm text-slate-600 space-y-1">
-            <li>• Peak performance shows {formatCurrency(maxValue)} in {activeMetric}</li>
+            <li>• Peak performance shows {typeof maxValue === 'number' && activeMetric.toLowerCase().includes('revenue') 
+              ? formatCurrency(maxValue) 
+              : maxValue} in {activeMetric}</li>
             <li>• Total data points analyzed: {chartData.length}</li>
-            <li>• Average per period: {formatCurrency(maxValue / Math.max(chartData.length, 1))}</li>
+            <li>• Average per period: {typeof maxValue === 'number' && activeMetric.toLowerCase().includes('revenue') 
+              ? formatCurrency(maxValue / Math.max(chartData.length, 1)) 
+              : (maxValue / Math.max(chartData.length, 1)).toFixed(1)}</li>
             <li>• Total transactions tracked: {totalTransactions.toLocaleString()}</li>
           </ul>
         </div>

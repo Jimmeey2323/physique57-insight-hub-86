@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
 import { SalesAnalyticsSection } from '@/components/dashboard/SalesAnalyticsSection';
@@ -5,13 +6,10 @@ import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { NewClientSection } from '@/components/dashboard/NewClientSection';
-import { useGoogleSheetsNew } from '@/hooks/useGoogleSheetsNew';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('sales-analytics');
   const { data, loading, error, refetch } = useGoogleSheets();
-  const { data: newClientData, loading: newClientLoading, error: newClientError } = useGoogleSheetsNew();
 
   if (loading) {
     return (
@@ -53,30 +51,6 @@ const Index = () => {
     switch (activeSection) {
       case 'sales-analytics':
         return <SalesAnalyticsSection data={data} />;
-      case 'client-retention':
-        if (newClientLoading) {
-          return (
-            <Card className="p-8">
-              <CardContent className="text-center space-y-4">
-                <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto" />
-                <p className="text-lg font-semibold text-slate-800">Loading Client Data</p>
-                <p className="text-sm text-slate-600">Fetching conversion and retention analytics...</p>
-              </CardContent>
-            </Card>
-          );
-        }
-        if (newClientError) {
-          return (
-            <Card className="p-8">
-              <CardContent className="text-center space-y-4">
-                <AlertCircle className="w-12 h-12 text-red-600 mx-auto" />
-                <p className="text-lg font-semibold text-slate-800">Data Error</p>
-                <p className="text-sm text-slate-600">{newClientError}</p>
-              </CardContent>
-            </Card>
-          );
-        }
-        return <NewClientSection data={newClientData} />;
       case 'funnel-leads':
         return (
           <Card className="p-8">

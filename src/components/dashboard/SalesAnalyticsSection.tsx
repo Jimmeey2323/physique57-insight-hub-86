@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -29,7 +30,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
   const [filters, setFilters] = useState<FilterOptions>({
-    dateRange: { start: '', end: '' },
+    dateRange: { start: '2025-03-01', end: '2025-05-31' },
     location: [],
     category: [],
     product: [],
@@ -37,15 +38,67 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     paymentMethod: []
   });
 
+  const parseDate = (dateString: string): Date | null => {
+    if (!dateString) return null;
+    
+    const formats = [
+      new Date(dateString),
+      new Date(dateString.split('/').reverse().join('-')),
+      new Date(dateString.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2'))
+    ];
+
+    for (const date of formats) {
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+    
+    return null;
+  };
+
   const filteredData = useMemo(() => {
     return data.filter(item => {
+      // Location filter
       const locationMatch = activeLocation === 'kwality' 
         ? item.calculatedLocation === 'Kwality House, Kemps Corner'
         : activeLocation === 'supreme'
         ? item.calculatedLocation === 'Supreme HQ, Bandra'
         : item.calculatedLocation === 'Kenkere House';
       
-      return locationMatch;
+      if (!locationMatch) return false;
+
+      // Date range filter
+      if (filters.dateRange.start || filters.dateRange.end) {
+        const itemDate = parseDate(item.paymentDate);
+        if (!itemDate) return false;
+
+        if (filters.dateRange.start) {
+          const startDate = new Date(filters.dateRange.start);
+          if (itemDate < startDate) return false;
+        }
+
+        if (filters.dateRange.end) {
+          const endDate = new Date(filters.dateRange.end);
+          if (itemDate > endDate) return false;
+        }
+      }
+
+      // Category filter
+      if (filters.category.length > 0) {
+        if (!filters.category.includes(item.cleanedCategory)) return false;
+      }
+
+      // Payment method filter
+      if (filters.paymentMethod.length > 0) {
+        if (!filters.paymentMethod.includes(item.paymentMethod)) return false;
+      }
+
+      // Sold by filter
+      if (filters.soldBy.length > 0) {
+        if (!filters.soldBy.includes(item.soldBy)) return false;
+      }
+
+      return true;
     });
   }, [data, activeLocation, filters]);
 
@@ -88,7 +141,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Ticket Value',
-        value: formatCurrency(atv),
+        value: `₹${Math.round(atv)}`,
         change: -2.1,
         description: 'Average revenue per transaction, key indicator of pricing strategy effectiveness',
         calculation: 'Total Revenue / Total Transactions',
@@ -96,7 +149,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Unit Value',
-        value: formatCurrency(auv),
+        value: `₹${Math.round(auv)}`,
         change: 5.7,
         description: 'Average revenue per unit sold, reflecting product pricing efficiency',
         calculation: 'Total Revenue / Total Units Sold',
@@ -131,7 +184,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
   const resetFilters = () => {
     setFilters({
-      dateRange: { start: '', end: '' },
+      dateRange: { start: '2025-03-01', end: '2025-05-31' },
       location: [],
       category: [],
       product: [],

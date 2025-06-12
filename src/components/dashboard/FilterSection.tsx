@@ -6,8 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Filter, RefreshCw, Calendar, User, CreditCard, Package } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ChevronDown, ChevronUp, Filter, RefreshCw, Calendar as CalendarIcon, User, CreditCard, Package } from 'lucide-react';
 import { FilterOptions } from '@/types/dashboard';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface FilterSectionProps {
   filters: FilterOptions;
@@ -21,6 +25,89 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   onReset
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    filters.dateRange.start ? new Date(filters.dateRange.start) : new Date('2025-03-01')
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    filters.dateRange.end ? new Date(filters.dateRange.end) : new Date('2025-05-31')
+  );
+
+  const handleStartDateChange = (date: Date | undefined) => {
+    setStartDate(date);
+    onFiltersChange({
+      ...filters,
+      dateRange: {
+        ...filters.dateRange,
+        start: date ? format(date, 'yyyy-MM-dd') : ''
+      }
+    });
+  };
+
+  const handleEndDateChange = (date: Date | undefined) => {
+    setEndDate(date);
+    onFiltersChange({
+      ...filters,
+      dateRange: {
+        ...filters.dateRange,
+        end: date ? format(date, 'yyyy-MM-dd') : ''
+      }
+    });
+  };
+
+  const handleCategoryChange = (value: string) => {
+    const newCategories = value === 'all' ? [] : [value];
+    onFiltersChange({
+      ...filters,
+      category: newCategories
+    });
+  };
+
+  const handlePaymentMethodChange = (value: string) => {
+    const newMethods = value === 'all' ? [] : [value];
+    onFiltersChange({
+      ...filters,
+      paymentMethod: newMethods
+    });
+  };
+
+  const handleSoldByChange = (value: string) => {
+    const newSoldBy = value === 'all' ? [] : [value];
+    onFiltersChange({
+      ...filters,
+      soldBy: newSoldBy
+    });
+  };
+
+  const applyQuickFilter = (type: string) => {
+    const today = new Date();
+    let start: Date, end: Date;
+
+    switch (type) {
+      case 'today':
+        start = end = today;
+        break;
+      case 'week':
+        start = new Date(today.setDate(today.getDate() - 7));
+        end = new Date();
+        break;
+      case 'month':
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
+      default:
+        return;
+    }
+
+    setStartDate(start);
+    setEndDate(end);
+    onFiltersChange({
+      ...filters,
+      dateRange: {
+        start: format(start, 'yyyy-MM-dd'),
+        end: format(end, 'yyyy-MM-dd')
+      }
+    });
+  };
 
   return (
     <Card className="mb-6 bg-gradient-to-r from-white via-slate-50/50 to-white border-0 shadow-xl">
@@ -36,7 +123,9 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                   <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
                     Advanced Filters & Analytics Controls
                   </CardTitle>
-                  <p className="text-sm text-slate-600 mt-1">Customize your data view with comprehensive filtering options</p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Default Period: 01/03/2025 - 31/05/2025
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -56,40 +145,66 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
         <CollapsibleContent>
           <CardContent className="pt-0 bg-gradient-to-br from-slate-50/30 to-white">
             <div className="space-y-6">
-              {/* Date Range Filters */}
+              {/* Date Range Filters with Calendar Popover */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="start-date" className="flex items-center gap-2 font-semibold text-slate-700">
-                    <Calendar className="w-4 h-4 text-blue-600" />
+                  <Label className="flex items-center gap-2 font-semibold text-slate-700">
+                    <CalendarIcon className="w-4 h-4 text-blue-600" />
                     Start Date
                   </Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={filters.dateRange.start}
-                    onChange={(e) => onFiltersChange({
-                      ...filters,
-                      dateRange: { ...filters.dateRange, start: e.target.value }
-                    })}
-                    className="bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-200"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-white border-slate-200",
+                          !startDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "dd/MM/yyyy") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={handleStartDateChange}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="end-date" className="flex items-center gap-2 font-semibold text-slate-700">
-                    <Calendar className="w-4 h-4 text-blue-600" />
+                  <Label className="flex items-center gap-2 font-semibold text-slate-700">
+                    <CalendarIcon className="w-4 h-4 text-blue-600" />
                     End Date
                   </Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={filters.dateRange.end}
-                    onChange={(e) => onFiltersChange({
-                      ...filters,
-                      dateRange: { ...filters.dateRange, end: e.target.value }
-                    })}
-                    className="bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-200"
-                  />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal bg-white border-slate-200",
+                          !endDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "dd/MM/yyyy") : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={handleEndDateChange}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
                 
                 <div className="space-y-2">
@@ -97,7 +212,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     <Package className="w-4 h-4 text-purple-600" />
                     Product Category
                   </Label>
-                  <Select>
+                  <Select onValueChange={handleCategoryChange} defaultValue="all">
                     <SelectTrigger className="bg-white border-slate-200 focus:border-purple-500">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
@@ -116,7 +231,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     <CreditCard className="w-4 h-4 text-green-600" />
                     Payment Method
                   </Label>
-                  <Select>
+                  <Select onValueChange={handlePaymentMethodChange} defaultValue="all">
                     <SelectTrigger className="bg-white border-slate-200 focus:border-green-500">
                       <SelectValue placeholder="All Methods" />
                     </SelectTrigger>
@@ -139,7 +254,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     <User className="w-4 h-4 text-orange-600" />
                     Sales Representative
                   </Label>
-                  <Select>
+                  <Select onValueChange={handleSoldByChange} defaultValue="all">
                     <SelectTrigger className="bg-white border-slate-200 focus:border-orange-500">
                       <SelectValue placeholder="All Staff" />
                     </SelectTrigger>
@@ -198,13 +313,28 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
               {/* Quick Filter Buttons */}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200">
                 <h4 className="text-sm font-semibold text-slate-700 w-full mb-2">Quick Filters:</h4>
-                <Button variant="outline" size="sm" className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                  onClick={() => applyQuickFilter('today')}
+                >
                   Today's Sales
                 </Button>
-                <Button variant="outline" size="sm" className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                  onClick={() => applyQuickFilter('week')}
+                >
                   This Week
                 </Button>
-                <Button variant="outline" size="sm" className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                  onClick={() => applyQuickFilter('month')}
+                >
                   This Month
                 </Button>
                 <Button variant="outline" size="sm" className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100">

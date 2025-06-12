@@ -10,7 +10,7 @@ import { DataTable } from './DataTable';
 import { FilterSection } from './FilterSection';
 import { TopBottomSellers } from './TopBottomSellers';
 import { useNewClientData } from '@/hooks/useNewClientData';
-import { NewClientData, NewClientFilterOptions, MetricCardData } from '@/types/dashboard';
+import { NewClientData, NewClientFilterOptions, MetricCardData, TableData } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
 
 interface NewClientSectionProps {
@@ -134,7 +134,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }));
   }, [filteredData]);
 
-  const memberDetailData = useMemo(() => {
+  const memberDetailData = useMemo((): TableData[] => {
     return filteredData.map(item => ({
       'Member ID': item.memberId,
       'Name': `${item.firstName} ${item.lastName}`,
@@ -148,7 +148,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }));
   }, [filteredData]);
 
-  const conversionFunnelData = useMemo(() => {
+  const conversionFunnelData = useMemo((): TableData[] => {
     const totalSignups = filteredData.length;
     const attendedTrial = filteredData.filter(item => item.visitsPostTrial > 0).length;
     const boughtMembership = filteredData.filter(item => item.membershipsBoughtPostTrial === 'Yes').length;
@@ -180,7 +180,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     ];
   }, [filteredData]);
 
-  const locationAnalysisData = useMemo(() => {
+  const locationAnalysisData = useMemo((): TableData[] => {
     const locationStats = filteredData.reduce((acc, item) => {
       const location = item.firstVisitLocation;
       if (!acc[location]) {
@@ -211,7 +211,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }));
   }, [filteredData]);
 
-  const trainerPerformanceData = useMemo(() => {
+  const trainerPerformanceData = useMemo((): TableData[] => {
     const trainerStats = filteredData.reduce((acc, item) => {
       const trainer = item.trainerName;
       if (!trainer || trainer === '') return acc;
@@ -242,7 +242,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }));
   }, [filteredData]);
 
-  const revenueDistributionData = useMemo(() => {
+  const revenueDistributionData = useMemo((): TableData[] => {
     const paymentStats = filteredData.reduce((acc, item) => {
       const method = item.paymentMethod;
       if (!acc[method]) {
@@ -369,8 +369,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               <CardContent>
                 <DataTable
                   title=""
-                  data={trainerPerformanceData.slice(0, 5)}
-                  showTotals={false}
+                  data={trainerPerformanceData.slice(0, 5) as any}
                 />
               </CardContent>
             </Card>
@@ -381,8 +380,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               <CardContent>
                 <DataTable
                   title=""
-                  data={trainerPerformanceData.slice(-5).reverse()}
-                  showTotals={false}
+                  data={trainerPerformanceData.slice(-5).reverse() as any}
                 />
               </CardContent>
             </Card>
@@ -393,13 +391,11 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DataTable
               title="Conversion Funnel Analysis"
-              data={conversionFunnelData}
-              showTotals={true}
+              data={conversionFunnelData as any}
             />
             <DataTable
               title="Monthly Performance Metrics"
-              data={monthlyData}
-              showTotals={true}
+              data={monthlyData as any}
             />
           </div>
         </TabsContent>
@@ -407,32 +403,28 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         <TabsContent value="revenue" className="space-y-6">
           <DataTable
             title="Revenue Distribution by Payment Method"
-            data={revenueDistributionData}
-            showTotals={true}
+            data={revenueDistributionData as any}
           />
         </TabsContent>
 
         <TabsContent value="location" className="space-y-6">
           <DataTable
             title="Location Performance Analysis"
-            data={locationAnalysisData}
-            showTotals={true}
+            data={locationAnalysisData as any}
           />
         </TabsContent>
 
         <TabsContent value="trainers" className="space-y-6">
           <DataTable
             title="Trainer Performance Metrics"
-            data={trainerPerformanceData}
-            showTotals={true}
+            data={trainerPerformanceData as any}
           />
         </TabsContent>
 
         <TabsContent value="detailed" className="space-y-6">
           <DataTable
             title="Member Details"
-            data={memberDetailData}
-            showTotals={false}
+            data={memberDetailData as any}
           />
         </TabsContent>
       </Tabs>

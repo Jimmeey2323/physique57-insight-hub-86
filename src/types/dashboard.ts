@@ -91,3 +91,6 @@ export interface ChartDataPoint {
   value: number;
   category?: string;
 }
+
+// Generic table data type for flexible table structures
+export type TableData = Record<string, any>;

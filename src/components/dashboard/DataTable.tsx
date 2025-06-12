@@ -66,7 +66,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
         const date = parseDate(item.paymentDate);
         if (!date) return null;
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      }).filter(Boolean)].sort();
+      }).filter(Boolean))].sort();
 
       return products.map(product => {
         const productData = filteredData.filter(item => item.cleanedProduct === product);
@@ -279,7 +279,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
         month: 'short', 
         year: '2-digit' 
       });
-    }).filter(Boolean)].sort();
+    }).filter(Boolean))].sort();
 
     return months as string[];
   }, [data, type]);

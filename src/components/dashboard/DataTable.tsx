@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -165,7 +166,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
           row[`${monthName}_atv`] = transactions > 0 ? Math.round(grossRevenue / transactions) : 0;
           row[`${monthName}_auv`] = unitsSold > 0 ? Math.round(grossRevenue / unitsSold) : 0;
           row[`${monthName}_asv`] = uniqueMembers > 0 ? Math.round(grossRevenue / uniqueMembers) : 0;
-          row[`${monthName}_upt`] = transactions > 0 ? (unitsSold / transactions) : 0;
+          row[`${monthName}_upt`] = transactions > 0 ? Number((unitsSold / transactions).toFixed(1)) : 0;
         });
 
         return row;
@@ -266,7 +267,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       atv: item.transactions > 0 ? Math.round(item.grossRevenue / item.transactions) : 0,
       auv: item.unitsSold > 0 ? Math.round(item.grossRevenue / item.unitsSold) : 0,
       asv: item.uniqueMembers.size > 0 ? Math.round(item.grossRevenue / item.uniqueMembers.size) : 0,
-      upt: item.transactions > 0 ? (item.unitsSold / item.transactions) : 0
+      upt: item.transactions > 0 ? Number((item.unitsSold / item.transactions).toFixed(1)) : 0
     }));
   }, [data, type, filters]);
 
@@ -615,17 +616,17 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
         {metricTabs.map(tab => (
           <TabsContent key={tab} value={tab}>
             <div className="rounded-lg border border-slate-200 overflow-x-auto shadow-sm">
-              <Table className="min-w-full table-fixed">
+              <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100">
-                    <TableHead className="font-semibold text-slate-700 w-48 min-w-48">Product</TableHead>
-                    <TableHead className="font-semibold text-slate-700 w-32 min-w-32">Category</TableHead>
+                    <TableHead className="font-semibold text-slate-700 min-w-[200px] sticky left-0 bg-slate-50 z-10">Product</TableHead>
+                    <TableHead className="font-semibold text-slate-700 min-w-[120px] sticky left-[200px] bg-slate-50 z-10">Category</TableHead>
                     {monthYears.map(month => (
-                      <TableHead key={month} className="font-semibold text-slate-700 text-center w-24 min-w-24">
+                      <TableHead key={month} className="font-semibold text-slate-700 text-center min-w-[100px]">
                         {month}
                       </TableHead>
                     ))}
-                    <TableHead className="font-semibold text-slate-700 text-center w-24 min-w-24 bg-green-50 border-l-2 border-green-200">Total</TableHead>
+                    <TableHead className="font-semibold text-slate-700 text-center min-w-[100px] bg-green-50 border-l-2 border-green-200 sticky right-0 z-10">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -635,7 +636,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                         className="bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors"
                         onClick={() => toggleGroup(category)}
                       >
-                        <TableCell colSpan={monthYears.length + 3} className="font-semibold text-slate-800">
+                        <TableCell colSpan={monthYears.length + 3} className="font-semibold text-slate-800 sticky left-0 bg-slate-50 z-10">
                           <div className="flex items-center gap-2">
                             <ChevronDown 
                               className={cn(
@@ -653,14 +654,14 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                             const rowTotal = monthYears.reduce((sum, month) => sum + (item[`${month}_${tab}`] || 0), 0);
                             return (
                               <TableRow key={index} className="hover:bg-slate-50 transition-colors">
-                                <TableCell className="font-medium text-slate-900 truncate">{item.name}</TableCell>
-                                <TableCell className="text-slate-600 truncate">{item.category}</TableCell>
+                                <TableCell className="font-medium text-slate-900 truncate sticky left-0 bg-white z-10 border-r border-slate-200">{item.name}</TableCell>
+                                <TableCell className="text-slate-600 truncate sticky left-[200px] bg-white z-10 border-r border-slate-200">{item.category}</TableCell>
                                 {monthYears.map(month => (
                                   <TableCell key={month} className="text-center text-sm">
                                     {getMetricValue(item, tab, month)}
                                   </TableCell>
                                 ))}
-                                <TableCell className="font-semibold text-center bg-green-50 border-l-2 border-green-200">
+                                <TableCell className="font-semibold text-center bg-green-50 border-l-2 border-green-200 sticky right-0 z-10">
                                   {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                     ? formatCurrency(rowTotal)
                                     : tab === 'upt'
@@ -672,7 +673,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                             );
                           })}
                           <TableRow className="bg-blue-50 font-semibold">
-                            <TableCell colSpan={2} className="text-blue-800">
+                            <TableCell colSpan={2} className="text-blue-800 sticky left-0 bg-blue-50 z-10">
                               {category} Subtotal
                             </TableCell>
                             {monthYears.map(month => {
@@ -688,7 +689,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                                 </TableCell>
                               );
                             })}
-                            <TableCell className="text-blue-800 text-center bg-green-50 border-l-2 border-green-200 font-semibold">
+                            <TableCell className="text-blue-800 text-center bg-green-50 border-l-2 border-green-200 font-semibold sticky right-0 z-10">
                               {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                 ? formatCurrency((items as any[]).reduce((sum, item) => {
                                     const itemTotal = monthYears.reduce((s, month) => s + (item[`${month}_${tab}`] || 0), 0);
@@ -713,7 +714,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                 </TableBody>
                 <TableFooter>
                   <TableRow className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                    <TableCell colSpan={2} className="font-bold">Total</TableCell>
+                    <TableCell colSpan={2} className="font-bold sticky left-0 bg-blue-600 z-10">Total</TableCell>
                     {monthYears.map(month => (
                       <TableCell key={month} className="font-bold text-center text-sm">
                         {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
@@ -724,7 +725,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                         }
                       </TableCell>
                     ))}
-                    <TableCell className="font-bold text-center bg-green-50 border-l-2 border-green-200">
+                    <TableCell className="font-bold text-center bg-green-50 border-l-2 border-green-200 sticky right-0 z-10 text-blue-600">
                       {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                         ? formatCurrency(monthYears.reduce((sum, month) => sum + (totals[`${month}_${tab}`] || 0), 0))
                         : tab === 'upt'

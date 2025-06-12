@@ -14,24 +14,24 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-import { SalesData, FilterOptions, NewClientData, NewClientFilterOptions } from '@/types/dashboard';
+import { SalesData, FilterOptions } from '@/types/dashboard';
 import { cn } from '@/lib/utils';
 
 interface DataTableProps {
   title: string;
-  data: SalesData[] | NewClientData[] | any[];
+  data: SalesData[] | any[];
   type: string;
-  filters: FilterOptions | NewClientFilterOptions | any;
+  filters: FilterOptions | any;
   onRowClick?: (row: any) => void;
 }
 
 const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRowClick }) => {
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<keyof SalesData | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [columnFilter, setColumnFilter] = useState("");
   const [rowSelection, setRowSelection] = React.useState({})
 
-  const handleSort = (column: string) => {
+  const handleSort = (column: keyof SalesData) => {
     if (column === sortColumn) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
@@ -45,13 +45,11 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRow
 
     let filteredData = [...data];
 
-    // Apply date range filter for sales data
-    if (filters && filters.dateRange && 'paymentDate' in (data[0] || {})) {
-      const salesData = filteredData as SalesData[];
+    if (filters && filters.dateRange) {
       const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
       const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
 
-      filteredData = salesData.filter(item => {
+      filteredData = filteredData.filter(item => {
         if (!item.paymentDate) return false;
 
         let itemDate: Date | null = null;
@@ -108,13 +106,13 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRow
 
     switch (type) {
       case 'monthly':
-        return processMonthlyData(filteredData as SalesData[]);
+        return processMonthlyData(filteredData);
       case 'product':
-        return processProductData(filteredData as SalesData[]);
+        return processProductData(filteredData);
       case 'category':
-        return processCategoryData(filteredData as SalesData[]);
+        return processCategoryData(filteredData);
       case 'yoy-analysis':
-        return processYoYAnalysis(filteredData as SalesData[]);
+        return processYoYAnalysis(filteredData);
       default:
         return filteredData;
     }
@@ -124,31 +122,8 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRow
     const monthlyData: { [key: string]: { month: string; revenue: number; transactions: number } } = {};
 
     filteredData.forEach(item => {
-      if (!item.paymentDate) return;
-      
-      let itemDate: Date | null = null;
-      const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (ddmmyyyy) {
-        const [, day, month, year] = ddmmyyyy;
-        itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      } else {
-        const formats = [
-          new Date(item.paymentDate),
-          new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')),
-          new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3'))
-        ];
-        
-        for (const date of formats) {
-          if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
-            itemDate = date;
-            break;
-          }
-        }
-      }
-      
-      if (!itemDate || isNaN(itemDate.getTime())) return;
-      
-      const monthYear = `${itemDate.toLocaleString('default', { month: 'short' })}-${itemDate.getFullYear()}`;
+      const date = new Date(item.paymentDate);
+      const monthYear = `${date.toLocaleString('default', { month: 'short' })}-${date.getFullYear()}`;
 
       if (!monthlyData[monthYear]) {
         monthlyData[monthYear] = { month: monthYear, revenue: 0, transactions: 0 };
@@ -158,13 +133,7 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRow
       monthlyData[monthYear].transactions += 1;
     });
 
-    return Object.values(monthlyData).sort((a, b) => {
-      const [monthA, yearA] = a.month.split('-');
-      const [monthB, yearB] = b.month.split('-');
-      const dateA = new Date(`${monthA} 1, ${yearA}`);
-      const dateB = new Date(`${monthB} 1, ${yearB}`);
-      return dateB.getTime() - dateA.getTime();
-    });
+    return Object.values(monthlyData);
   };
 
   const processProductData = (filteredData: SalesData[]) => {
@@ -202,98 +171,123 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRow
   };
 
   const processYoYAnalysis = (filteredData: SalesData[]) => {
-    const allData = data as SalesData[];
-    const monthlyData: { [key: string]: { month: string; '2024': number; '2025': number; change: string } } = {};
+    const yoyData: { [key: string]: { year: string; revenue: number; } } = {};
 
-    // Process all data for 2024 baseline
-    allData.forEach(item => {
-      if (!item.paymentDate) return;
-      
-      let itemDate: Date | null = null;
-      const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (ddmmyyyy) {
-        const [, day, month, year] = ddmmyyyy;
-        itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      } else {
-        const formats = [
-          new Date(item.paymentDate),
-          new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')),
-          new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3'))
-        ];
-        
-        for (const date of formats) {
-          if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
-            itemDate = date;
-            break;
-          }
-        }
-      }
-      
-      if (!itemDate || isNaN(itemDate.getTime())) return;
-      
-      const month = itemDate.toLocaleString('default', { month: 'short' });
-      const year = itemDate.getFullYear();
-
-      if (!monthlyData[month]) {
-        monthlyData[month] = { month, '2024': 0, '2025': 0, change: '0%' };
-      }
-
-      if (year === 2024) {
-        monthlyData[month]['2024'] += item.paymentValue;
-      } else if (year === 2025) {
-        monthlyData[month]['2025'] += item.paymentValue;
-      }
-    });
-
-    // Process filtered data for 2025 only
     filteredData.forEach(item => {
-      if (!item.paymentDate) return;
-      
-      let itemDate: Date | null = null;
-      const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (ddmmyyyy) {
-        const [, day, month, year] = ddmmyyyy;
-        itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-      } else {
-        const formats = [
-          new Date(item.paymentDate),
-          new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')),
-          new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3'))
-        ];
-        
-        for (const date of formats) {
-          if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
-            itemDate = date;
-            break;
-          }
-        }
-      }
-      
-      if (!itemDate || isNaN(itemDate.getTime())) return;
-      
-      const month = itemDate.toLocaleString('default', { month: 'short' });
-      const year = itemDate.getFullYear();
+      const date = new Date(item.paymentDate);
+      const year = String(date.getFullYear());
 
-      if (year === 2025 && monthlyData[month]) {
-        monthlyData[month]['2025'] = item.paymentValue;
+      if (!yoyData[year]) {
+        yoyData[year] = { year: year, revenue: 0 };
       }
+
+      yoyData[year].revenue += item.paymentValue;
     });
 
-    // Calculate change percentages
-    Object.values(monthlyData).forEach(item => {
-      if (item['2024'] > 0) {
-        const change = ((item['2025'] - item['2024']) / item['2024']) * 100;
-        item.change = `${change > 0 ? '+' : ''}${change.toFixed(1)}%`;
-      } else {
-        item.change = item['2025'] > 0 ? '+100%' : '0%';
-      }
-    });
+    return Object.values(yoyData);
+  };
 
-    const monthOrder = ['Dec', 'Nov', 'Oct', 'Sep', 'Aug', 'Jul', 'Jun', 'May', 'Apr', 'Mar', 'Feb', 'Jan'];
-    
-    return Object.values(monthlyData).sort((a, b) => {
-      return monthOrder.indexOf(a.month) - monthOrder.indexOf(b.month);
-    });
+  const renderTable = () => {
+    switch (type) {
+      case 'monthly':
+        return (
+          <Table>
+            <TableHeader className="sticky top-0 z-10">
+              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
+                {['Month', 'Revenue', 'Transactions'].map(header => (
+                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white">
+              {processedData.map((row: any) => (
+                <TableRow key={row.month} className="hover:bg-blue-50">
+                  <TableCell className="font-medium">{row.month}</TableCell>
+                  <TableCell>{formatCurrency(row.revenue)}</TableCell>
+                  <TableCell>{row.transactions}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        );
+      case 'product':
+        return (
+          <Table>
+            <TableHeader className="sticky top-0 z-10">
+              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600">
+                {['Product', 'Revenue', 'Quantity'].map(header => (
+                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white">
+              {processedData.map((row: any) => (
+                <TableRow key={row.product} className="hover:bg-blue-50">
+                  <TableCell className="font-medium">{row.product}</TableCell>
+                  <TableCell>{formatCurrency(row.revenue)}</TableCell>
+                  <TableCell>{row.quantity}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        );
+      case 'category':
+        return (
+          <Table>
+            <TableHeader className="sticky top-0 z-10">
+              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600">
+                {['Category', 'Revenue', 'Quantity'].map(header => (
+                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white">
+              {processedData.map((row: any) => (
+                <TableRow key={row.category} className="hover:bg-blue-50">
+                  <TableCell className="font-medium">{row.category}</TableCell>
+                  <TableCell>{formatCurrency(row.revenue)}</TableCell>
+                  <TableCell>{row.quantity}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        );
+      case 'yoy-analysis':
+        return (
+          <Table>
+            <TableHeader className="sticky top-0 z-10">
+              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600">
+                {['Year', 'Revenue'].map(header => (
+                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white">
+              {processedData.map((row: any) => (
+                <TableRow key={row.year} className="hover:bg-blue-50">
+                  <TableCell className="font-medium">{row.year}</TableCell>
+                  <TableCell>{formatCurrency(row.revenue)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        );
+      default:
+        return (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data Type Not Supported</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell>The data type provided is not supported for table rendering.</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        );
+    }
   };
 
   const processNewClientData = () => {
@@ -425,131 +419,7 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRow
       return processNewClientData();
     }
     return processData();
-  }, [data, type, filters, sortColumn, sortDirection, columnFilter]);
-
-  const renderTable = () => {
-    switch (type) {
-      case 'monthly':
-        return (
-          <Table>
-            <TableHeader className="sticky top-0 z-10">
-              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-                {['Month', 'Revenue', 'Transactions'].map(header => (
-                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="bg-white">
-              {processedData.map((row: any) => (
-                <TableRow 
-                  key={row.month} 
-                  className="hover:bg-blue-50 cursor-pointer"
-                  onClick={() => onRowClick && onRowClick(row)}
-                >
-                  <TableCell className="font-medium">{row.month}</TableCell>
-                  <TableCell>{formatCurrency(row.revenue)}</TableCell>
-                  <TableCell>{row.transactions}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        );
-      case 'product':
-        return (
-          <Table>
-            <TableHeader className="sticky top-0 z-10">
-              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600">
-                {['Product', 'Revenue', 'Quantity'].map(header => (
-                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="bg-white">
-              {processedData.map((row: any) => (
-                <TableRow 
-                  key={row.product} 
-                  className="hover:bg-blue-50 cursor-pointer"
-                  onClick={() => onRowClick && onRowClick(row)}
-                >
-                  <TableCell className="font-medium">{row.product}</TableCell>
-                  <TableCell>{formatCurrency(row.revenue)}</TableCell>
-                  <TableCell>{row.quantity}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        );
-      case 'category':
-        return (
-          <Table>
-            <TableHeader className="sticky top-0 z-10">
-              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600">
-                {['Category', 'Revenue', 'Quantity'].map(header => (
-                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="bg-white">
-              {processedData.map((row: any) => (
-                <TableRow 
-                  key={row.category} 
-                  className="hover:bg-blue-50 cursor-pointer"
-                  onClick={() => onRowClick && onRowClick(row)}
-                >
-                  <TableCell className="font-medium">{row.category}</TableCell>
-                  <TableCell>{formatCurrency(row.revenue)}</TableCell>
-                  <TableCell>{row.quantity}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        );
-      case 'yoy-analysis':
-        return (
-          <Table>
-            <TableHeader className="sticky top-0 z-10">
-              <TableRow className="bg-gradient-to-r from-blue-500 to-purple-600">
-                {['Month', '2024', '2025', 'Change'].map(header => (
-                  <TableHead key={header} className="text-white font-bold">{header}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody className="bg-white">
-              {processedData.map((row: any) => (
-                <TableRow 
-                  key={row.month} 
-                  className="hover:bg-blue-50 cursor-pointer"
-                  onClick={() => onRowClick && onRowClick(row)}
-                >
-                  <TableCell className="font-medium">{row.month}</TableCell>
-                  <TableCell>{formatCurrency(row['2024'])}</TableCell>
-                  <TableCell>{formatCurrency(row['2025'])}</TableCell>
-                  <TableCell className={cn(
-                    "font-medium",
-                    row.change.startsWith('+') ? "text-green-600" : row.change.startsWith('-') ? "text-red-600" : "text-gray-600"
-                  )}>{row.change}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        );
-      default:
-        return (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data Type Not Supported</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <TableRow>
-                <TableCell>The data type provided is not supported for table rendering.</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        );
-    }
-  };
+  }, [data, type, filters]);
 
   const renderNewClientTables = () => {
     switch (type) {
@@ -705,6 +575,24 @@ const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters, onRow
     <Card className="overflow-hidden shadow-xl bg-white/95 backdrop-blur-sm border-0">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-2xl font-bold tracking-tight">{title}</CardTitle>
+        {/* <div className="flex items-center space-x-2">
+          <Input
+            placeholder="Filter..."
+            value={columnFilter}
+            onChange={(e) => setColumnFilter(e.target.value)}
+            className="h-8 w-[150px] lg:w-[250px]"
+          />
+          <Select>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="View" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="light">Light</SelectItem>
+              <SelectItem value="dark">Dark</SelectItem>
+              <SelectItem value="system">System</SelectItem>
+            </SelectContent>
+          </Select>
+        </div> */}
       </CardHeader>
       
       <CardContent className="p-0">

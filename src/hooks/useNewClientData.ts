@@ -25,17 +25,53 @@ export interface NewClientData {
   conversionStatus: string;
 }
 
+const GOOGLE_CONFIG = {
+  CLIENT_ID: "416630995185-g7b0fm679lb4p45p5lou070cqscaalaf.apps.googleusercontent.com",
+  CLIENT_SECRET: "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",
+  REFRESH_TOKEN: "1//0gT2uoYBlNdGXCgYIARAAGBASNwF-L9IrBK_ijYwpce6-TdqDfji4GxYuc4uxIBKasdgoZBPm-tu_EU0xS34cNirqfLgXbJ8_NMk",
+  TOKEN_URL: "https://oauth2.googleapis.com/token"
+};
+
 const SHEET_ID = '1hBSuSAb6X2LLU-o3yZxJl_Fb6oXgtNI0eZnJI8K3SKw';
 const SHEET_NAME = '◉ New';
-const API_KEY = 'AIzaSyBIqkqv_jnGcEATPEGQKKL-3FJhDY6_6A8';
+
+const getAccessToken = async () => {
+  try {
+    const response = await fetch(GOOGLE_CONFIG.TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: GOOGLE_CONFIG.CLIENT_ID,
+        client_secret: GOOGLE_CONFIG.CLIENT_SECRET,
+        refresh_token: GOOGLE_CONFIG.REFRESH_TOKEN,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    const tokenData = await response.json();
+    return tokenData.access_token;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
+  }
+};
 
 export const useNewClientData = () => {
   return useQuery({
     queryKey: ['newClientData'],
     queryFn: async (): Promise<NewClientData[]> => {
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A:U?key=${API_KEY}`;
+      const accessToken = await getAccessToken();
       
-      const response = await fetch(url);
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${encodeURIComponent(SHEET_NAME)}!A:U?alt=json`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

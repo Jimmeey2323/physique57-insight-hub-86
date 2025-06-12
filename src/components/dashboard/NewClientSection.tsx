@@ -18,7 +18,7 @@ interface NewClientSectionProps {
 }
 
 export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: externalData }) => {
-  const { data: hookData, loading, error } = useNewClientData();
+  const { data: hookData, isLoading, error } = useNewClientData();
   const data = externalData || hookData || [];
   
   const [activeView, setActiveView] = useState('overview');
@@ -268,7 +268,11 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }));
   }, [filteredData]);
 
-  if (loading) {
+  const handleFiltersChange = (newFilters: NewClientFilterOptions) => {
+    setFilters(newFilters);
+  };
+
+  if (isLoading) {
     return (
       <Card className="p-8">
         <CardContent className="text-center">
@@ -320,7 +324,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         <FilterSection
           data={filteredData}
           filters={filters}
-          onFiltersChange={setFilters}
+          onFiltersChange={handleFiltersChange}
           type="newClient"
         />
       )}
@@ -358,16 +362,30 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <TopBottomSellers
-              title="Top Performing Trainers"
-              data={trainerPerformanceData.slice(0, 5)}
-              type="trainers"
-            />
-            <TopBottomSellers
-              title="Bottom Performing Trainers"
-              data={trainerPerformanceData.slice(-5).reverse()}
-              type="trainers"
-            />
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle>Top Performing Trainers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataTable
+                  title=""
+                  data={trainerPerformanceData.slice(0, 5)}
+                  showTotals={false}
+                />
+              </CardContent>
+            </Card>
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle>Bottom Performing Trainers</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataTable
+                  title=""
+                  data={trainerPerformanceData.slice(-5).reverse()}
+                  showTotals={false}
+                />
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 

@@ -109,9 +109,6 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   const renderProductDetails = () => {
     const grossRevenue = data.grossRevenue || data.totalValue || 0;
     
-    // Safely handle upt field - convert to number if it's a string
-    const safeUpt = typeof data.upt === 'string' ? parseFloat(data.upt) : (data.upt || 0);
-    
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -185,7 +182,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-slate-600">Units per Transaction</span>
-                    <span className="font-bold text-indigo-600">{safeUpt.toFixed(2)}</span>
+                    <span className="font-bold text-indigo-600">{(data.upt || 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-slate-600">Units Sold</span>

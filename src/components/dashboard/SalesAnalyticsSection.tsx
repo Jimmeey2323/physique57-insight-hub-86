@@ -29,7 +29,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
   const [filters, setFilters] = useState<FilterOptions>({
-    dateRange: { start: '2025-03-01', end: '2025-05-31' },
+    dateRange: { start: '', end: '' },
     location: [],
     category: [],
     product: [],
@@ -37,12 +37,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     paymentMethod: []
   });
 
-  // Helper function to filter data by date range and other filters
-  const applyFilters = (rawData: SalesData[]) => {
-    let filtered = rawData;
-
-    // Apply location filter first
-    filtered = filtered.filter(item => {
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
       const locationMatch = activeLocation === 'kwality' 
         ? item.calculatedLocation === 'Kwality House, Kemps Corner'
         : activeLocation === 'supreme'
@@ -51,61 +47,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       
       return locationMatch;
     });
-
-    // Apply date range filter
-    if (filters.dateRange.start || filters.dateRange.end) {
-      const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
-      const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
-
-      filtered = filtered.filter(item => {
-        if (!item.paymentDate) return false;
-        
-        // Parse date from DD/MM/YYYY format
-        const dateParts = item.paymentDate.split('/');
-        if (dateParts.length !== 3) return false;
-        
-        const itemDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
-        if (isNaN(itemDate.getTime())) return false;
-        
-        if (startDate && itemDate < startDate) return false;
-        if (endDate && itemDate > endDate) return false;
-        
-        return true;
-      });
-    }
-
-    // Apply other filters
-    if (filters.category?.length) {
-      filtered = filtered.filter(item => 
-        filters.category!.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase()))
-      );
-    }
-
-    if (filters.paymentMethod?.length) {
-      filtered = filtered.filter(item => 
-        filters.paymentMethod!.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase()))
-      );
-    }
-
-    if (filters.soldBy?.length) {
-      filtered = filtered.filter(item => 
-        filters.soldBy!.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase()))
-      );
-    }
-
-    if (filters.minAmount) {
-      filtered = filtered.filter(item => (item.paymentValue || 0) >= filters.minAmount!);
-    }
-
-    if (filters.maxAmount) {
-      filtered = filtered.filter(item => (item.paymentValue || 0) <= filters.maxAmount!);
-    }
-
-    return filtered;
-  };
-
-  const filteredData = useMemo(() => {
-    return applyFilters(data);
   }, [data, activeLocation, filters]);
 
   const metrics = useMemo((): MetricCardData[] => {
@@ -147,7 +88,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Ticket Value',
-        value: `₹${Math.round(atv)}`,
+        value: formatCurrency(atv),
         change: -2.1,
         description: 'Average revenue per transaction, key indicator of pricing strategy effectiveness',
         calculation: 'Total Revenue / Total Transactions',
@@ -155,7 +96,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Unit Value',
-        value: `₹${Math.round(auv)}`,
+        value: formatCurrency(auv),
         change: 5.7,
         description: 'Average revenue per unit sold, reflecting product pricing efficiency',
         calculation: 'Total Revenue / Total Units Sold',
@@ -171,7 +112,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Spend Value',
-        value: `₹${Math.round(asv)}`,
+        value: formatCurrency(asv),
         change: 7.4,
         description: 'Average spend per unique member, measuring customer lifetime value',
         calculation: 'Total Revenue / Unique Members',
@@ -179,7 +120,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Units per Transaction',
-        value: upt.toFixed(1),
+        value: upt.toFixed(2),
         change: 3.2,
         description: 'Average number of units per transaction, indicating cross-selling success',
         calculation: 'Total Units / Total Transactions',
@@ -190,7 +131,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
   const resetFilters = () => {
     setFilters({
-      dateRange: { start: '2025-03-01', end: '2025-05-31' },
+      dateRange: { start: '', end: '' },
       location: [],
       category: [],
       product: [],
@@ -309,7 +250,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Month-on-Month Performance Matrix"
                 data={filteredData}
                 type="monthly"
-                filters={filters}
                 onRowClick={handleTableRowClick}
               />
               
@@ -317,7 +257,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Product Performance Analysis"
                 data={filteredData}
                 type="product"
-                filters={filters}
                 onRowClick={handleTableRowClick}
               />
               
@@ -325,7 +264,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Category Performance Breakdown"
                 data={filteredData}
                 type="category"
-                filters={filters}
                 onRowClick={handleTableRowClick}
               />
               
@@ -333,7 +271,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Year-on-Year Growth Analysis"
                 data={filteredData}
                 type="yoy-analysis"
-                filters={filters}
                 onRowClick={handleTableRowClick}
               />
             </div>

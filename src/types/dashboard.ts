@@ -1,5 +1,4 @@
 
-
 export interface SalesData {
   memberId: string;
   customerName: string;
@@ -95,7 +94,3 @@ export interface ChartDataPoint {
 
 // Generic table data type for flexible table structures
 export type TableData = Record<string, any>;
-
-// Union type for data that can be displayed in tables
-export type DisplayableData = SalesData | NewClientData | TableData;
-

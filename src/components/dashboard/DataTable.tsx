@@ -622,8 +622,8 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
               <Table className="min-w-full">
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100">
-                    <TableHead className="font-semibold text-slate-700 sticky left-0 bg-slate-100 z-10">Product</TableHead>
-                    <TableHead className="font-semibold text-slate-700 sticky left-20 bg-slate-100 z-10">Category</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-48 min-w-48 sticky left-0 bg-slate-100 z-10">Product</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32 min-w-32 sticky left-20 bg-slate-100 z-10">Category</TableHead>
                     {Object.entries(quarterGroups).map(([quarter, months]) => (
                       <React.Fragment key={quarter}>
                         <TableHead 
@@ -634,17 +634,17 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                         </TableHead>
                       </React.Fragment>
                     ))}
-                    <TableHead className="font-semibold text-slate-700 border-l-2 border-green-200 bg-green-50">Total</TableHead>
+                    <TableHead className="font-semibold text-slate-700 border-l-2 border-green-200 bg-green-50 w-24 min-w-24">Total</TableHead>
                   </TableRow>
                   <TableRow className="bg-slate-50">
                     <TableHead className="sticky left-0 bg-slate-50 z-10"></TableHead>
                     <TableHead className="sticky left-20 bg-slate-50 z-10"></TableHead>
                     {monthYears.map(month => (
-                      <TableHead key={month} className="font-medium text-slate-600 text-center">
+                      <TableHead key={month} className="font-medium text-slate-600 text-center w-20 min-w-20">
                         {month}
                       </TableHead>
                     ))}
-                    <TableHead className="border-l-2 border-green-200"></TableHead>
+                    <TableHead className="border-l-2 border-green-200 w-24 min-w-24"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -683,7 +683,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                                     {getMetricValue(item, tab, month)}
                                   </TableCell>
                                 ))}
-                                <TableCell className="font-semibold border-l-2 border-green-200 bg-green-50">
+                                <TableCell className="font-semibold border-l-2 border-green-200 bg-green-50 w-24 min-w-24">
                                   {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                     ? formatCurrency(rowTotal)
                                     : tab === 'upt'
@@ -701,7 +701,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                             {monthYears.map(month => {
                               const subtotal = (items as any[]).reduce((sum, item) => sum + (item[`${month}_${tab}`] || 0), 0);
                               return (
-                                <TableCell key={month} className="text-center text-blue-800">
+                                <TableCell key={month} className="text-center text-blue-800 w-20 min-w-20">
                                   {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                     ? formatCurrency(subtotal)
                                     : tab === 'upt'
@@ -711,7 +711,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                                 </TableCell>
                               );
                             })}
-                            <TableCell className="text-blue-800 border-l-2 border-green-200 bg-green-50">
+                            <TableCell className="text-blue-800 border-l-2 border-green-200 bg-green-50 w-24 min-w-24">
                               {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                 ? formatCurrency((items as any[]).reduce((sum, item) => {
                                     const itemTotal = monthYears.reduce((s, month) => s + (item[`${month}_${tab}`] || 0), 0);
@@ -738,7 +738,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                   <TableRow className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
                     <TableCell colSpan={2} className="font-bold sticky left-0 bg-blue-600 z-10">Total</TableCell>
                     {monthYears.map(month => (
-                      <TableCell key={month} className="font-bold text-center">
+                      <TableCell key={month} className="font-bold text-center w-20 min-w-20">
                         {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                           ? formatCurrency(totals[`${month}_${tab}`] || 0)
                           : tab === 'upt'
@@ -747,7 +747,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                         }
                       </TableCell>
                     ))}
-                    <TableCell className="font-bold border-l-2 border-green-200">
+                    <TableCell className="font-bold border-l-2 border-green-200 w-24 min-w-24">
                       {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                         ? formatCurrency(monthYears.reduce((sum, month) => sum + (totals[`${month}_${tab}`] || 0), 0))
                         : tab === 'upt'

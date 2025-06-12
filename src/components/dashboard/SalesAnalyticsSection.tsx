@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AutoCloseFilterSection } from './AutoCloseFilterSection';
 import { MetricCard } from './MetricCard';
 import { UnifiedTopBottomSellers } from './UnifiedTopBottomSellers';
-import DataTable from './DataTable';
+import { DataTable } from './DataTable';
 import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
 import { DrillDownModal } from './DrillDownModal';

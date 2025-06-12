@@ -16,7 +16,17 @@ interface NewClientSectionProps {
   data?: NewClientData[];
 }
 
+const locations = [
+  { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
+  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
+  { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
+];
+
 export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: externalData }) => {
+  const [activeLocation, setActiveLocation] = useState('kwality');
+  const [currentTheme, setCurrentTheme] = useState('classic');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [drillDownData, setDrillDownData] = useState<any>(null);
   const { data: hookData, isLoading, error } = useNewClientData();
   const data = externalData || hookData || [];
   

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,7 +66,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
         const date = parseDate(item.paymentDate);
         if (!date) return null;
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      }).filter(Boolean))].sort();
+      }).filter(Boolean)].sort();
 
       return products.map(product => {
         const productData = filteredData.filter(item => item.cleanedProduct === product);
@@ -280,7 +279,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
         month: 'short', 
         year: '2-digit' 
       });
-    }).filter(Boolean))].sort();
+    }).filter(Boolean)].sort();
 
     return months as string[];
   }, [data, type]);
@@ -494,8 +493,8 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                           className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
                           onClick={() => handleRowClick(row)}
                         >
-                          <TableCell className="font-semibold text-slate-800 sticky left-0 bg-white/90 backdrop-blur-sm border-r-2 border-slate-200/50 text-sm pl-8 min-w-[200px]">
-                            {row.name}
+                          <TableCell className="font-semibold text-slate-800 sticky left-0 bg-white/90 backdrop-blur-sm border-r-2 border-slate-200/50 text-sm min-w-[200px]">
+                            <div className="pl-8">{row.name}</div>
                           </TableCell>
                           {monthYears.map(month => (
                             <TableCell key={month} className="text-center font-medium text-sm border-r border-slate-200/20 min-w-[120px]">
@@ -599,7 +598,9 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                         className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
                         onClick={() => handleRowClick(row)}
                       >
-                        <TableCell className="font-semibold text-slate-800 pl-8 min-w-[200px]">{row.name}</TableCell>
+                        <TableCell className="font-semibold text-slate-800 min-w-[200px]">
+                          <div className="pl-8">{row.name}</div>
+                        </TableCell>
                         <TableCell className="text-center font-medium min-w-[140px]">{formatCurrency(row.currentYearRevenue)}</TableCell>
                         <TableCell className="text-center min-w-[140px]">{formatCurrency(row.lastYearRevenue)}</TableCell>
                         <TableCell className="text-center min-w-[120px]">
@@ -738,7 +739,9 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                         className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
                         onClick={() => handleRowClick(row)}
                       >
-                        <TableCell className="font-semibold text-slate-800 pl-8 min-w-[200px]">{row.name}</TableCell>
+                        <TableCell className="font-semibold text-slate-800 min-w-[200px]">
+                          <div className="pl-8">{row.name}</div>
+                        </TableCell>
                         <TableCell className="text-center font-medium min-w-[120px]">{formatCurrency(row.grossRevenue || 0)}</TableCell>
                         <TableCell className="text-center min-w-[100px]">{formatCurrency(row.vat || 0)}</TableCell>
                         <TableCell className="text-center font-medium min-w-[120px]">{formatCurrency(row.netRevenue || 0)}</TableCell>

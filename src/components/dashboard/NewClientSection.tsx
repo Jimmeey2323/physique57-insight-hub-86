@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -170,6 +171,11 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Conversion Status': item.conversionStatus
     }));
     console.log('Member detail data:', tableData.slice(0, 2));
+    console.log('Member detail data structure for DataTable:', {
+      dataLength: tableData.length,
+      firstRowKeys: tableData[0] ? Object.keys(tableData[0]) : [],
+      firstRowData: tableData[0]
+    });
     return tableData;
   }, [filteredData]);
 
@@ -181,7 +187,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       item.retentionStatus === 'Active' || item.retentionStatus === 'Retained'
     ).length;
 
-    return [
+    const funnelData = [
       {
         'Stage': 'Trial Signups',
         'Count': totalSignups,
@@ -203,6 +209,13 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         '% of Previous Stage': boughtMembership > 0 ? `${((retained / boughtMembership) * 100).toFixed(1)}%` : '0%'
       }
     ];
+    
+    console.log('Conversion funnel data for DataTable:', {
+      dataLength: funnelData.length,
+      structure: funnelData
+    });
+    
+    return funnelData;
   }, [filteredData]);
 
   const locationAnalysisData = useMemo((): TableData[] => {
@@ -227,13 +240,20 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.entries(locationStats).map(([location, stats]: [string, any]) => ({
+    const locationData = Object.entries(locationStats).map(([location, stats]: [string, any]) => ({
       'Location': location,
       'First Visits': stats.firstVisits,
       'Conversions': stats.conversions,
       'Retention Rate': stats.firstVisits > 0 ? `${((stats.retainedMembers / stats.firstVisits) * 100).toFixed(1)}%` : '0%',
       'Revenue Generated': formatCurrency(stats.totalRevenue)
     }));
+    
+    console.log('Location analysis data for DataTable:', {
+      dataLength: locationData.length,
+      structure: locationData.slice(0, 2)
+    });
+    
+    return locationData;
   }, [filteredData]);
 
   const trainerPerformanceData = useMemo((): TableData[] => {
@@ -258,13 +278,20 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.entries(trainerStats).map(([trainer, stats]: [string, any]) => ({
+    const trainerData = Object.entries(trainerStats).map(([trainer, stats]: [string, any]) => ({
       'Trainer': trainer,
       'Total Clients': stats.totalClients,
       'Avg. Visits': stats.totalClients > 0 ? (stats.totalVisits / stats.totalClients).toFixed(1) : '0',
       'Avg. LTV': formatCurrency(stats.totalClients > 0 ? stats.totalLTV / stats.totalClients : 0),
       'Conversion Rate': stats.totalClients > 0 ? `${((stats.conversions / stats.totalClients) * 100).toFixed(1)}%` : '0%'
     }));
+    
+    console.log('Trainer performance data for DataTable:', {
+      dataLength: trainerData.length,
+      structure: trainerData.slice(0, 2)
+    });
+    
+    return trainerData;
   }, [filteredData]);
 
   const revenueDistributionData = useMemo((): TableData[] => {
@@ -285,12 +312,19 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.entries(paymentStats).map(([method, stats]: [string, any]) => ({
+    const revenueData = Object.entries(paymentStats).map(([method, stats]: [string, any]) => ({
       'Payment Method': method,
       'Total Revenue': formatCurrency(stats.totalRevenue),
       'Avg LTV': formatCurrency(stats.memberCount > 0 ? stats.totalLTV / stats.memberCount : 0),
       'Member Count': stats.memberCount
     }));
+    
+    console.log('Revenue distribution data for DataTable:', {
+      dataLength: revenueData.length,
+      structure: revenueData.slice(0, 2)
+    });
+    
+    return revenueData;
   }, [filteredData]);
 
   const handleFiltersChange = (newFilters: NewClientFilterOptions) => {
@@ -411,7 +445,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               <CardContent>
                 <DataTable
                   title=""
-                  data={trainerPerformanceData.slice(0, 5) as any}
+                  data={trainerPerformanceData.slice(0, 5)}
                   type="category"
                 />
               </CardContent>
@@ -423,7 +457,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               <CardContent>
                 <DataTable
                   title=""
-                  data={trainerPerformanceData.slice(-5).reverse() as any}
+                  data={trainerPerformanceData.slice(-5).reverse()}
                   type="category"
                 />
               </CardContent>
@@ -435,12 +469,12 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DataTable
               title="Conversion Funnel Analysis"
-              data={conversionFunnelData as any}
+              data={conversionFunnelData}
               type="category"
             />
             <DataTable
               title="Monthly Performance Metrics"
-              data={monthlyData as any}
+              data={monthlyData}
               type="monthly"
             />
           </div>
@@ -449,7 +483,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         <TabsContent value="revenue" className="space-y-6">
           <DataTable
             title="Revenue Distribution by Payment Method"
-            data={revenueDistributionData as any}
+            data={revenueDistributionData}
             type="category"
           />
         </TabsContent>
@@ -457,7 +491,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         <TabsContent value="location" className="space-y-6">
           <DataTable
             title="Location Performance Analysis"
-            data={locationAnalysisData as any}
+            data={locationAnalysisData}
             type="category"
           />
         </TabsContent>
@@ -465,7 +499,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         <TabsContent value="trainers" className="space-y-6">
           <DataTable
             title="Trainer Performance Metrics"
-            data={trainerPerformanceData as any}
+            data={trainerPerformanceData}
             type="category"
           />
         </TabsContent>
@@ -473,7 +507,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         <TabsContent value="detailed" className="space-y-6">
           <DataTable
             title="Member Details"
-            data={memberDetailData as any}
+            data={memberDetailData}
             type="category"
           />
         </TabsContent>

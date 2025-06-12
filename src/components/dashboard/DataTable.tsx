@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronLeft, ChevronRight, ArrowUpDown, Eye, Download, Filter, Search, TrendingUp, TrendingDown, ChevronDown, Edit, Save, X } from 'lucide-react';
+import { ChevronRight, ArrowUpDown, Eye, Download, Filter, Search, TrendingUp, TrendingDown, ChevronDown, Edit, Save, X } from 'lucide-react';
 import { SalesData } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -32,6 +32,12 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
   const [isEditingSummary, setIsEditingSummary] = useState(false);
   const [editedSummary, setEditedSummary] = useState('');
   const itemsPerPage = 10;
+
+  // Initialize all groups as collapsed by default
+  useState(() => {
+    const allCategories = [...new Set(data.map(item => item.cleanedCategory || 'Uncategorized'))];
+    setCollapsedGroups(new Set(allCategories));
+  });
 
   // Helper function to safely parse dates
   const parseDate = (dateString: string): Date | null => {
@@ -365,13 +371,22 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
       };
     }
 
+    const totalGrossRevenue = groupItems.reduce((sum, item) => sum + (item.grossRevenue || 0), 0);
+    const totalTransactions = groupItems.reduce((sum, item) => sum + (item.transactions || 0), 0);
+    const totalUnits = groupItems.reduce((sum, item) => sum + (item.unitsSold || 0), 0);
+    const totalMembers = groupItems.reduce((sum, item) => sum + (item.uniqueMembers || 0), 0);
+
     return {
-      grossRevenue: groupItems.reduce((sum, item) => sum + (item.grossRevenue || 0), 0),
+      grossRevenue: totalGrossRevenue,
       netRevenue: groupItems.reduce((sum, item) => sum + (item.netRevenue || 0), 0),
       vat: groupItems.reduce((sum, item) => sum + (item.vat || 0), 0),
-      unitsSold: groupItems.reduce((sum, item) => sum + (item.unitsSold || 0), 0),
-      transactions: groupItems.reduce((sum, item) => sum + (item.transactions || 0), 0),
-      uniqueMembers: groupItems.reduce((sum, item) => sum + (item.uniqueMembers || 0), 0)
+      unitsSold: totalUnits,
+      transactions: totalTransactions,
+      uniqueMembers: totalMembers,
+      atv: totalTransactions > 0 ? totalGrossRevenue / totalTransactions : 0,
+      auv: totalUnits > 0 ? totalGrossRevenue / totalUnits : 0,
+      asv: totalMembers > 0 ? totalGrossRevenue / totalMembers : 0,
+      upt: totalTransactions > 0 ? totalUnits / totalTransactions : 0
     };
   };
 
@@ -395,7 +410,6 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
   };
 
   const saveSummaryEdit = () => {
-    // In a real app, this would save to a backend
     localStorage.setItem(`table-summary-${type}`, editedSummary);
     setIsEditingSummary(false);
   };
@@ -460,7 +474,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                     {monthYears.map(month => {
                       const totals = calculateGroupTotals(items);
                       return (
-                        <TableCell key={month} className="text-center font-bold text-blue-700 border-r border-slate-200/30">
+                        <TableCell key={month} className="text-center font-bold text-blue-700 border-r border-slate-200/30 min-w-[120px]">
                           {activeTab === 'grossRevenue' && formatCurrency(totals[`${month}_grossRevenue`] || 0)}
                           {activeTab === 'netRevenue' && formatCurrency(totals[`${month}_netRevenue`] || 0)}
                           {activeTab === 'transactions' && formatNumber(totals[`${month}_transactions`] || 0)}
@@ -477,14 +491,14 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                       {items.map((row, index) => (
                         <TableRow 
                           key={index} 
-                          className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30 pl-8"
+                          className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
                           onClick={() => handleRowClick(row)}
                         >
-                          <TableCell className="font-semibold text-slate-800 sticky left-0 bg-white/90 backdrop-blur-sm border-r-2 border-slate-200/50 text-sm pl-8">
+                          <TableCell className="font-semibold text-slate-800 sticky left-0 bg-white/90 backdrop-blur-sm border-r-2 border-slate-200/50 text-sm pl-8 min-w-[200px]">
                             {row.name}
                           </TableCell>
                           {monthYears.map(month => (
-                            <TableCell key={month} className="text-center font-medium text-sm border-r border-slate-200/20">
+                            <TableCell key={month} className="text-center font-medium text-sm border-r border-slate-200/20 min-w-[120px]">
                               {activeTab === 'grossRevenue' && formatCurrency(row[`${month}_grossRevenue`] || 0)}
                               {activeTab === 'netRevenue' && formatCurrency(row[`${month}_netRevenue`] || 0)}
                               {activeTab === 'transactions' && formatNumber(row[`${month}_transactions`] || 0)}
@@ -502,6 +516,24 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                 </React.Fragment>
               ))}
             </TableBody>
+            <TableFooter className="sticky bottom-0 bg-white/95 backdrop-blur-sm z-10">
+              <TableRow className="bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-blue-50/80 font-bold border-t-3 border-slate-300">
+                <TableCell className="font-bold text-slate-800 sticky left-0 bg-blue-50/90 backdrop-blur-sm border-r-2 border-slate-200/50 min-w-[200px]">OVERALL TOTALS</TableCell>
+                {monthYears.map(month => {
+                  const allItems = Object.values(filteredAndSearchedData).flat();
+                  const totals = calculateGroupTotals(allItems);
+                  return (
+                    <TableCell key={month} className="text-center font-bold text-blue-700 border-r border-slate-200/30 min-w-[120px]">
+                      {activeTab === 'grossRevenue' && formatCurrency(totals[`${month}_grossRevenue`] || 0)}
+                      {activeTab === 'netRevenue' && formatCurrency(totals[`${month}_netRevenue`] || 0)}
+                      {activeTab === 'transactions' && formatNumber(totals[`${month}_transactions`] || 0)}
+                      {activeTab === 'uniqueMembers' && formatNumber(totals[`${month}_uniqueMembers`] || 0)}
+                      {(activeTab === 'atv' || activeTab === 'asv' || activeTab === 'auv' || activeTab === 'upt') && '-'}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            </TableFooter>
           </Table>
         </div>
       </Tabs>
@@ -514,13 +546,13 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
         <Table>
           <TableHeader className="sticky top-0 bg-white/95 backdrop-blur-sm z-10">
             <TableRow className="bg-gradient-to-r from-slate-100/80 via-white to-slate-100/80 border-b-2 border-slate-200/50">
-              <TableHead className="font-bold text-slate-800">Name</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Current Year Revenue</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Last Year Revenue</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Revenue Growth</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Current Transactions</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Last Transactions</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Transaction Growth</TableHead>
+              <TableHead className="font-bold text-slate-800 min-w-[200px]">Name</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[140px]">Current Year Revenue</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[140px]">Last Year Revenue</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[120px]">Revenue Growth</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[130px]">Current Transactions</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[130px]">Last Transactions</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[140px]">Transaction Growth</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -529,7 +561,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                 {/* Category Header Row */}
                 <TableRow className="bg-gradient-to-r from-blue-100/80 to-purple-100/80 border-y-2 border-blue-200/50">
                   <TableCell 
-                    className="font-bold text-blue-800 cursor-pointer"
+                    className="font-bold text-blue-800 cursor-pointer min-w-[200px]"
                     onClick={() => toggleGroup(category)}
                   >
                     <div className="flex items-center gap-2">
@@ -547,12 +579,12 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                     
                     return (
                       <>
-                        <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.currentYearRevenue)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.lastYearRevenue)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatPercentage(revenueGrowth)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatNumber(totals.currentYearTransactions)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatNumber(totals.lastYearTransactions)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatPercentage(transactionGrowth)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[140px]">{formatCurrency(totals.currentYearRevenue)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[140px]">{formatCurrency(totals.lastYearRevenue)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[120px]">{formatPercentage(revenueGrowth)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[130px]">{formatNumber(totals.currentYearTransactions)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[130px]">{formatNumber(totals.lastYearTransactions)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[140px]">{formatPercentage(transactionGrowth)}</TableCell>
                       </>
                     );
                   })()}
@@ -567,10 +599,10 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                         className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
                         onClick={() => handleRowClick(row)}
                       >
-                        <TableCell className="font-semibold text-slate-800 pl-8">{row.name}</TableCell>
-                        <TableCell className="text-center font-medium">{formatCurrency(row.currentYearRevenue)}</TableCell>
-                        <TableCell className="text-center">{formatCurrency(row.lastYearRevenue)}</TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="font-semibold text-slate-800 pl-8 min-w-[200px]">{row.name}</TableCell>
+                        <TableCell className="text-center font-medium min-w-[140px]">{formatCurrency(row.currentYearRevenue)}</TableCell>
+                        <TableCell className="text-center min-w-[140px]">{formatCurrency(row.lastYearRevenue)}</TableCell>
+                        <TableCell className="text-center min-w-[120px]">
                           <div className="flex items-center justify-center gap-1">
                             {row.revenueGrowth > 0 ? (
                               <TrendingUp className="w-4 h-4 text-green-600" />
@@ -585,9 +617,9 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-center">{formatNumber(row.currentYearTransactions)}</TableCell>
-                        <TableCell className="text-center">{formatNumber(row.lastYearTransactions)}</TableCell>
-                        <TableCell className="text-center">
+                        <TableCell className="text-center min-w-[130px]">{formatNumber(row.currentYearTransactions)}</TableCell>
+                        <TableCell className="text-center min-w-[130px]">{formatNumber(row.lastYearTransactions)}</TableCell>
+                        <TableCell className="text-center min-w-[140px]">
                           <div className="flex items-center justify-center gap-1">
                             {row.transactionGrowth > 0 ? (
                               <TrendingUp className="w-4 h-4 text-green-600" />
@@ -611,7 +643,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
           </TableBody>
           <TableFooter className="sticky bottom-0 bg-white/95 backdrop-blur-sm z-10">
             <TableRow className="bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-blue-50/80 font-bold border-t-3 border-slate-300">
-              <TableCell className="font-bold text-slate-800">OVERALL TOTALS</TableCell>
+              <TableCell className="font-bold text-slate-800 min-w-[200px]">OVERALL TOTALS</TableCell>
               {(() => {
                 const allItems = Object.values(filteredAndSearchedData).flat();
                 const totals = calculateGroupTotals(allItems);
@@ -622,12 +654,12 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                 
                 return (
                   <>
-                    <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.currentYearRevenue)}</TableCell>
-                    <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.lastYearRevenue)}</TableCell>
-                    <TableCell className="text-center font-bold text-blue-700">{formatPercentage(revenueGrowth)}</TableCell>
-                    <TableCell className="text-center font-bold text-blue-700">{formatNumber(totals.currentYearTransactions)}</TableCell>
-                    <TableCell className="text-center font-bold text-blue-700">{formatNumber(totals.lastYearTransactions)}</TableCell>
-                    <TableCell className="text-center font-bold text-blue-700">{formatPercentage(transactionGrowth)}</TableCell>
+                    <TableCell className="text-center font-bold text-blue-700 min-w-[140px]">{formatCurrency(totals.currentYearRevenue)}</TableCell>
+                    <TableCell className="text-center font-bold text-blue-700 min-w-[140px]">{formatCurrency(totals.lastYearRevenue)}</TableCell>
+                    <TableCell className="text-center font-bold text-blue-700 min-w-[120px]">{formatPercentage(revenueGrowth)}</TableCell>
+                    <TableCell className="text-center font-bold text-blue-700 min-w-[130px]">{formatNumber(totals.currentYearTransactions)}</TableCell>
+                    <TableCell className="text-center font-bold text-blue-700 min-w-[130px]">{formatNumber(totals.lastYearTransactions)}</TableCell>
+                    <TableCell className="text-center font-bold text-blue-700 min-w-[140px]">{formatPercentage(transactionGrowth)}</TableCell>
                   </>
                 );
               })()}
@@ -644,21 +676,21 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
         <Table>
           <TableHeader className="sticky top-0 bg-white/95 backdrop-blur-sm z-10">
             <TableRow className="bg-gradient-to-r from-slate-100/80 via-white to-slate-100/80 border-b-2 border-slate-200/50">
-              <TableHead className="font-bold text-slate-800">Name</TableHead>
-              <TableHead className="text-center font-bold text-slate-700 cursor-pointer" onClick={() => handleSort('grossRevenue')}>
+              <TableHead className="font-bold text-slate-800 min-w-[200px]">Name</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 cursor-pointer min-w-[120px]" onClick={() => handleSort('grossRevenue')}>
                 <div className="flex items-center justify-center gap-1">
                   Gross Revenue <ArrowUpDown className="w-3 h-3" />
                 </div>
               </TableHead>
-              <TableHead className="text-center font-bold text-slate-700">VAT</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Net Revenue</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Units</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Transactions</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Members</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">ATV</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">AUV</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">ASV</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">UPT</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[100px]">VAT</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[120px]">Net Revenue</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[80px]">Units</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[100px]">Transactions</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[100px]">Members</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[80px]">ATV</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[80px]">AUV</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[80px]">ASV</TableHead>
+              <TableHead className="text-center font-bold text-slate-700 min-w-[80px]">UPT</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -668,7 +700,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                 {/* Category Header Row */}
                 <TableRow className="bg-gradient-to-r from-blue-100/80 to-purple-100/80 border-y-2 border-blue-200/50">
                   <TableCell 
-                    className="font-bold text-blue-800 cursor-pointer"
+                    className="font-bold text-blue-800 cursor-pointer min-w-[200px]"
                     onClick={() => toggleGroup(category)}
                   >
                     <div className="flex items-center gap-2">
@@ -681,16 +713,16 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                     const totals = calculateGroupTotals(items);
                     return (
                       <>
-                        <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.grossRevenue)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.vat)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.netRevenue)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatNumber(totals.unitsSold)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatNumber(totals.transactions)}</TableCell>
-                        <TableCell className="text-center font-bold text-blue-700">{formatNumber(totals.uniqueMembers)}</TableCell>
-                        <TableCell className="text-center text-slate-500">-</TableCell>
-                        <TableCell className="text-center text-slate-500">-</TableCell>
-                        <TableCell className="text-center text-slate-500">-</TableCell>
-                        <TableCell className="text-center text-slate-500">-</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[120px]">{formatCurrency(totals.grossRevenue)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[100px]">{formatCurrency(totals.vat)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[120px]">{formatCurrency(totals.netRevenue)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[80px]">{formatNumber(totals.unitsSold)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[100px]">{formatNumber(totals.transactions)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[100px]">{formatNumber(totals.uniqueMembers)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[80px]">{formatCurrency(totals.atv)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[80px]">{formatCurrency(totals.auv)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[80px]">{formatCurrency(totals.asv)}</TableCell>
+                        <TableCell className="text-center font-bold text-blue-700 min-w-[80px]">{totals.upt.toFixed(2)}</TableCell>
                         <TableCell></TableCell>
                       </>
                     );
@@ -706,17 +738,17 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                         className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
                         onClick={() => handleRowClick(row)}
                       >
-                        <TableCell className="font-semibold text-slate-800 pl-8">{row.name}</TableCell>
-                        <TableCell className="text-center font-medium">{formatCurrency(row.grossRevenue || 0)}</TableCell>
-                        <TableCell className="text-center">{formatCurrency(row.vat || 0)}</TableCell>
-                        <TableCell className="text-center font-medium">{formatCurrency(row.netRevenue || 0)}</TableCell>
-                        <TableCell className="text-center">{formatNumber(row.unitsSold || 0)}</TableCell>
-                        <TableCell className="text-center">{formatNumber(row.transactions || 0)}</TableCell>
-                        <TableCell className="text-center">{formatNumber(row.uniqueMembers || 0)}</TableCell>
-                        <TableCell className="text-center">{formatCurrency(row.atv || 0)}</TableCell>
-                        <TableCell className="text-center">{formatCurrency(row.auv || 0)}</TableCell>
-                        <TableCell className="text-center">{formatCurrency(row.asv || 0)}</TableCell>
-                        <TableCell className="text-center">{(row.upt || 0).toFixed(2)}</TableCell>
+                        <TableCell className="font-semibold text-slate-800 pl-8 min-w-[200px]">{row.name}</TableCell>
+                        <TableCell className="text-center font-medium min-w-[120px]">{formatCurrency(row.grossRevenue || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[100px]">{formatCurrency(row.vat || 0)}</TableCell>
+                        <TableCell className="text-center font-medium min-w-[120px]">{formatCurrency(row.netRevenue || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[80px]">{formatNumber(row.unitsSold || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[100px]">{formatNumber(row.transactions || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[100px]">{formatNumber(row.uniqueMembers || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[80px]">{formatCurrency(row.atv || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[80px]">{formatCurrency(row.auv || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[80px]">{formatCurrency(row.asv || 0)}</TableCell>
+                        <TableCell className="text-center min-w-[80px]">{(row.upt || 0).toFixed(2)}</TableCell>
                         <TableCell>
                           <Button variant="ghost" size="sm" onClick={() => handleRowClick(row)}>
                             <Eye className="w-3 h-3" />
@@ -731,22 +763,22 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
           </TableBody>
           <TableFooter className="sticky bottom-0 bg-white/95 backdrop-blur-sm z-10">
             <TableRow className="bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-blue-50/80 font-bold border-t-3 border-slate-300">
-              <TableCell className="font-bold text-slate-800">TOTALS</TableCell>
+              <TableCell className="font-bold text-slate-800 min-w-[200px]">TOTALS</TableCell>
               {(() => {
                 const allItems = Object.values(filteredAndSearchedData).flat();
                 const totals = calculateGroupTotals(allItems);
                 return (
                   <>
-                    <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.grossRevenue)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-700">{formatCurrency(totals.vat)}</TableCell>
-                    <TableCell className="text-center font-bold text-green-700">{formatCurrency(totals.netRevenue)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.unitsSold)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.transactions)}</TableCell>
-                    <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.uniqueMembers)}</TableCell>
-                    <TableCell className="text-center text-slate-500">-</TableCell>
-                    <TableCell className="text-center text-slate-500">-</TableCell>
-                    <TableCell className="text-center text-slate-500">-</TableCell>
-                    <TableCell className="text-center text-slate-500">-</TableCell>
+                    <TableCell className="text-center font-bold text-blue-700 min-w-[120px]">{formatCurrency(totals.grossRevenue)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[100px]">{formatCurrency(totals.vat)}</TableCell>
+                    <TableCell className="text-center font-bold text-green-700 min-w-[120px]">{formatCurrency(totals.netRevenue)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[80px]">{formatNumber(totals.unitsSold)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[100px]">{formatNumber(totals.transactions)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[100px]">{formatNumber(totals.uniqueMembers)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[80px]">{formatCurrency(totals.atv)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[80px]">{formatCurrency(totals.auv)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[80px]">{formatCurrency(totals.asv)}</TableCell>
+                    <TableCell className="text-center font-bold text-slate-700 min-w-[80px]">{totals.upt.toFixed(2)}</TableCell>
                     <TableCell></TableCell>
                   </>
                 );
@@ -766,6 +798,20 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
             {getTableTitle()}
           </CardTitle>
           <div className="flex gap-3">
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setQuickFilter('all')} className={cn("transition-all", quickFilter === 'all' && "bg-blue-100")}>
+                All
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setQuickFilter('high-performers')} className={cn("transition-all", quickFilter === 'high-performers' && "bg-blue-100")}>
+                High Performers
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setQuickFilter('growth')} className={cn("transition-all", quickFilter === 'growth' && "bg-green-100")}>
+                Growth
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setQuickFilter('decline')} className={cn("transition-all", quickFilter === 'decline' && "bg-red-100")}>
+                Decline
+              </Button>
+            </div>
             <Button variant="outline" size="sm" className="gap-2 shadow-lg hover:shadow-xl transition-all duration-300">
               <Download className="w-4 h-4" />
               Export
@@ -795,17 +841,6 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
               <SelectItem value="merchandise">Merchandise</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={quickFilter} onValueChange={setQuickFilter}>
-            <SelectTrigger className="w-40 bg-white/80 backdrop-blur-sm border-slate-300 shadow-sm">
-              <SelectValue placeholder="Quick Filter" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Items</SelectItem>
-              <SelectItem value="high-performers">High Performers</SelectItem>
-              <SelectItem value="growth">Growth Items</SelectItem>
-              <SelectItem value="decline">Declining Items</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </CardHeader>
       
@@ -829,7 +864,8 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                   saveSummaryEdit();
                 } else {
                   setIsEditingSummary(true);
-                  setEditedSummary(localStorage.getItem(`table-summary-${type}`) || 'Custom analysis notes...');
+                  const existingSummary = localStorage.getItem(`table-summary-${type}`) || 'Custom analysis notes...';
+                  setEditedSummary(existingSummary);
                 }
               }}
               className="gap-2"

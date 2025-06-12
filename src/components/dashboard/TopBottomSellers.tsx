@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Award, AlertTriangle, Eye, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Award, AlertTriangle, Eye, BarChart3, Users } from 'lucide-react';
 import { SalesData } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -25,7 +26,7 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
           key = item.cleanedCategory;
           break;
         case 'member':
-          key = item.customerName;
+          key = item.customerName || item.memberId;
           break;
         case 'seller':
           key = item.soldBy;
@@ -42,7 +43,8 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
           atv: 0,
           auv: 0,
           asv: 0,
-          upt: 0
+          upt: 0,
+          detailData: []
         };
       }
       
@@ -50,6 +52,7 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
       acc[key].unitsSold += 1;
       acc[key].transactions += 1;
       acc[key].uniqueMembers.add(item.memberId);
+      acc[key].detailData.push(item);
       
       return acc;
     }, {} as Record<string, any>);
@@ -70,6 +73,31 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
   const topSellers = groupedData.slice(0, 5);
   const bottomSellers = groupedData.slice(-5).reverse();
 
+  const getTypeIcon = () => {
+    switch (type) {
+      case 'member':
+        return <Users className="w-5 h-5 text-white" />;
+      default:
+        return <Award className="w-5 h-5 text-white" />;
+    }
+  };
+
+  const getTypeTitle = (isTop: boolean) => {
+    const baseTitle = type === 'member' ? 'Members' : 
+                     type === 'category' ? 'Categories' : 
+                     type === 'seller' ? 'Sellers' : 'Products';
+    
+    return isTop ? `Top ${baseTitle}` : `Bottom ${baseTitle}`;
+  };
+
+  const getTypeDescription = (isTop: boolean) => {
+    const baseDesc = type === 'member' ? 'customers by spend' : 
+                    type === 'category' ? 'performing categories' : 
+                    type === 'seller' ? 'performing sales staff' : 'revenue generators';
+    
+    return isTop ? `Highest ${baseDesc}` : `Lowest ${baseDesc}`;
+  };
+
   const renderSellerCard = (sellers: any[], isTop: boolean) => (
     <Card className="bg-gradient-to-br from-white via-slate-50/50 to-white border-0 shadow-xl hover:shadow-2xl transition-all duration-500">
       <CardHeader className="pb-4">
@@ -77,13 +105,13 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
           {isTop ? (
             <>
               <div className="p-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500">
-                <Award className="w-5 h-5 text-white" />
+                {getTypeIcon()}
               </div>
               <div>
                 <span className="bg-gradient-to-r from-yellow-600 to-orange-600 bg-clip-text text-transparent">
-                  Top Performers
+                  {getTypeTitle(true)}
                 </span>
-                <p className="text-sm text-slate-600 font-normal">Highest revenue generators</p>
+                <p className="text-sm text-slate-600 font-normal">{getTypeDescription(true)}</p>
               </div>
             </>
           ) : (
@@ -93,9 +121,9 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
               </div>
               <div>
                 <span className="bg-gradient-to-r from-red-600 to-rose-600 bg-clip-text text-transparent">
-                  Improvement Opportunities
+                  {getTypeTitle(false)}
                 </span>
-                <p className="text-sm text-slate-600 font-normal">Areas for growth focus</p>
+                <p className="text-sm text-slate-600 font-normal">{getTypeDescription(false)}</p>
               </div>
             </>
           )}
@@ -145,7 +173,9 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
                 {formatCurrency(seller.totalValue)}
               </p>
               <p className="text-sm text-slate-500">{formatNumber(seller.unitsSold)} units</p>
-              <p className="text-xs text-slate-400">{formatNumber(seller.uniqueMembers)} customers</p>
+              <p className="text-xs text-slate-400">
+                {type === 'member' ? `${formatNumber(seller.transactions)} visits` : `${formatNumber(seller.uniqueMembers)} customers`}
+              </p>
               <Button variant="ghost" size="sm" className="mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Eye className="w-3 h-3 mr-1" />
                 View Details
@@ -162,7 +192,7 @@ export const TopBottomSellers: React.FC<TopBottomSellersProps> = ({ data, type, 
           <ul className="text-sm text-slate-600 space-y-1">
             <li>• Average revenue: {formatCurrency(sellers.reduce((sum, s) => sum + s.totalValue, 0) / sellers.length)}</li>
             <li>• Total transactions: {formatNumber(sellers.reduce((sum, s) => sum + s.transactions, 0))}</li>
-            <li>• Combined customer reach: {formatNumber(sellers.reduce((sum, s) => sum + s.uniqueMembers, 0))} unique customers</li>
+            <li>• {type === 'member' ? 'Total member visits' : 'Combined customer reach'}: {formatNumber(type === 'member' ? sellers.reduce((sum, s) => sum + s.transactions, 0) : sellers.reduce((sum, s) => sum + s.uniqueMembers, 0))} {type === 'member' ? 'visits' : 'unique customers'}</li>
             <li>• Performance spread: {((sellers[0]?.totalValue / sellers[sellers.length - 1]?.totalValue || 1) - 1).toFixed(1)}x variance</li>
           </ul>
         </div>

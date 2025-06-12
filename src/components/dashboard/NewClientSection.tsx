@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Filter, Users, TrendingUp, Target, Heart } from 'lucide-react';
 import { MetricCard } from './MetricCard';
 import { InteractiveChart } from './InteractiveChart';
-import DataTable from './DataTable';
+import { DataTable } from './DataTable';
 import { FilterSection } from './FilterSection';
 import { TopBottomSellers } from './TopBottomSellers';
 import { useNewClientData } from '@/hooks/useNewClientData';

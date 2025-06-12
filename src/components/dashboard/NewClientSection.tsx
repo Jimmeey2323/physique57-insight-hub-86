@@ -30,6 +30,13 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   const { data: hookData, isLoading, error } = useNewClientData();
   const data = externalData || hookData || [];
   
+  // Add comprehensive logging
+  console.log('NewClientSection - Raw data:', data);
+  console.log('NewClientSection - Data length:', data.length);
+  console.log('NewClientSection - isLoading:', isLoading);
+  console.log('NewClientSection - error:', error);
+  console.log('NewClientSection - Sample data item:', data[0]);
+  
   const [activeView, setActiveView] = useState('overview');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<NewClientFilterOptions>({
@@ -46,7 +53,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   });
 
   const filteredData = useMemo(() => {
-    return data.filter(item => {
+    console.log('Filtering data with filters:', filters);
+    const filtered = data.filter(item => {
       // Apply filters here
       if (filters.location.length > 0 && !filters.location.includes(item.firstVisitLocation)) return false;
       if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(item.homeLocation)) return false;
@@ -60,9 +68,12 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       
       return true;
     });
+    console.log('Filtered data length:', filtered.length);
+    return filtered;
   }, [data, filters]);
 
   const metrics = useMemo((): MetricCardData[] => {
+    console.log('Computing metrics for data length:', filteredData.length);
     const uniqueMembers = new Set(filteredData.map(item => item.memberId)).size;
     const newClients = filteredData.filter(item => item.isNew === 'Yes').length;
     const returningClients = filteredData.filter(item => item.isNew === 'No').length;
@@ -75,7 +86,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     ).length;
     const retentionRate = filteredData.length > 0 ? (retainedMembers / filteredData.length) * 100 : 0;
 
-    return [
+    const computedMetrics = [
       {
         title: 'Total Clients',
         value: uniqueMembers.toLocaleString(),
@@ -109,6 +120,9 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         icon: 'revenue'
       }
     ];
+    
+    console.log('Computed metrics:', computedMetrics);
+    return computedMetrics;
   }, [filteredData]);
 
   const monthlyData = useMemo(() => {
@@ -144,7 +158,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   }, [filteredData]);
 
   const memberDetailData = useMemo((): TableData[] => {
-    return filteredData.map(item => ({
+    const tableData = filteredData.map(item => ({
       'Member ID': item.memberId,
       'Name': `${item.firstName} ${item.lastName}`,
       'Email': item.email,
@@ -155,6 +169,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Retention Status': item.retentionStatus,
       'Conversion Status': item.conversionStatus
     }));
+    console.log('Member detail data:', tableData.slice(0, 2));
+    return tableData;
   }, [filteredData]);
 
   const conversionFunnelData = useMemo((): TableData[] => {
@@ -278,10 +294,12 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   }, [filteredData]);
 
   const handleFiltersChange = (newFilters: NewClientFilterOptions) => {
+    console.log('Filters changed:', newFilters);
     setFilters(newFilters);
   };
 
   if (isLoading) {
+    console.log('NewClientSection - Showing loading state');
     return (
       <Card className="p-8">
         <CardContent className="text-center">
@@ -293,6 +311,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   }
 
   if (error) {
+    console.log('NewClientSection - Showing error state:', error);
     return (
       <Card className="p-8">
         <CardContent className="text-center text-red-600">
@@ -301,6 +320,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       </Card>
     );
   }
+
+  console.log('NewClientSection - Rendering main content with data length:', data.length);
 
   return (
     <div className="space-y-6">
@@ -311,6 +332,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
             Client Conversion & Retention Analytics
           </h2>
           <p className="text-slate-600 mt-2">Track member acquisition, conversion, and retention metrics</p>
+          <p className="text-sm text-slate-500 mt-1">Data points: {data.length} | Filtered: {filteredData.length}</p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -327,6 +349,17 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           </Button>
         </div>
       </div>
+
+      {/* Debug Information */}
+      {data.length === 0 && (
+        <Card className="p-4 bg-yellow-50 border-yellow-200">
+          <CardContent>
+            <p className="text-yellow-800">
+              ⚠️ No data available. Check console for debugging information.
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Filters */}
       {showFilters && (

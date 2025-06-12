@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -122,11 +123,12 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       const products = [...new Set(filteredData.map(item => item.cleanedProduct))].filter(Boolean);
       
       // Get all unique month-years and sort them
-      const monthYears = [...new Set(filteredData.map(item => {
+      const monthYearsSet = new Set(filteredData.map(item => {
         const date = parseDate(item.paymentDate);
         if (!date) return null;
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      }).filter(Boolean)] as string[];
+      }).filter(Boolean));
+      const monthYears = Array.from(monthYearsSet) as string[];
       monthYears.sort();
 
       return products.map(product => {
@@ -136,7 +138,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
         };
         
         monthYears.forEach(monthYear => {
-          const [year, month] = monthYear!.split('-');
+          const [year, month] = monthYear.split('-');
           const monthData = filteredData.filter(item => {
             const date = parseDate(item.paymentDate);
             if (!date) return false;
@@ -177,7 +179,8 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       const lastYear = currentYear - 1;
 
       const analyzeYoY = (groupKey: keyof SalesData, displayName: string) => {
-        const groups = [...new Set(filteredData.map(item => item[groupKey]))].filter(Boolean);
+        const groupsSet = new Set(filteredData.map(item => item[groupKey]));
+        const groups = Array.from(groupsSet).filter(Boolean);
         
         return groups.map(group => {
           const currentYearData = filteredData.filter(item => {
@@ -291,14 +294,15 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     if (type !== 'monthly') return [];
     
     const filteredData = filterDataByDateAndFilters(data);
-    const months = [...new Set(filteredData.map(item => {
+    const monthsSet = new Set(filteredData.map(item => {
       const date = parseDate(item.paymentDate);
       if (!date) return null;
       return new Date(date.getFullYear(), date.getMonth()).toLocaleDateString('en-IN', { 
         month: 'short', 
         year: '2-digit' 
       });
-    }).filter(Boolean)] as string[];
+    }).filter(Boolean));
+    const months = Array.from(monthsSet) as string[];
     months.sort();
 
     return months;

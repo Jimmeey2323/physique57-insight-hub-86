@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Filter, Users, TrendingUp, Target, Heart } from 'lucide-react';
 import { MetricCard } from './MetricCard';
 import { InteractiveChart } from './InteractiveChart';
-import { DataTable } from './DataTable';
+import { NewClientDataTable } from './NewClientDataTable';
 import { FilterSection } from './FilterSection';
 import { TopBottomSellers } from './TopBottomSellers';
 import { useNewClientData } from '@/hooks/useNewClientData';
@@ -24,7 +24,7 @@ const locations = [
 ];
 
 export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: externalData }) => {
-  const [activeLocation, setActiveLocation] = useState('kwality');
+  const [activeLocation, setActiveLocation] = useState('all');
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [drillDownData, setDrillDownData] = useState<any>(null);
@@ -55,7 +55,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   const filteredData = useMemo(() => {
     console.log('Filtering data with filters:', filters);
-    const filtered = data.filter(item => {
+    let filtered = data.filter(item => {
       // Apply filters here
       if (filters.location.length > 0 && !filters.location.includes(item.firstVisitLocation)) return false;
       if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(item.homeLocation)) return false;
@@ -69,9 +69,18 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       
       return true;
     });
+
+    // Apply location filter
+    if (activeLocation !== 'all') {
+      const selectedLocation = locations.find(loc => loc.id === activeLocation);
+      if (selectedLocation) {
+        filtered = filtered.filter(item => item.firstVisitLocation === selectedLocation.fullName);
+      }
+    }
+
     console.log('Filtered data length:', filtered.length);
     return filtered;
-  }, [data, filters]);
+  }, [data, filters, activeLocation]);
 
   const metrics = useMemo((): MetricCardData[] => {
     console.log('Computing metrics for data length:', filteredData.length);
@@ -171,7 +180,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Conversion Status': item.conversionStatus
     }));
     console.log('Member detail data:', tableData.slice(0, 2));
-    console.log('Member detail data structure for DataTable:', {
+    console.log('Member detail data structure for NewClientDataTable:', {
       dataLength: tableData.length,
       firstRowKeys: tableData[0] ? Object.keys(tableData[0]) : [],
       firstRowData: tableData[0]
@@ -210,7 +219,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       }
     ];
     
-    console.log('Conversion funnel data for DataTable:', {
+    console.log('Conversion funnel data for NewClientDataTable:', {
       dataLength: funnelData.length,
       structure: funnelData
     });
@@ -248,7 +257,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Revenue Generated': formatCurrency(stats.totalRevenue)
     }));
     
-    console.log('Location analysis data for DataTable:', {
+    console.log('Location analysis data for NewClientDataTable:', {
       dataLength: locationData.length,
       structure: locationData.slice(0, 2)
     });
@@ -286,7 +295,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Conversion Rate': stats.totalClients > 0 ? `${((stats.conversions / stats.totalClients) * 100).toFixed(1)}%` : '0%'
     }));
     
-    console.log('Trainer performance data for DataTable:', {
+    console.log('Trainer performance data for NewClientDataTable:', {
       dataLength: trainerData.length,
       structure: trainerData.slice(0, 2)
     });
@@ -319,7 +328,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Member Count': stats.memberCount
     }));
     
-    console.log('Revenue distribution data for DataTable:', {
+    console.log('Revenue distribution data for NewClientDataTable:', {
       dataLength: revenueData.length,
       structure: revenueData.slice(0, 2)
     });
@@ -384,6 +393,29 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         </div>
       </div>
 
+      {/* Location Tabs */}
+      <Card className="p-4">
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant={activeLocation === 'all' ? 'default' : 'outline'}
+            onClick={() => setActiveLocation('all')}
+            className="text-sm"
+          >
+            All Locations
+          </Button>
+          {locations.map((location) => (
+            <Button
+              key={location.id}
+              variant={activeLocation === location.id ? 'default' : 'outline'}
+              onClick={() => setActiveLocation(location.id)}
+              className="text-sm"
+            >
+              {location.name}
+            </Button>
+          ))}
+        </div>
+      </Card>
+
       {/* Debug Information */}
       {data.length === 0 && (
         <Card className="p-4 bg-yellow-50 border-yellow-200">
@@ -437,78 +469,62 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
             />
           </div>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="p-6">
-              <CardHeader>
-                <CardTitle>Top Performing Trainers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DataTable
-                  title=""
-                  data={trainerPerformanceData.slice(0, 5)}
-                  type="category"
-                />
-              </CardContent>
-            </Card>
-            <Card className="p-6">
-              <CardHeader>
-                <CardTitle>Bottom Performing Trainers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <DataTable
-                  title=""
-                  data={trainerPerformanceData.slice(-5).reverse()}
-                  type="category"
-                />
-              </CardContent>
-            </Card>
+          <div className="space-y-6">
+            <NewClientDataTable
+              title="Top Performing Trainers"
+              data={trainerPerformanceData.slice(0, 5)}
+              className="w-full"
+            />
+            <NewClientDataTable
+              title="Bottom Performing Trainers"
+              data={trainerPerformanceData.slice(-5).reverse()}
+              className="w-full"
+            />
           </div>
         </TabsContent>
 
         <TabsContent value="conversion" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DataTable
-              title="Conversion Funnel Analysis"
-              data={conversionFunnelData}
-              type="category"
-            />
-            <DataTable
-              title="Monthly Performance Metrics"
-              data={monthlyData}
-              type="monthly"
-            />
-          </div>
+          <NewClientDataTable
+            title="Conversion Funnel Analysis"
+            data={conversionFunnelData}
+            className="w-full"
+          />
+          <NewClientDataTable
+            title="Monthly Performance Metrics"
+            data={monthlyData}
+            className="w-full"
+          />
         </TabsContent>
 
         <TabsContent value="revenue" className="space-y-6">
-          <DataTable
+          <NewClientDataTable
             title="Revenue Distribution by Payment Method"
             data={revenueDistributionData}
-            type="category"
+            className="w-full"
           />
         </TabsContent>
 
         <TabsContent value="location" className="space-y-6">
-          <DataTable
+          <NewClientDataTable
             title="Location Performance Analysis"
             data={locationAnalysisData}
-            type="category"
+            className="w-full"
           />
         </TabsContent>
 
         <TabsContent value="trainers" className="space-y-6">
-          <DataTable
+          <NewClientDataTable
             title="Trainer Performance Metrics"
             data={trainerPerformanceData}
-            type="category"
+            className="w-full"
           />
         </TabsContent>
 
         <TabsContent value="detailed" className="space-y-6">
-          <DataTable
+          <NewClientDataTable
             title="Member Details"
             data={memberDetailData}
-            type="category"
+            className="w-full"
           />
         </TabsContent>
       </Tabs>

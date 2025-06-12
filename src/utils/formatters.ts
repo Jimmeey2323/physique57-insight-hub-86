@@ -13,20 +13,6 @@ export const formatCurrency = (value: number): string => {
   return `₹${value.toLocaleString('en-IN')}`;
 };
 
-export const formatCurrencyNoDecimals = (value: number): string => {
-  const absValue = Math.abs(value);
-  
-  if (absValue >= 10000000) {
-    return `₹${Math.round(value / 10000000)}Cr`;
-  } else if (absValue >= 100000) {
-    return `₹${Math.round(value / 100000)}L`;
-  } else if (absValue >= 1000) {
-    return `₹${Math.round(value / 1000)}K`;
-  }
-  
-  return `₹${Math.round(value).toLocaleString('en-IN')}`;
-};
-
 export const formatPercentage = (value: number): string => {
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 };

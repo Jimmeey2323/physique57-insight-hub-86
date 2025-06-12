@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,68 +37,75 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     paymentMethod: []
   });
 
-  const parseDate = (dateString: string): Date | null => {
-    if (!dateString) return null;
-    
-    const formats = [
-      new Date(dateString),
-      new Date(dateString.split('/').reverse().join('-')),
-      new Date(dateString.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$1-$2'))
-    ];
+  // Helper function to filter data by date range and other filters
+  const applyFilters = (rawData: SalesData[]) => {
+    let filtered = rawData;
 
-    for (const date of formats) {
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-    }
-    
-    return null;
-  };
-
-  const filteredData = useMemo(() => {
-    return data.filter(item => {
-      // Location filter
+    // Apply location filter first
+    filtered = filtered.filter(item => {
       const locationMatch = activeLocation === 'kwality' 
         ? item.calculatedLocation === 'Kwality House, Kemps Corner'
         : activeLocation === 'supreme'
         ? item.calculatedLocation === 'Supreme HQ, Bandra'
         : item.calculatedLocation === 'Kenkere House';
       
-      if (!locationMatch) return false;
-
-      // Date range filter
-      if (filters.dateRange.start || filters.dateRange.end) {
-        const itemDate = parseDate(item.paymentDate);
-        if (!itemDate) return false;
-
-        if (filters.dateRange.start) {
-          const startDate = new Date(filters.dateRange.start);
-          if (itemDate < startDate) return false;
-        }
-
-        if (filters.dateRange.end) {
-          const endDate = new Date(filters.dateRange.end);
-          if (itemDate > endDate) return false;
-        }
-      }
-
-      // Category filter
-      if (filters.category.length > 0) {
-        if (!filters.category.includes(item.cleanedCategory)) return false;
-      }
-
-      // Payment method filter
-      if (filters.paymentMethod.length > 0) {
-        if (!filters.paymentMethod.includes(item.paymentMethod)) return false;
-      }
-
-      // Sold by filter
-      if (filters.soldBy.length > 0) {
-        if (!filters.soldBy.includes(item.soldBy)) return false;
-      }
-
-      return true;
+      return locationMatch;
     });
+
+    // Apply date range filter
+    if (filters.dateRange.start || filters.dateRange.end) {
+      const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
+      const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
+
+      filtered = filtered.filter(item => {
+        if (!item.paymentDate) return false;
+        
+        // Parse date from DD/MM/YYYY format
+        const dateParts = item.paymentDate.split('/');
+        if (dateParts.length !== 3) return false;
+        
+        const itemDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
+        if (isNaN(itemDate.getTime())) return false;
+        
+        if (startDate && itemDate < startDate) return false;
+        if (endDate && itemDate > endDate) return false;
+        
+        return true;
+      });
+    }
+
+    // Apply other filters
+    if (filters.category?.length) {
+      filtered = filtered.filter(item => 
+        filters.category!.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase()))
+      );
+    }
+
+    if (filters.paymentMethod?.length) {
+      filtered = filtered.filter(item => 
+        filters.paymentMethod!.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase()))
+      );
+    }
+
+    if (filters.soldBy?.length) {
+      filtered = filtered.filter(item => 
+        filters.soldBy!.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase()))
+      );
+    }
+
+    if (filters.minAmount) {
+      filtered = filtered.filter(item => (item.paymentValue || 0) >= filters.minAmount!);
+    }
+
+    if (filters.maxAmount) {
+      filtered = filtered.filter(item => (item.paymentValue || 0) <= filters.maxAmount!);
+    }
+
+    return filtered;
+  };
+
+  const filteredData = useMemo(() => {
+    return applyFilters(data);
   }, [data, activeLocation, filters]);
 
   const metrics = useMemo((): MetricCardData[] => {
@@ -165,7 +171,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Spend Value',
-        value: formatCurrency(asv),
+        value: `₹${Math.round(asv)}`,
         change: 7.4,
         description: 'Average spend per unique member, measuring customer lifetime value',
         calculation: 'Total Revenue / Unique Members',
@@ -173,7 +179,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Units per Transaction',
-        value: upt.toFixed(2),
+        value: upt.toFixed(1),
         change: 3.2,
         description: 'Average number of units per transaction, indicating cross-selling success',
         calculation: 'Total Units / Total Transactions',
@@ -303,6 +309,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Month-on-Month Performance Matrix"
                 data={filteredData}
                 type="monthly"
+                filters={filters}
                 onRowClick={handleTableRowClick}
               />
               
@@ -310,6 +317,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Product Performance Analysis"
                 data={filteredData}
                 type="product"
+                filters={filters}
                 onRowClick={handleTableRowClick}
               />
               
@@ -317,6 +325,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Category Performance Breakdown"
                 data={filteredData}
                 type="category"
+                filters={filters}
                 onRowClick={handleTableRowClick}
               />
               
@@ -324,6 +333,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Year-on-Year Growth Analysis"
                 data={filteredData}
                 type="yoy-analysis"
+                filters={filters}
                 onRowClick={handleTableRowClick}
               />
             </div>

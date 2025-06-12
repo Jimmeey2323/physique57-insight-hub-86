@@ -23,20 +23,31 @@ export interface SalesData {
   cleanedCategory: string;
 }
 
-export interface MetricCardData {
-  title: string;
-  value: string | number;
-  change?: number;
-  description: string;
-  calculation: string;
-  icon: string;
-}
-
 export interface FilterOptions {
-  dateRange: { start: string; end: string };
+  dateRange: {
+    start: string;
+    end: string;
+  };
   location: string[];
   category: string[];
   product: string[];
   soldBy: string[];
   paymentMethod: string[];
+  minAmount?: number;
+  maxAmount?: number;
+}
+
+export interface MetricCardData {
+  title: string;
+  value: string;
+  change: number;
+  description: string;
+  calculation: string;
+  icon: string;
+}
+
+export interface ChartDataPoint {
+  date: string;
+  value: number;
+  category?: string;
 }

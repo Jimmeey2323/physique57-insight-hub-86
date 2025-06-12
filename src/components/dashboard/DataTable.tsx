@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -86,71 +85,84 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     return Array.isArray(value) ? value : [];
   };
 
-  // Filter data by date range and other filters
-  const filterDataByDateAndFilters = (rawData: SalesData[]) => {
+  // Filter data by date range and other filters - ONLY for current year in YoY analysis
+  const filterDataByDateAndFilters = (rawData: SalesData[], forCurrentYearOnly: boolean = false) => {
     let filtered = ensureArray(rawData);
 
-    // Apply date range filter
-    if (filters?.dateRange?.start || filters?.dateRange?.end) {
-      const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
-      const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
-
+    // For YoY analysis, only apply filters to current year data
+    if (type === 'yoy-analysis' && forCurrentYearOnly) {
+      const currentYear = new Date().getFullYear();
       filtered = filtered.filter(item => {
         const itemDate = parseDate(item.paymentDate);
-        if (!itemDate) return false;
-        
-        if (startDate && itemDate < startDate) return false;
-        if (endDate && itemDate > endDate) return false;
-        
-        return true;
+        return itemDate && itemDate.getFullYear() === currentYear;
       });
     }
 
-    // Apply other filters
-    if (filters?.category?.length) {
-      filtered = filtered.filter(item => 
-        filters.category!.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase()))
-      );
+    // Apply date range filter only if not YoY analysis or if filtering current year
+    if (type !== 'yoy-analysis' || forCurrentYearOnly) {
+      if (filters?.dateRange?.start || filters?.dateRange?.end) {
+        const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
+        const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
+
+        filtered = filtered.filter(item => {
+          const itemDate = parseDate(item.paymentDate);
+          if (!itemDate) return false;
+          
+          if (startDate && itemDate < startDate) return false;
+          if (endDate && itemDate > endDate) return false;
+          
+          return true;
+        });
+      }
     }
 
-    if (filters?.paymentMethod?.length) {
-      filtered = filtered.filter(item => 
-        filters.paymentMethod!.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase()))
-      );
-    }
+    // Apply other filters only to current year data for YoY analysis
+    if (type !== 'yoy-analysis' || forCurrentYearOnly) {
+      if (filters?.category?.length) {
+        filtered = filtered.filter(item => 
+          filters.category!.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase()))
+        );
+      }
 
-    if (filters?.soldBy?.length) {
-      filtered = filtered.filter(item => 
-        filters.soldBy!.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase()))
-      );
-    }
+      if (filters?.paymentMethod?.length) {
+        filtered = filtered.filter(item => 
+          filters.paymentMethod!.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase()))
+        );
+      }
 
-    if (filters?.minAmount) {
-      filtered = filtered.filter(item => (item.paymentValue || 0) >= filters.minAmount!);
-    }
+      if (filters?.soldBy?.length) {
+        filtered = filtered.filter(item => 
+          filters.soldBy!.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase()))
+        );
+      }
 
-    if (filters?.maxAmount) {
-      filtered = filtered.filter(item => (item.paymentValue || 0) <= filters.maxAmount!);
+      if (filters?.minAmount) {
+        filtered = filtered.filter(item => (item.paymentValue || 0) >= filters.minAmount!);
+      }
+
+      if (filters?.maxAmount) {
+        filtered = filtered.filter(item => (item.paymentValue || 0) <= filters.maxAmount!);
+      }
     }
 
     return filtered;
   };
 
   const processedData = useMemo(() => {
-    let filteredData = filterDataByDateAndFilters(data);
-
     if (type === 'monthly') {
+      let filteredData = filterDataByDateAndFilters(data);
+
       // Get all unique products
       const products = [...new Set(filteredData.map(item => item.cleanedProduct))].filter(Boolean);
       
-      // Get all unique month-years and sort them
+      // Get all unique month-years and sort them in DESCENDING order (most recent first)
       const monthYearsSet = new Set(filteredData.map(item => {
         const date = parseDate(item.paymentDate);
         if (!date) return null;
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       }).filter(Boolean));
       const monthYears = Array.from(monthYearsSet) as string[];
-      monthYears.sort();
+      monthYears.sort((a, b) => b.localeCompare(a)); // Descending order
 
       return products.map(product => {
         const row: any = { 
@@ -202,16 +214,21 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       const lastYear = currentYear - 1;
 
       const analyzeYoY = (groupKey: keyof SalesData, displayName: string) => {
-        const groupsSet = new Set(filteredData.map(item => item[groupKey]));
+        const groupsSet = new Set(data.map(item => item[groupKey]));
         const groups = Array.from(groupsSet).filter(Boolean);
         
         return groups.map(group => {
-          const currentYearData = filteredData.filter(item => {
-            const date = parseDate(item.paymentDate);
-            return date && date.getFullYear() === currentYear && item[groupKey] === group;
-          });
+          // For current year, apply filters
+          const currentYearData = filterDataByDateAndFilters(
+            data.filter(item => {
+              const date = parseDate(item.paymentDate);
+              return date && date.getFullYear() === currentYear && item[groupKey] === group;
+            }),
+            true
+          );
 
-          const lastYearData = filteredData.filter(item => {
+          // For last year, get ALL data without filters
+          const lastYearData = data.filter(item => {
             const date = parseDate(item.paymentDate);
             return date && date.getFullYear() === lastYear && item[groupKey] === group;
           });
@@ -241,7 +258,10 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
             lastYearMembers: lastMembers,
             memberGrowth: memberGrowth,
             type: groupKey,
-            rawData: [...currentYearData, ...lastYearData]
+            // Include ALL raw data for drill-down (both years)
+            rawData: [...currentYearData, ...lastYearData],
+            currentYearRawData: currentYearData,
+            lastYearRawData: lastYearData
           };
         });
       };
@@ -256,6 +276,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     }
 
     // For product and category tables
+    let filteredData = filterDataByDateAndFilters(data);
     const groupingField = type === 'product' ? 'cleanedProduct' : 'cleanedCategory';
     
     const grouped = filteredData.reduce((acc, item) => {
@@ -315,7 +336,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     return groups;
   }, [processedData, type]);
 
-  // Get unique month-years for monthly table headers
+  // Get unique month-years for monthly table headers (in descending order)
   const monthYears = useMemo(() => {
     if (type !== 'monthly') return [];
     
@@ -329,12 +350,17 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       });
     }).filter(Boolean));
     const months = Array.from(monthsSet) as string[];
-    months.sort();
+    months.sort((a, b) => {
+      // Convert month names back to dates for proper sorting
+      const dateA = new Date(parseInt('20' + a.split(' ')[1]), ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(a.split(' ')[0]));
+      const dateB = new Date(parseInt('20' + b.split(' ')[1]), ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(b.split(' ')[0]));
+      return dateB.getTime() - dateA.getTime(); // Descending order (most recent first)
+    });
 
     return months;
   }, [data, type, filters]);
 
-  // Group months into quarters
+  // Group months into quarters (maintaining descending order)
   const quarterGroups = useMemo(() => {
     if (type !== 'monthly') return {};
     
@@ -490,11 +516,24 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
   };
 
   const handleRowClick = (row: any) => {
-    // Include raw transaction data for drill-down
+    // Include raw transaction data for drill-down with proper data structure
     const enrichedRow = {
       ...row,
-      transactionData: row.rawData || []
+      transactionData: row.rawData || [],
+      // For monthly data, include month-specific transaction data
+      ...(type === 'monthly' && {
+        monthlyTransactionData: monthYears.reduce((acc, month) => {
+          acc[month] = row[`${month}_rawData`] || [];
+          return acc;
+        }, {} as Record<string, any[]>)
+      }),
+      // For YoY data, include year-specific transaction data
+      ...(type === 'yoy-analysis' && {
+        currentYearTransactionData: row.currentYearRawData || [],
+        lastYearTransactionData: row.lastYearRawData || []
+      })
     };
+    console.log('Row clicked with enriched data:', enrichedRow);
     onRowClick?.(enrichedRow);
   };
 

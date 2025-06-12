@@ -119,7 +119,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
 
     if (type === 'monthly') {
       // Get all unique products
-      const products = Array.from(new Set(filteredData.map(item => item.cleanedProduct))).filter(Boolean);
+      const products = Array.from(new Set(filteredData.map(item => item.cleanedProduct).filter(Boolean)));
       
       // Get all unique month-years and sort them
       const monthYearsSet = new Set(filteredData.map(item => {
@@ -127,8 +127,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
         if (!date) return null;
         return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       }).filter(Boolean));
-      const monthYears = Array.from(monthYearsSet) as string[];
-      monthYears.sort();
+      const monthYears = Array.from(monthYearsSet).sort();
 
       return products.map(product => {
         const row: any = { 
@@ -178,8 +177,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       const lastYear = currentYear - 1;
 
       const analyzeYoY = (groupKey: keyof SalesData, displayName: string) => {
-        const groupsSet = new Set(filteredData.map(item => item[groupKey]));
-        const groups = Array.from(groupsSet).filter(Boolean);
+        const groups = Array.from(new Set(filteredData.map(item => item[groupKey]).filter(Boolean)));
         
         return groups.map(group => {
           const currentYearData = filteredData.filter(item => {
@@ -293,16 +291,14 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     if (type !== 'monthly') return [];
     
     const filteredData = filterDataByDateAndFilters(data);
-    const monthsSet = new Set(filteredData.map(item => {
+    const months = Array.from(new Set(filteredData.map(item => {
       const date = parseDate(item.paymentDate);
       if (!date) return null;
       return new Date(date.getFullYear(), date.getMonth()).toLocaleDateString('en-IN', { 
         month: 'short', 
         year: '2-digit' 
       });
-    }).filter(Boolean));
-    const months = Array.from(monthsSet) as string[];
-    months.sort();
+    }).filter(Boolean))).sort();
 
     return months;
   }, [data, type, filters]);
@@ -490,10 +486,10 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
               <Table>
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100">
-                    <TableHead className="font-semibold text-slate-700">Name</TableHead>
-                    <TableHead className="font-semibold text-slate-700">Category</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-64">Name</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32">Category</TableHead>
                     <TableHead 
-                      className="font-semibold text-slate-700 cursor-pointer hover:bg-slate-200 transition-colors"
+                      className="font-semibold text-slate-700 cursor-pointer hover:bg-slate-200 transition-colors w-32"
                       onClick={() => {
                         setSortField(tab);
                         setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -511,7 +507,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                         <ArrowUpDown className="w-3 h-3" />
                       </div>
                     </TableHead>
-                    <TableHead className="font-semibold text-slate-700">Actions</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -619,32 +615,17 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
         {metricTabs.map(tab => (
           <TabsContent key={tab} value={tab}>
             <div className="rounded-lg border border-slate-200 overflow-x-auto shadow-sm">
-              <Table className="min-w-full">
+              <Table className="min-w-full table-fixed">
                 <TableHeader>
                   <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100">
-                    <TableHead className="font-semibold text-slate-700 w-48 min-w-48 sticky left-0 bg-slate-100 z-10">Product</TableHead>
-                    <TableHead className="font-semibold text-slate-700 w-32 min-w-32 sticky left-20 bg-slate-100 z-10">Category</TableHead>
-                    {Object.entries(quarterGroups).map(([quarter, months]) => (
-                      <React.Fragment key={quarter}>
-                        <TableHead 
-                          colSpan={months.length} 
-                          className="font-semibold text-slate-700 text-center border-l-2 border-blue-200 bg-blue-50"
-                        >
-                          {quarter}
-                        </TableHead>
-                      </React.Fragment>
-                    ))}
-                    <TableHead className="font-semibold text-slate-700 border-l-2 border-green-200 bg-green-50 w-24 min-w-24">Total</TableHead>
-                  </TableRow>
-                  <TableRow className="bg-slate-50">
-                    <TableHead className="sticky left-0 bg-slate-50 z-10"></TableHead>
-                    <TableHead className="sticky left-20 bg-slate-50 z-10"></TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-48 min-w-48">Product</TableHead>
+                    <TableHead className="font-semibold text-slate-700 w-32 min-w-32">Category</TableHead>
                     {monthYears.map(month => (
-                      <TableHead key={month} className="font-medium text-slate-600 text-center w-20 min-w-20">
+                      <TableHead key={month} className="font-semibold text-slate-700 text-center w-24 min-w-24">
                         {month}
                       </TableHead>
                     ))}
-                    <TableHead className="border-l-2 border-green-200 w-24 min-w-24"></TableHead>
+                    <TableHead className="font-semibold text-slate-700 text-center w-24 min-w-24 bg-green-50 border-l-2 border-green-200">Total</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -654,7 +635,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                         className="bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors"
                         onClick={() => toggleGroup(category)}
                       >
-                        <TableCell colSpan={monthYears.length + 3} className="font-semibold text-slate-800 sticky left-0 bg-slate-50 z-10">
+                        <TableCell colSpan={monthYears.length + 3} className="font-semibold text-slate-800">
                           <div className="flex items-center gap-2">
                             <ChevronDown 
                               className={cn(
@@ -672,18 +653,14 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                             const rowTotal = monthYears.reduce((sum, month) => sum + (item[`${month}_${tab}`] || 0), 0);
                             return (
                               <TableRow key={index} className="hover:bg-slate-50 transition-colors">
-                                <TableCell className="font-medium text-slate-900 sticky left-0 bg-white z-10">
-                                  {item.name}
-                                </TableCell>
-                                <TableCell className="text-slate-600 sticky left-20 bg-white z-10">
-                                  {item.category}
-                                </TableCell>
+                                <TableCell className="font-medium text-slate-900 truncate">{item.name}</TableCell>
+                                <TableCell className="text-slate-600 truncate">{item.category}</TableCell>
                                 {monthYears.map(month => (
-                                  <TableCell key={month} className="text-center">
+                                  <TableCell key={month} className="text-center text-sm">
                                     {getMetricValue(item, tab, month)}
                                   </TableCell>
                                 ))}
-                                <TableCell className="font-semibold border-l-2 border-green-200 bg-green-50 w-24 min-w-24">
+                                <TableCell className="font-semibold text-center bg-green-50 border-l-2 border-green-200">
                                   {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                     ? formatCurrency(rowTotal)
                                     : tab === 'upt'
@@ -695,13 +672,13 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                             );
                           })}
                           <TableRow className="bg-blue-50 font-semibold">
-                            <TableCell colSpan={2} className="text-blue-800 sticky left-0 bg-blue-50 z-10">
+                            <TableCell colSpan={2} className="text-blue-800">
                               {category} Subtotal
                             </TableCell>
                             {monthYears.map(month => {
                               const subtotal = (items as any[]).reduce((sum, item) => sum + (item[`${month}_${tab}`] || 0), 0);
                               return (
-                                <TableCell key={month} className="text-center text-blue-800 w-20 min-w-20">
+                                <TableCell key={month} className="text-center text-blue-800 text-sm">
                                   {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                     ? formatCurrency(subtotal)
                                     : tab === 'upt'
@@ -711,7 +688,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                                 </TableCell>
                               );
                             })}
-                            <TableCell className="text-blue-800 border-l-2 border-green-200 bg-green-50 w-24 min-w-24">
+                            <TableCell className="text-blue-800 text-center bg-green-50 border-l-2 border-green-200 font-semibold">
                               {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                                 ? formatCurrency((items as any[]).reduce((sum, item) => {
                                     const itemTotal = monthYears.reduce((s, month) => s + (item[`${month}_${tab}`] || 0), 0);
@@ -736,9 +713,9 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                 </TableBody>
                 <TableFooter>
                   <TableRow className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-                    <TableCell colSpan={2} className="font-bold sticky left-0 bg-blue-600 z-10">Total</TableCell>
+                    <TableCell colSpan={2} className="font-bold">Total</TableCell>
                     {monthYears.map(month => (
-                      <TableCell key={month} className="font-bold text-center w-20 min-w-20">
+                      <TableCell key={month} className="font-bold text-center text-sm">
                         {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                           ? formatCurrency(totals[`${month}_${tab}`] || 0)
                           : tab === 'upt'
@@ -747,7 +724,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                         }
                       </TableCell>
                     ))}
-                    <TableCell className="font-bold border-l-2 border-green-200 w-24 min-w-24">
+                    <TableCell className="font-bold text-center bg-green-50 border-l-2 border-green-200">
                       {tab === 'grossRevenue' || tab === 'netRevenue' || tab === 'vat' || tab === 'atv' || tab === 'auv' || tab === 'asv'
                         ? formatCurrency(monthYears.reduce((sum, month) => sum + (totals[`${month}_${tab}`] || 0), 0))
                         : tab === 'upt'
@@ -781,26 +758,26 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
         </div>
         
         <div className="rounded-lg border border-slate-200 overflow-hidden shadow-sm max-h-96 overflow-y-auto">
-          <Table>
+          <Table className="table-fixed">
             <TableHeader className="sticky top-0 bg-white z-10">
               <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100">
-                <TableHead className="font-semibold text-slate-700">Name</TableHead>
-                <TableHead className="font-semibold text-slate-700">Type</TableHead>
-                <TableHead className="font-semibold text-slate-700">{currentYear} Revenue</TableHead>
-                <TableHead className="font-semibold text-slate-700">{lastYear} Revenue</TableHead>
-                <TableHead className="font-semibold text-slate-700">Revenue Growth</TableHead>
-                <TableHead className="font-semibold text-slate-700">{currentYear} Transactions</TableHead>
-                <TableHead className="font-semibold text-slate-700">{lastYear} Transactions</TableHead>
-                <TableHead className="font-semibold text-slate-700">Transaction Growth</TableHead>
-                <TableHead className="font-semibold text-slate-700">Actions</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-48">Name</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-24">Type</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-32">{currentYear} Revenue</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-32">{lastYear} Revenue</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-32">Revenue Growth</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-32">{currentYear} Transactions</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-32">{lastYear} Transactions</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-32">Transaction Growth</TableHead>
+                <TableHead className="font-semibold text-slate-700 w-24">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(currentData as any[]).map((item, index) => (
                 <TableRow key={index} className="hover:bg-slate-50 transition-colors">
-                  <TableCell className="font-medium text-slate-900">{item.name}</TableCell>
+                  <TableCell className="font-medium text-slate-900 truncate">{item.name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize">
+                    <Badge variant="outline" className="capitalize text-xs">
                       {item.category}
                     </Badge>
                   </TableCell>

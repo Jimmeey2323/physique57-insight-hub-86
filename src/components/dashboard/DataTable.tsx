@@ -494,7 +494,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                           onClick={() => handleRowClick(row)}
                         >
                           <TableCell className="font-semibold text-slate-800 sticky left-0 bg-white/90 backdrop-blur-sm border-r-2 border-slate-200/50 text-sm min-w-[200px]">
-                              {/* Remove the div with pl-8 and just use a normal cell */}
+                              <div className="">{row.name}</div>
                           </TableCell>
                           {monthYears.map(month => (
                             <TableCell key={month} className="text-center font-medium text-sm border-r border-slate-200/20 min-w-[120px]">
@@ -599,7 +599,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                         onClick={() => handleRowClick(row)}
                       >
                         <TableCell className="font-semibold text-slate-800 min-w-[200px]">
-                            {/* Remove the div with pl-8 and just use a normal cell */}
+                            <div className="">{row.name}</div>
                         </TableCell>
                         <TableCell className="text-center font-medium min-w-[140px]">{formatCurrency(row.currentYearRevenue)}</TableCell>
                         <TableCell className="text-center min-w-[140px]">{formatCurrency(row.lastYearRevenue)}</TableCell>
@@ -740,7 +740,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, onRowCl
                         onClick={() => handleRowClick(row)}
                       >
                         <TableCell className="font-semibold text-slate-800 min-w-[200px]">
-                            {/* Remove the div with pl-8 and just use a normal cell */}
+                            <div className="">{row.name}</div>
                         </TableCell>
                         <TableCell className="text-center font-medium min-w-[120px]">{formatCurrency(row.grossRevenue || 0)}</TableCell>
                         <TableCell className="text-center min-w-[100px]">{formatCurrency(row.vat || 0)}</TableCell>

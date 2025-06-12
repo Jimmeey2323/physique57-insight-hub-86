@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,6 +21,86 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
   onReset
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('all');
+  const [selectedSoldBy, setSelectedSoldBy] = useState('all');
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+
+  // Set default date range on component mount
+  useEffect(() => {
+    if (!filters.dateRange.start && !filters.dateRange.end) {
+      onFiltersChange({
+        ...filters,
+        dateRange: {
+          start: '2025-03-01',
+          end: '2025-05-31'
+        }
+      });
+    }
+  }, []);
+
+  const handleQuickFilter = (type: string) => {
+    const today = new Date();
+    let startDate = '';
+    let endDate = today.toISOString().split('T')[0];
+
+    switch (type) {
+      case 'today':
+        startDate = endDate;
+        break;
+      case 'week':
+        const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        startDate = weekAgo.toISOString().split('T')[0];
+        break;
+      case 'month':
+        const monthAgo = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+        startDate = monthAgo.toISOString().split('T')[0];
+        break;
+      case 'high-value':
+        setMinAmount('10000');
+        break;
+      case 'memberships':
+        setSelectedCategory('membership');
+        break;
+    }
+
+    if (startDate) {
+      onFiltersChange({
+        ...filters,
+        dateRange: { start: startDate, end: endDate }
+      });
+    }
+  };
+
+  const applyFilters = () => {
+    const newFilters = {
+      ...filters,
+      category: selectedCategory !== 'all' ? [selectedCategory] : [],
+      paymentMethod: selectedPaymentMethod !== 'all' ? [selectedPaymentMethod] : [],
+      soldBy: selectedSoldBy !== 'all' ? [selectedSoldBy] : [],
+      minAmount: minAmount ? parseFloat(minAmount) : undefined,
+      maxAmount: maxAmount ? parseFloat(maxAmount) : undefined
+    };
+    onFiltersChange(newFilters);
+  };
+
+  const resetAllFilters = () => {
+    setSelectedCategory('all');
+    setSelectedPaymentMethod('all');
+    setSelectedSoldBy('all');
+    setMinAmount('');
+    setMaxAmount('');
+    onFiltersChange({
+      dateRange: { start: '2025-03-01', end: '2025-05-31' },
+      location: [],
+      category: [],
+      product: [],
+      soldBy: [],
+      paymentMethod: []
+    });
+    onReset();
+  };
 
   return (
     <Card className="mb-6 bg-gradient-to-r from-white via-slate-50/50 to-white border-0 shadow-xl">
@@ -36,7 +116,9 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                   <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
                     Advanced Filters & Analytics Controls
                   </CardTitle>
-                  <p className="text-sm text-slate-600 mt-1">Customize your data view with comprehensive filtering options</p>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Active Period: {filters.dateRange.start || '2025-03-01'} to {filters.dateRange.end || '2025-05-31'}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -66,7 +148,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                   <Input
                     id="start-date"
                     type="date"
-                    value={filters.dateRange.start}
+                    value={filters.dateRange.start || '2025-03-01'}
                     onChange={(e) => onFiltersChange({
                       ...filters,
                       dateRange: { ...filters.dateRange, start: e.target.value }
@@ -83,7 +165,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                   <Input
                     id="end-date"
                     type="date"
-                    value={filters.dateRange.end}
+                    value={filters.dateRange.end || '2025-05-31'}
                     onChange={(e) => onFiltersChange({
                       ...filters,
                       dateRange: { ...filters.dateRange, end: e.target.value }
@@ -97,7 +179,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     <Package className="w-4 h-4 text-purple-600" />
                     Product Category
                   </Label>
-                  <Select>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="bg-white border-slate-200 focus:border-purple-500">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
@@ -116,7 +198,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     <CreditCard className="w-4 h-4 text-green-600" />
                     Payment Method
                   </Label>
-                  <Select>
+                  <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
                     <SelectTrigger className="bg-white border-slate-200 focus:border-green-500">
                       <SelectValue placeholder="All Methods" />
                     </SelectTrigger>
@@ -139,7 +221,7 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     <User className="w-4 h-4 text-orange-600" />
                     Sales Representative
                   </Label>
-                  <Select>
+                  <Select value={selectedSoldBy} onValueChange={setSelectedSoldBy}>
                     <SelectTrigger className="bg-white border-slate-200 focus:border-orange-500">
                       <SelectValue placeholder="All Staff" />
                     </SelectTrigger>
@@ -160,6 +242,8 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     id="min-amount"
                     type="number"
                     placeholder="0"
+                    value={minAmount}
+                    onChange={(e) => setMinAmount(e.target.value)}
                     className="bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-200"
                   />
                 </div>
@@ -172,6 +256,8 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                     id="max-amount"
                     type="number"
                     placeholder="999999"
+                    value={maxAmount}
+                    onChange={(e) => setMaxAmount(e.target.value)}
                     className="bg-white border-slate-200 focus:border-blue-500 focus:ring-blue-200"
                   />
                 </div>
@@ -198,23 +284,45 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
               {/* Quick Filter Buttons */}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-slate-200">
                 <h4 className="text-sm font-semibold text-slate-700 w-full mb-2">Quick Filters:</h4>
-                <Button variant="outline" size="sm" className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleQuickFilter('today')}
+                  className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                >
                   Today's Sales
                 </Button>
-                <Button variant="outline" size="sm" className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleQuickFilter('week')}
+                  className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                >
                   This Week
                 </Button>
-                <Button variant="outline" size="sm" className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleQuickFilter('month')}
+                  className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                >
                   This Month
                 </Button>
-                <Button variant="outline" size="sm" className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleQuickFilter('high-value')}
+                  className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100"
+                >
                   High Value (₹10K+)
                 </Button>
-                <Button variant="outline" size="sm" className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handleQuickFilter('memberships')}
+                  className="bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100"
+                >
                   Memberships Only
-                </Button>
-                <Button variant="outline" size="sm" className="bg-rose-50 border-rose-200 text-rose-700 hover:bg-rose-100">
-                  New Customers
                 </Button>
               </div>
               
@@ -226,13 +334,16 @@ export const FilterSection: React.FC<FilterSectionProps> = ({
                 <div className="flex gap-3">
                   <Button 
                     variant="outline" 
-                    onClick={onReset} 
+                    onClick={resetAllFilters} 
                     className="gap-2 hover:bg-slate-100 border-slate-300"
                   >
                     <RefreshCw className="w-4 h-4" />
                     Reset All Filters
                   </Button>
-                  <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 gap-2 shadow-lg">
+                  <Button 
+                    onClick={applyFilters}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 gap-2 shadow-lg"
+                  >
                     <Filter className="w-4 h-4" />
                     Apply Advanced Filters
                   </Button>

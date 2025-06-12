@@ -247,7 +247,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
             <div className="space-y-8">
               <DataTable
-                title="Month-on-Month Performance Analysis"
+                title="Month-on-Month Performance Matrix"
                 data={filteredData}
                 type="monthly"
                 onRowClick={handleTableRowClick}
@@ -268,9 +268,9 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               />
               
               <DataTable
-                title="Memberships vs Class Packages Comparison"
+                title="Year-on-Year Growth Analysis"
                 data={filteredData}
-                type="comparison"
+                type="yoy-analysis"
                 onRowClick={handleTableRowClick}
               />
             </div>

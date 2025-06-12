@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricCard } from './MetricCard';
-import { DataTable } from './DataTable';
+import DataTable from './DataTable';
 import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
 import { DrillDownModal } from './DrillDownModal';
@@ -245,12 +245,12 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data }) => {
               <InteractiveChart
                 title="Conversion Funnel Analysis"
                 data={filteredData}
-                type="conversion"
+                type="revenue"
               />
               <InteractiveChart
                 title="Retention Trends"
                 data={filteredData}
-                type="retention"
+                type="performance"
               />
             </div>
 

@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Textarea } from '@/components/ui/textarea';
-import { ChevronLeft, ChevronRight, ArrowUpDown, Eye, Download, Filter, Search, TrendingUp, TrendingDown, ChevronDown, Edit3, Save } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowUpDown, Eye, Download, Filter, Search, TrendingUp, TrendingDown, ChevronDown, Edit3, Save, SortAsc, SortDesc, RefreshCw, Archive, FileSpreadsheet } from 'lucide-react';
 import { SalesData, FilterOptions } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -32,13 +32,13 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [editingSummary, setEditingSummary] = useState(false);
   const [customSummary, setCustomSummary] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
   const itemsPerPage = 20;
 
-  // Helper function to safely parse dates
+  // Helper function to safely parse dates with multiple format support
   const parseDate = (dateString: string): Date | null => {
-    if (!dateString) return null;
+    if (!dateString || typeof dateString !== 'string') return null;
     
-    // Handle various date formats
     const cleanDateString = dateString.trim();
     
     // Try DD/MM/YYYY format first (most common in the data)
@@ -46,10 +46,26 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     if (ddmmyyyy) {
       const [, day, month, year] = ddmmyyyy;
       const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime()) && date.getFullYear() == parseInt(year)) return date;
+    }
+    
+    // Try MM/DD/YYYY format
+    const mmddyyyy = cleanDateString.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mmddyyyy) {
+      const [, month, day, year] = mmddyyyy;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime()) && date.getFullYear() == parseInt(year)) return date;
+    }
+    
+    // Try YYYY-MM-DD format
+    const yyyymmdd = cleanDateString.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (yyyymmdd) {
+      const [, year, month, day] = yyyymmdd;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
       if (!isNaN(date.getTime())) return date;
     }
     
-    // Try other formats
+    // Try other common formats
     const formats = [
       new Date(cleanDateString),
       new Date(cleanDateString.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')),
@@ -57,7 +73,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     ];
 
     for (const date of formats) {
-      if (!isNaN(date.getTime())) {
+      if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
         return date;
       }
     }
@@ -65,9 +81,14 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     return null;
   };
 
+  // Type guard function to ensure arrays
+  const ensureArray = (value: unknown): any[] => {
+    return Array.isArray(value) ? value : [];
+  };
+
   // Filter data by date range and other filters
   const filterDataByDateAndFilters = (rawData: SalesData[]) => {
-    let filtered = rawData;
+    let filtered = ensureArray(rawData);
 
     // Apply date range filter
     if (filters?.dateRange?.start || filters?.dateRange?.end) {
@@ -88,19 +109,19 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     // Apply other filters
     if (filters?.category?.length) {
       filtered = filtered.filter(item => 
-        filters.category.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase()))
+        filters.category!.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase()))
       );
     }
 
     if (filters?.paymentMethod?.length) {
       filtered = filtered.filter(item => 
-        filters.paymentMethod.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase()))
+        filters.paymentMethod!.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase()))
       );
     }
 
     if (filters?.soldBy?.length) {
       filtered = filtered.filter(item => 
-        filters.soldBy.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase()))
+        filters.soldBy!.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase()))
       );
     }
 
@@ -134,7 +155,8 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       return products.map(product => {
         const row: any = { 
           name: product,
-          category: filteredData.find(item => item.cleanedProduct === product)?.cleanedCategory || 'Unknown'
+          category: filteredData.find(item => item.cleanedProduct === product)?.cleanedCategory || 'Unknown',
+          rawData: filteredData.filter(item => item.cleanedProduct === product)
         };
         
         monthYears.forEach(monthYear => {
@@ -168,6 +190,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
           row[`${monthName}_auv`] = unitsSold > 0 ? Math.round(grossRevenue / unitsSold) : 0;
           row[`${monthName}_asv`] = uniqueMembers > 0 ? Math.round(grossRevenue / uniqueMembers) : 0;
           row[`${monthName}_upt`] = transactions > 0 ? (unitsSold / transactions).toFixed(1) : '0.0';
+          row[`${monthName}_rawData`] = monthData;
         });
 
         return row;
@@ -217,7 +240,8 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
             currentYearMembers: currentMembers,
             lastYearMembers: lastMembers,
             memberGrowth: memberGrowth,
-            type: groupKey
+            type: groupKey,
+            rawData: [...currentYearData, ...lastYearData]
           };
         });
       };
@@ -251,7 +275,8 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
           atv: 0,
           auv: 0,
           asv: 0,
-          upt: 0
+          upt: 0,
+          rawData: []
         };
       }
       acc[key].grossRevenue += item.paymentValue || 0;
@@ -260,6 +285,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       acc[key].unitsSold += 1;
       acc[key].transactions += 1;
       acc[key].uniqueMembers.add(item.memberId);
+      acc[key].rawData.push(item);
       return acc;
     }, {} as Record<string, any>);
 
@@ -277,7 +303,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
   const groupedData = useMemo(() => {
     if (type === 'yoy-analysis') return processedData;
     
-    const groups = processedData.reduce((acc, item) => {
+    const groups = ensureArray(processedData).reduce((acc, item) => {
       const category = item.category || 'Unknown';
       if (!acc[category]) {
         acc[category] = [];
@@ -331,7 +357,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
 
   // Apply search and filters
   const filteredAndSearchedData = useMemo(() => {
-    let result = type === 'yoy-analysis' ? processedData : Object.values(groupedData).flat();
+    let result = type === 'yoy-analysis' ? ensureArray(processedData) : Object.values(groupedData).flat();
 
     if (searchTerm) {
       result = result.filter(item => 
@@ -362,8 +388,10 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
   const endIndex = startIndex + itemsPerPage;
   const currentData = type === 'yoy-analysis' ? filteredAndSearchedData.slice(startIndex, endIndex) : filteredAndSearchedData;
 
-  // Calculate totals
+  // Calculate totals with safe array operations
   const totals = useMemo(() => {
+    const safeData = ensureArray(filteredAndSearchedData);
+    
     if (type === 'monthly') {
       const monthTotals: any = {};
       monthYears.forEach(month => {
@@ -375,7 +403,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
         monthTotals[`${month}_units`] = 0;
       });
 
-      processedData.forEach(item => {
+      ensureArray(processedData).forEach(item => {
         monthYears.forEach(month => {
           monthTotals[`${month}_grossRevenue`] += item[`${month}_grossRevenue`] || 0;
           monthTotals[`${month}_netRevenue`] += item[`${month}_netRevenue`] || 0;
@@ -390,7 +418,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     }
 
     if (type === 'yoy-analysis') {
-      return filteredAndSearchedData.reduce((acc, item) => ({
+      return safeData.reduce((acc, item) => ({
         currentYearRevenue: acc.currentYearRevenue + (item.currentYearRevenue || 0),
         lastYearRevenue: acc.lastYearRevenue + (item.lastYearRevenue || 0),
         currentYearTransactions: acc.currentYearTransactions + (item.currentYearTransactions || 0),
@@ -407,7 +435,7 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
       });
     }
 
-    return filteredAndSearchedData.reduce((acc, item) => ({
+    return safeData.reduce((acc, item) => ({
       grossRevenue: acc.grossRevenue + (item.grossRevenue || 0),
       netRevenue: acc.netRevenue + (item.netRevenue || 0),
       vat: acc.vat + (item.vat || 0),
@@ -461,84 +489,152 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
     }
   };
 
+  const handleRowClick = (row: any) => {
+    // Include raw transaction data for drill-down
+    const enrichedRow = {
+      ...row,
+      transactionData: row.rawData || []
+    };
+    onRowClick?.(enrichedRow);
+  };
+
   const renderMonthlyTable = () => (
-    <div className="rounded-2xl border-2 border-slate-200/50 bg-gradient-to-br from-white via-slate-50/30 to-white shadow-2xl overflow-hidden backdrop-blur-sm">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="p-6 bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-200/50">
-          <TabsList className="grid w-full grid-cols-8 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl p-1">
-            <TabsTrigger value="grossRevenue" className="text-xs font-semibold">Gross Revenue</TabsTrigger>
-            <TabsTrigger value="netRevenue" className="text-xs font-semibold">Net Revenue</TabsTrigger>
-            <TabsTrigger value="transactions" className="text-xs font-semibold">Transactions</TabsTrigger>
-            <TabsTrigger value="uniqueMembers" className="text-xs font-semibold">Members</TabsTrigger>
-            <TabsTrigger value="units" className="text-xs font-semibold">Units</TabsTrigger>
-            <TabsTrigger value="atv" className="text-xs font-semibold">ATV</TabsTrigger>
-            <TabsTrigger value="auv" className="text-xs font-semibold">AUV</TabsTrigger>
-            <TabsTrigger value="asv" className="text-xs font-semibold">ASV</TabsTrigger>
+    <div className="rounded-3xl border border-slate-200/30 bg-white shadow-2xl overflow-hidden">
+      {/* Enhanced Tab Navigation */}
+      <div className="bg-gradient-to-r from-slate-50 via-white to-slate-50 border-b border-slate-200/50 p-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-8 bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 p-2 rounded-2xl shadow-lg border border-slate-200/30">
+            <TabsTrigger 
+              value="grossRevenue" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              Gross Revenue
+            </TabsTrigger>
+            <TabsTrigger 
+              value="netRevenue" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              Net Revenue
+            </TabsTrigger>
+            <TabsTrigger 
+              value="transactions" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              Transactions
+            </TabsTrigger>
+            <TabsTrigger 
+              value="uniqueMembers" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              Members
+            </TabsTrigger>
+            <TabsTrigger 
+              value="units" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              Units
+            </TabsTrigger>
+            <TabsTrigger 
+              value="atv" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              ATV
+            </TabsTrigger>
+            <TabsTrigger 
+              value="auv" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              AUV
+            </TabsTrigger>
+            <TabsTrigger 
+              value="asv" 
+              className="text-xs font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+            >
+              ASV
+            </TabsTrigger>
           </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Enhanced Table with Additional Features */}
+      <div className="relative">
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2">
+            <FileSpreadsheet className="w-4 h-4" />
+            Export
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowArchived(!showArchived)}>
+            <Archive className="w-4 h-4" />
+            {showArchived ? 'Hide' : 'Show'} Archived
+          </Button>
         </div>
 
-        <div className="overflow-x-auto max-h-96 overflow-y-auto">
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <Table>
-            <TableHeader className="sticky top-0 bg-white z-10">
-              <TableRow className="bg-gradient-to-r from-slate-100/80 via-white to-slate-100/80 border-b-2 border-slate-200/50">
-                <TableHead className="font-bold text-slate-800 text-sm sticky left-0 bg-slate-100/90 backdrop-blur-sm border-r-2 border-slate-200/50 min-w-[200px]">
+            <TableHeader className="sticky top-0 bg-gradient-to-r from-blue-500 via-purple-600 to-blue-500 z-10 shadow-lg">
+              <TableRow className="border-0">
+                <TableHead className="font-bold text-white text-sm sticky left-0 bg-gradient-to-r from-blue-500 to-purple-600 backdrop-blur-sm border-r border-white/20 min-w-[200px] shadow-lg">
                   Product
                 </TableHead>
                 {Object.entries(quarterGroups).map(([quarter, months]) => (
-                  <TableHead key={quarter} colSpan={months.length} className="text-center font-bold text-slate-700 text-sm border-r border-slate-300 bg-slate-50">
+                  <TableHead key={quarter} colSpan={months.length} className="text-center font-bold text-white text-sm border-r border-white/20">
                     {quarter}
                   </TableHead>
                 ))}
               </TableRow>
-              <TableRow className="bg-gradient-to-r from-slate-100/80 via-white to-slate-100/80 border-b border-slate-200/50">
-                <TableHead className="font-bold text-slate-800 text-sm sticky left-0 bg-slate-100/90 backdrop-blur-sm border-r-2 border-slate-200/50">
+              <TableRow className="bg-gradient-to-r from-blue-400 via-purple-500 to-blue-400 border-0">
+                <TableHead className="font-bold text-white text-sm sticky left-0 bg-gradient-to-r from-blue-400 to-purple-500 backdrop-blur-sm border-r border-white/20">
                   &nbsp;
                 </TableHead>
                 {monthYears.map(month => (
-                  <TableHead key={month} className="text-center font-bold text-slate-700 text-sm min-w-[120px] border-r border-slate-200/30">
+                  <TableHead key={month} className="text-center font-bold text-white text-sm min-w-[120px] border-r border-white/10">
                     {month}
                   </TableHead>
                 ))}
               </TableRow>
             </TableHeader>
-            <TableBody>
+            <TableBody className="bg-white">
               {Object.entries(groupedData).map(([category, items]) => (
                 <React.Fragment key={category}>
                   <TableRow 
-                    className="bg-gradient-to-r from-blue-100/50 to-purple-100/50 font-bold border-b-2 border-slate-300 cursor-pointer hover:from-blue-200/50 hover:to-purple-200/50"
+                    className="bg-gradient-to-r from-slate-100/60 to-slate-200/60 font-bold border-b border-slate-300/50 cursor-pointer hover:from-slate-200/70 hover:to-slate-300/70 transition-all duration-300"
                     onClick={() => toggleGroupCollapse(category)}
                   >
-                    <TableCell className="font-bold text-slate-800 sticky left-0 bg-blue-100/90 backdrop-blur-sm border-r-2 border-slate-200/50">
+                    <TableCell className="font-bold text-slate-800 sticky left-0 bg-gradient-to-r from-slate-100/90 to-slate-200/90 backdrop-blur-sm border-r border-slate-300/50 shadow-sm">
                       <div className="flex items-center gap-2">
                         <ChevronDown className={cn("w-4 h-4 transition-transform", collapsedGroups.has(category) && "rotate-180")} />
-                        {category} ({items.length} items)
+                        {category} ({ensureArray(items).length} items)
                       </div>
                     </TableCell>
                     {monthYears.map(month => {
-                      const categoryTotal = items.reduce((sum, item) => sum + (item[`${month}_${activeTab}`] || 0), 0);
+                      const categoryTotal = ensureArray(items).reduce((sum, item) => sum + (item[`${month}_${activeTab}`] || 0), 0);
                       return (
-                        <TableCell key={month} className="text-center font-bold text-blue-700 border-r border-slate-200/20 bg-blue-50/50">
+                        <TableCell key={month} className="text-center font-bold text-blue-700 border-r border-slate-200/30 bg-gradient-to-r from-blue-50/50 to-purple-50/50">
                           {activeTab.includes('Revenue') || activeTab === 'atv' || activeTab === 'auv' || activeTab === 'asv' 
                             ? formatCurrency(categoryTotal) 
                             : activeTab === 'upt' 
-                            ? (categoryTotal / items.length).toFixed(1)
+                            ? (categoryTotal / ensureArray(items).length).toFixed(1)
                             : formatNumber(categoryTotal)
                           }
                         </TableCell>
                       );
                     })}
                   </TableRow>
-                  {!collapsedGroups.has(category) && items.map((row: any, index: number) => (
+                  {!collapsedGroups.has(category) && ensureArray(items).map((row: any, index: number) => (
                     <TableRow 
                       key={`${category}-${index}`}
-                      className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
-                      onClick={() => onRowClick?.(row)}
+                      className="hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 cursor-pointer transition-all duration-300 border-b border-slate-200/20 bg-white"
+                      onClick={() => handleRowClick(row)}
                     >
-                      <TableCell className="font-semibold text-slate-800 sticky left-0 bg-white/90 backdrop-blur-sm border-r-2 border-slate-200/50 text-sm pl-8">
+                      <TableCell className="font-semibold text-slate-800 sticky left-0 bg-white backdrop-blur-sm border-r border-slate-200/30 text-sm pl-8 shadow-sm">
                         {row.name}
                       </TableCell>
                       {monthYears.map(month => (
-                        <TableCell key={month} className="text-center font-medium text-sm border-r border-slate-200/20">
+                        <TableCell key={month} className="text-center font-medium text-sm border-r border-slate-200/10">
                           {activeTab === 'grossRevenue' && formatCurrency(row[`${month}_grossRevenue`] || 0)}
                           {activeTab === 'netRevenue' && formatCurrency(row[`${month}_netRevenue`] || 0)}
                           {activeTab === 'transactions' && formatNumber(row[`${month}_transactions`] || 0)}
@@ -554,13 +650,13 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
                 </React.Fragment>
               ))}
             </TableBody>
-            <TableFooter className="sticky bottom-0 bg-white">
-              <TableRow className="bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-blue-50/80 font-bold border-t-3 border-slate-300">
-                <TableCell className="font-bold text-slate-800 sticky left-0 bg-blue-100/90 backdrop-blur-sm border-r-2 border-slate-300">
+            <TableFooter className="sticky bottom-0 bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 shadow-lg">
+              <TableRow className="border-0">
+                <TableCell className="font-bold text-white sticky left-0 bg-gradient-to-r from-emerald-500 to-teal-600 backdrop-blur-sm border-r border-white/20">
                   GRAND TOTALS
                 </TableCell>
                 {monthYears.map(month => (
-                  <TableCell key={month} className="text-center font-bold text-blue-700 border-r border-slate-200/30">
+                  <TableCell key={month} className="text-center font-bold text-white border-r border-white/10">
                     {activeTab === 'grossRevenue' && formatCurrency(totals[`${month}_grossRevenue`] || 0)}
                     {activeTab === 'netRevenue' && formatCurrency(totals[`${month}_netRevenue`] || 0)}
                     {activeTab === 'transactions' && formatNumber(totals[`${month}_transactions`] || 0)}
@@ -573,219 +669,254 @@ export const DataTable: React.FC<DataTableProps> = ({ title, data, type, filters
             </TableFooter>
           </Table>
         </div>
-      </Tabs>
+      </div>
     </div>
   );
 
   const renderYoYTable = () => (
-    <div className="rounded-2xl border-2 border-slate-200/50 bg-gradient-to-br from-white via-slate-50/30 to-white shadow-2xl overflow-hidden backdrop-blur-sm">
-      <div className="max-h-96 overflow-y-auto">
-        <Table>
-          <TableHeader className="sticky top-0 bg-white z-10">
-            <TableRow className="bg-gradient-to-r from-slate-100/80 via-white to-slate-100/80 border-b-2 border-slate-200/50">
-              <TableHead className="font-bold text-slate-800">Category</TableHead>
-              <TableHead className="font-bold text-slate-800">Name</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">{new Date().getFullYear()} Revenue</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">{new Date().getFullYear() - 1} Revenue</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Revenue Growth</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">{new Date().getFullYear()} Transactions</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">{new Date().getFullYear() - 1} Transactions</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Transaction Growth</TableHead>
-              <TableHead className="text-center font-bold text-slate-700">Member Growth</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentData.map((row, index) => (
-              <TableRow 
-                key={index} 
-                className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
-                onClick={() => onRowClick?.(row)}
-              >
-                <TableCell>
-                  <Badge variant="outline" className="capitalize font-semibold">
-                    {row.category}
-                  </Badge>
+    <div className="rounded-3xl border border-slate-200/30 bg-white shadow-2xl overflow-hidden">
+      <div className="relative">
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2">
+            <FileSpreadsheet className="w-4 h-4" />
+            Export
+          </Button>
+        </div>
+
+        <div className="max-h-[600px] overflow-y-auto">
+          <Table>
+            <TableHeader className="sticky top-0 bg-gradient-to-r from-blue-500 via-purple-600 to-blue-500 z-10 shadow-lg">
+              <TableRow className="border-0">
+                <TableHead className="font-bold text-white">Category</TableHead>
+                <TableHead className="font-bold text-white">Name</TableHead>
+                <TableHead className="text-center font-bold text-white">{new Date().getFullYear()} Revenue</TableHead>
+                <TableHead className="text-center font-bold text-white">{new Date().getFullYear() - 1} Revenue</TableHead>
+                <TableHead className="text-center font-bold text-white">Revenue Growth</TableHead>
+                <TableHead className="text-center font-bold text-white">{new Date().getFullYear()} Transactions</TableHead>
+                <TableHead className="text-center font-bold text-white">{new Date().getFullYear() - 1} Transactions</TableHead>
+                <TableHead className="text-center font-bold text-white">Transaction Growth</TableHead>
+                <TableHead className="text-center font-bold text-white">Member Growth</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody className="bg-white">
+              {currentData.map((row, index) => (
+                <TableRow 
+                  key={index} 
+                  className="hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 cursor-pointer transition-all duration-300 border-b border-slate-200/20"
+                  onClick={() => handleRowClick(row)}
+                >
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize font-semibold">
+                      {row.category}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="font-semibold text-slate-800">{row.name}</TableCell>
+                  <TableCell className="text-center font-medium">{formatCurrency(row.currentYearRevenue)}</TableCell>
+                  <TableCell className="text-center">{formatCurrency(row.lastYearRevenue)}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {row.revenueGrowth > 0 ? (
+                        <TrendingUp className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-600" />
+                      )}
+                      <span className={cn(
+                        "font-bold",
+                        row.revenueGrowth > 0 ? "text-green-600" : "text-red-600"
+                      )}>
+                        {formatPercentage(row.revenueGrowth)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">{formatNumber(row.currentYearTransactions)}</TableCell>
+                  <TableCell className="text-center">{formatNumber(row.lastYearTransactions)}</TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {row.transactionGrowth > 0 ? (
+                        <TrendingUp className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-600" />
+                      )}
+                      <span className={cn(
+                        "font-bold",
+                        row.transactionGrowth > 0 ? "text-green-600" : "text-red-600"
+                      )}>
+                        {formatPercentage(row.transactionGrowth)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      {row.memberGrowth > 0 ? (
+                        <TrendingUp className="w-4 h-4 text-green-600" />
+                      ) : (
+                        <TrendingDown className="w-4 h-4 text-red-600" />
+                      )}
+                      <span className={cn(
+                        "font-bold",
+                        row.memberGrowth > 0 ? "text-green-600" : "text-red-600"
+                      )}>
+                        {formatPercentage(row.memberGrowth)}
+                      </span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+            <TableFooter className="sticky bottom-0 bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 shadow-lg">
+              <TableRow className="border-0">
+                <TableCell colSpan={2} className="font-bold text-white">TOTALS</TableCell>
+                <TableCell className="text-center font-bold text-white">{formatCurrency(totals.currentYearRevenue)}</TableCell>
+                <TableCell className="text-center font-bold text-white">{formatCurrency(totals.lastYearRevenue)}</TableCell>
+                <TableCell className="text-center font-bold text-white">
+                  {formatPercentage(totals.lastYearRevenue > 0 ? ((totals.currentYearRevenue - totals.lastYearRevenue) / totals.lastYearRevenue) * 100 : 0)}
                 </TableCell>
-                <TableCell className="font-semibold text-slate-800">{row.name}</TableCell>
-                <TableCell className="text-center font-medium">{formatCurrency(row.currentYearRevenue)}</TableCell>
-                <TableCell className="text-center">{formatCurrency(row.lastYearRevenue)}</TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    {row.revenueGrowth > 0 ? (
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-red-600" />
-                    )}
-                    <span className={cn(
-                      "font-bold",
-                      row.revenueGrowth > 0 ? "text-green-600" : "text-red-600"
-                    )}>
-                      {formatPercentage(row.revenueGrowth)}
-                    </span>
-                  </div>
+                <TableCell className="text-center font-bold text-white">{formatNumber(totals.currentYearTransactions)}</TableCell>
+                <TableCell className="text-center font-bold text-white">{formatNumber(totals.lastYearTransactions)}</TableCell>
+                <TableCell className="text-center font-bold text-white">
+                  {formatPercentage(totals.lastYearTransactions > 0 ? ((totals.currentYearTransactions - totals.lastYearTransactions) / totals.lastYearTransactions) * 100 : 0)}
                 </TableCell>
-                <TableCell className="text-center">{formatNumber(row.currentYearTransactions)}</TableCell>
-                <TableCell className="text-center">{formatNumber(row.lastYearTransactions)}</TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    {row.transactionGrowth > 0 ? (
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-red-600" />
-                    )}
-                    <span className={cn(
-                      "font-bold",
-                      row.transactionGrowth > 0 ? "text-green-600" : "text-red-600"
-                    )}>
-                      {formatPercentage(row.transactionGrowth)}
-                    </span>
-                  </div>
-                </TableCell>
-                <TableCell className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    {row.memberGrowth > 0 ? (
-                      <TrendingUp className="w-4 h-4 text-green-600" />
-                    ) : (
-                      <TrendingDown className="w-4 h-4 text-red-600" />
-                    )}
-                    <span className={cn(
-                      "font-bold",
-                      row.memberGrowth > 0 ? "text-green-600" : "text-red-600"
-                    )}>
-                      {formatPercentage(row.memberGrowth)}
-                    </span>
-                  </div>
+                <TableCell className="text-center font-bold text-white">
+                  {formatPercentage(totals.lastYearMembers > 0 ? ((totals.currentYearMembers - totals.lastYearMembers) / totals.lastYearMembers) * 100 : 0)}
                 </TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-          <TableFooter className="sticky bottom-0 bg-white">
-            <TableRow className="bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-blue-50/80 font-bold border-t-3 border-slate-300">
-              <TableCell colSpan={2} className="font-bold text-slate-800">TOTALS</TableCell>
-              <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.currentYearRevenue)}</TableCell>
-              <TableCell className="text-center font-bold text-slate-700">{formatCurrency(totals.lastYearRevenue)}</TableCell>
-              <TableCell className="text-center font-bold text-green-700">
-                {formatPercentage(totals.lastYearRevenue > 0 ? ((totals.currentYearRevenue - totals.lastYearRevenue) / totals.lastYearRevenue) * 100 : 0)}
-              </TableCell>
-              <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.currentYearTransactions)}</TableCell>
-              <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.lastYearTransactions)}</TableCell>
-              <TableCell className="text-center font-bold text-green-700">
-                {formatPercentage(totals.lastYearTransactions > 0 ? ((totals.currentYearTransactions - totals.lastYearTransactions) / totals.lastYearTransactions) * 100 : 0)}
-              </TableCell>
-              <TableCell className="text-center font-bold text-green-700">
-                {formatPercentage(totals.lastYearMembers > 0 ? ((totals.currentYearMembers - totals.lastYearMembers) / totals.lastYearMembers) * 100 : 0)}
-              </TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
+            </TableFooter>
+          </Table>
+        </div>
       </div>
     </div>
   );
 
   const renderStandardTable = () => (
-    <div className="rounded-2xl border-2 border-slate-200/50 bg-gradient-to-br from-white via-slate-50/30 to-white shadow-2xl overflow-hidden backdrop-blur-sm">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-gradient-to-r from-slate-100/80 via-white to-slate-100/80 border-b-2 border-slate-200/50">
-            <TableHead className="font-bold text-slate-800">Name</TableHead>
-            <TableHead className="text-center font-bold text-slate-700 cursor-pointer" onClick={() => handleSort('grossRevenue')}>
-              <div className="flex items-center justify-center gap-1">
-                Gross Revenue <ArrowUpDown className="w-3 h-3" />
-              </div>
-            </TableHead>
-            <TableHead className="text-center font-bold text-slate-700">VAT</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">Net Revenue</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">Units</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">Transactions</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">Members</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">ATV</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">AUV</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">ASV</TableHead>
-            <TableHead className="text-center font-bold text-slate-700">UPT</TableHead>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {Object.entries(groupedData).map(([category, items]) => (
-            <React.Fragment key={category}>
-              <TableRow 
-                className="bg-gradient-to-r from-blue-100/50 to-purple-100/50 font-bold border-b-2 border-slate-300 cursor-pointer hover:from-blue-200/50 hover:to-purple-200/50"
-                onClick={() => toggleGroupCollapse(category)}
-              >
-                <TableCell className="font-bold text-slate-800">
-                  <div className="flex items-center gap-2">
-                    <ChevronDown className={cn("w-4 h-4 transition-transform", collapsedGroups.has(category) && "rotate-180")} />
-                    {category} ({items.length} items)
-                  </div>
-                </TableCell>
-                <TableCell className="text-center font-bold text-blue-700">
-                  {formatCurrency(items.reduce((sum, item) => sum + (item.grossRevenue || 0), 0))}
-                </TableCell>
-                <TableCell className="text-center font-bold text-slate-700">
-                  {formatCurrency(items.reduce((sum, item) => sum + (item.vat || 0), 0))}
-                </TableCell>
-                <TableCell className="text-center font-bold text-green-700">
-                  {formatCurrency(items.reduce((sum, item) => sum + (item.netRevenue || 0), 0))}
-                </TableCell>
-                <TableCell className="text-center font-bold text-slate-700">
-                  {formatNumber(items.reduce((sum, item) => sum + (item.unitsSold || 0), 0))}
-                </TableCell>
-                <TableCell className="text-center font-bold text-slate-700">
-                  {formatNumber(items.reduce((sum, item) => sum + (item.transactions || 0), 0))}
-                </TableCell>
-                <TableCell className="text-center font-bold text-slate-700">
-                  {formatNumber(items.reduce((sum, item) => sum + (item.uniqueMembers || 0), 0))}
-                </TableCell>
-                <TableCell className="text-center text-slate-500">-</TableCell>
-                <TableCell className="text-center text-slate-500">-</TableCell>
-                <TableCell className="text-center text-slate-500">-</TableCell>
-                <TableCell className="text-center text-slate-500">-</TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-              {!collapsedGroups.has(category) && items.map((row: any, index: number) => (
+    <div className="rounded-3xl border border-slate-200/30 bg-white shadow-2xl overflow-hidden">
+      <div className="relative">
+        <div className="absolute top-4 right-4 z-20 flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2">
+            <RefreshCw className="w-4 h-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2">
+            <FileSpreadsheet className="w-4 h-4" />
+            Export
+          </Button>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowArchived(!showArchived)}>
+            <Archive className="w-4 h-4" />
+            {showArchived ? 'Hide' : 'Show'} Archived
+          </Button>
+        </div>
+
+        <Table>
+          <TableHeader className="sticky top-0 bg-gradient-to-r from-blue-500 via-purple-600 to-blue-500 z-10 shadow-lg">
+            <TableRow className="border-0">
+              <TableHead className="font-bold text-white">Name</TableHead>
+              <TableHead className="text-center font-bold text-white cursor-pointer" onClick={() => handleSort('grossRevenue')}>
+                <div className="flex items-center justify-center gap-1">
+                  Gross Revenue 
+                  {sortField === 'grossRevenue' ? (
+                    sortDirection === 'desc' ? <SortDesc className="w-3 h-3" /> : <SortAsc className="w-3 h-3" />
+                  ) : (
+                    <ArrowUpDown className="w-3 h-3" />
+                  )}
+                </div>
+              </TableHead>
+              <TableHead className="text-center font-bold text-white">VAT</TableHead>
+              <TableHead className="text-center font-bold text-white">Net Revenue</TableHead>
+              <TableHead className="text-center font-bold text-white">Units</TableHead>
+              <TableHead className="text-center font-bold text-white">Transactions</TableHead>
+              <TableHead className="text-center font-bold text-white">Members</TableHead>
+              <TableHead className="text-center font-bold text-white">ATV</TableHead>
+              <TableHead className="text-center font-bold text-white">AUV</TableHead>
+              <TableHead className="text-center font-bold text-white">ASV</TableHead>
+              <TableHead className="text-center font-bold text-white">UPT</TableHead>
+              <TableHead className="w-12"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody className="bg-white">
+            {Object.entries(groupedData).map(([category, items]) => (
+              <React.Fragment key={category}>
                 <TableRow 
-                  key={`${category}-${index}`}
-                  className="hover:bg-gradient-to-r hover:from-blue-50/80 hover:to-purple-50/80 cursor-pointer transition-all duration-300 border-b border-slate-200/30"
-                  onClick={() => onRowClick?.(row)}
+                  className="bg-gradient-to-r from-slate-100/60 to-slate-200/60 font-bold border-b border-slate-300/50 cursor-pointer hover:from-slate-200/70 hover:to-slate-300/70 transition-all duration-300"
+                  onClick={() => toggleGroupCollapse(category)}
                 >
-                  <TableCell className="font-semibold text-slate-800 pl-8">{row.name}</TableCell>
-                  <TableCell className="text-center font-medium">{formatCurrency(row.grossRevenue || 0)}</TableCell>
-                  <TableCell className="text-center">{formatCurrency(row.vat || 0)}</TableCell>
-                  <TableCell className="text-center font-medium">{formatCurrency(row.netRevenue || 0)}</TableCell>
-                  <TableCell className="text-center">{formatNumber(row.unitsSold || 0)}</TableCell>
-                  <TableCell className="text-center">{formatNumber(row.transactions || 0)}</TableCell>
-                  <TableCell className="text-center">{formatNumber(row.uniqueMembers || 0)}</TableCell>
-                  <TableCell className="text-center">₹{row.atv || 0}</TableCell>
-                  <TableCell className="text-center">₹{row.auv || 0}</TableCell>
-                  <TableCell className="text-center">₹{row.asv || 0}</TableCell>
-                  <TableCell className="text-center">{row.upt || '0.0'}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm" onClick={() => onRowClick?.(row)}>
-                      <Eye className="w-3 h-3" />
-                    </Button>
+                  <TableCell className="font-bold text-slate-800">
+                    <div className="flex items-center gap-2">
+                      <ChevronDown className={cn("w-4 h-4 transition-transform", collapsedGroups.has(category) && "rotate-180")} />
+                      {category} ({ensureArray(items).length} items)
+                    </div>
                   </TableCell>
+                  <TableCell className="text-center font-bold text-blue-700">
+                    {formatCurrency(ensureArray(items).reduce((sum, item) => sum + (item.grossRevenue || 0), 0))}
+                  </TableCell>
+                  <TableCell className="text-center font-bold text-slate-700">
+                    {formatCurrency(ensureArray(items).reduce((sum, item) => sum + (item.vat || 0), 0))}
+                  </TableCell>
+                  <TableCell className="text-center font-bold text-green-700">
+                    {formatCurrency(ensureArray(items).reduce((sum, item) => sum + (item.netRevenue || 0), 0))}
+                  </TableCell>
+                  <TableCell className="text-center font-bold text-slate-700">
+                    {formatNumber(ensureArray(items).reduce((sum, item) => sum + (item.unitsSold || 0), 0))}
+                  </TableCell>
+                  <TableCell className="text-center font-bold text-slate-700">
+                    {formatNumber(ensureArray(items).reduce((sum, item) => sum + (item.transactions || 0), 0))}
+                  </TableCell>
+                  <TableCell className="text-center font-bold text-slate-700">
+                    {formatNumber(ensureArray(items).reduce((sum, item) => sum + (item.uniqueMembers || 0), 0))}
+                  </TableCell>
+                  <TableCell className="text-center text-slate-500">-</TableCell>
+                  <TableCell className="text-center text-slate-500">-</TableCell>
+                  <TableCell className="text-center text-slate-500">-</TableCell>
+                  <TableCell className="text-center text-slate-500">-</TableCell>
+                  <TableCell></TableCell>
                 </TableRow>
-              ))}
-            </React.Fragment>
-          ))}
-        </TableBody>
-        <TableFooter>
-          <TableRow className="bg-gradient-to-r from-blue-50/80 via-purple-50/80 to-blue-50/80 font-bold border-t-3 border-slate-300">
-            <TableCell className="font-bold text-slate-800">GRAND TOTALS</TableCell>
-            <TableCell className="text-center font-bold text-blue-700">{formatCurrency(totals.grossRevenue)}</TableCell>
-            <TableCell className="text-center font-bold text-slate-700">{formatCurrency(totals.vat)}</TableCell>
-            <TableCell className="text-center font-bold text-green-700">{formatCurrency(totals.netRevenue)}</TableCell>
-            <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.unitsSold)}</TableCell>
-            <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.transactions)}</TableCell>
-            <TableCell className="text-center font-bold text-slate-700">{formatNumber(totals.uniqueMembers)}</TableCell>
-            <TableCell className="text-center text-slate-500">-</TableCell>
-            <TableCell className="text-center text-slate-500">-</TableCell>
-            <TableCell className="text-center text-slate-500">-</TableCell>
-            <TableCell className="text-center text-slate-500">-</TableCell>
-            <TableCell></TableCell>
-          </TableRow>
-        </TableFooter>
-      </Table>
+                {!collapsedGroups.has(category) && ensureArray(items).map((row: any, index: number) => (
+                  <TableRow 
+                    key={`${category}-${index}`}
+                    className="hover:bg-gradient-to-r hover:from-blue-50/30 hover:to-purple-50/30 cursor-pointer transition-all duration-300 border-b border-slate-200/20 bg-white"
+                    onClick={() => handleRowClick(row)}
+                  >
+                    <TableCell className="font-semibold text-slate-800 pl-8">{row.name}</TableCell>
+                    <TableCell className="text-center font-medium">{formatCurrency(row.grossRevenue || 0)}</TableCell>
+                    <TableCell className="text-center">{formatCurrency(row.vat || 0)}</TableCell>
+                    <TableCell className="text-center font-medium">{formatCurrency(row.netRevenue || 0)}</TableCell>
+                    <TableCell className="text-center">{formatNumber(row.unitsSold || 0)}</TableCell>
+                    <TableCell className="text-center">{formatNumber(row.transactions || 0)}</TableCell>
+                    <TableCell className="text-center">{formatNumber(row.uniqueMembers || 0)}</TableCell>
+                    <TableCell className="text-center">₹{row.atv || 0}</TableCell>
+                    <TableCell className="text-center">₹{row.auv || 0}</TableCell>
+                    <TableCell className="text-center">₹{row.asv || 0}</TableCell>
+                    <TableCell className="text-center">{row.upt || '0.0'}</TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="sm" onClick={() => handleRowClick(row)}>
+                        <Eye className="w-3 h-3" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </React.Fragment>
+            ))}
+          </TableBody>
+          <TableFooter className="sticky bottom-0 bg-gradient-to-r from-emerald-500 via-teal-600 to-emerald-500 shadow-lg">
+            <TableRow className="border-0">
+              <TableCell className="font-bold text-white">GRAND TOTALS</TableCell>
+              <TableCell className="text-center font-bold text-white">{formatCurrency(totals.grossRevenue)}</TableCell>
+              <TableCell className="text-center font-bold text-white">{formatCurrency(totals.vat)}</TableCell>
+              <TableCell className="text-center font-bold text-white">{formatCurrency(totals.netRevenue)}</TableCell>
+              <TableCell className="text-center font-bold text-white">{formatNumber(totals.unitsSold)}</TableCell>
+              <TableCell className="text-center font-bold text-white">{formatNumber(totals.transactions)}</TableCell>
+              <TableCell className="text-center font-bold text-white">{formatNumber(totals.uniqueMembers)}</TableCell>
+              <TableCell className="text-center text-white">-</TableCell>
+              <TableCell className="text-center text-white">-</TableCell>
+              <TableCell className="text-center text-white">-</TableCell>
+              <TableCell className="text-center text-white">-</TableCell>
+              <TableCell></TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </div>
     </div>
   );
 

@@ -1,9 +1,10 @@
+
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FilterSection } from './FilterSection';
+import { AutoCloseFilterSection } from './AutoCloseFilterSection';
 import { MetricCard } from './MetricCard';
-import { TopBottomSellers } from './TopBottomSellers';
+import { UnifiedTopBottomSellers } from './UnifiedTopBottomSellers';
 import { DataTable } from './DataTable';
 import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
@@ -52,7 +53,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       return locationMatch;
     });
 
-    // Apply date range filter
+    // Apply date range filter with improved date parsing
     if (filters.dateRange.start || filters.dateRange.end) {
       const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
       const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
@@ -60,12 +61,31 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       filtered = filtered.filter(item => {
         if (!item.paymentDate) return false;
         
-        // Parse date from DD/MM/YYYY format
-        const dateParts = item.paymentDate.split('/');
-        if (dateParts.length !== 3) return false;
+        // Enhanced date parsing to handle multiple formats
+        let itemDate: Date | null = null;
         
-        const itemDate = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
-        if (isNaN(itemDate.getTime())) return false;
+        // Try DD/MM/YYYY format first
+        const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (ddmmyyyy) {
+          const [, day, month, year] = ddmmyyyy;
+          itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          // Try other formats
+          const formats = [
+            new Date(item.paymentDate),
+            new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')),
+            new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3'))
+          ];
+          
+          for (const date of formats) {
+            if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
+              itemDate = date;
+              break;
+            }
+          }
+        }
+        
+        if (!itemDate || isNaN(itemDate.getTime())) return false;
         
         if (startDate && itemDate < startDate) return false;
         if (endDate && itemDate > endDate) return false;
@@ -255,7 +275,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
         {locations.map((location) => (
           <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-            <FilterSection
+            <AutoCloseFilterSection
               filters={filters}
               onFiltersChange={setFilters}
               onReset={resetFilters}
@@ -272,24 +292,13 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               ))}
             </div>
 
-            <div className="space-y-8">
-              <TopBottomSellers 
-                data={filteredData} 
-                type="product" 
-                onRowClick={(row) => {
-                  setDrillDownData(row);
-                  setDrillDownType('product');
-                }}
-              />
-              <TopBottomSellers 
-                data={filteredData} 
-                type="category"
-                onRowClick={(row) => {
-                  setDrillDownData(row);
-                  setDrillDownType('category');
-                }}
-              />
-            </div>
+            <UnifiedTopBottomSellers 
+              data={filteredData} 
+              onRowClick={(row) => {
+                setDrillDownData(row);
+                setDrillDownType('product');
+              }}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <InteractiveChart

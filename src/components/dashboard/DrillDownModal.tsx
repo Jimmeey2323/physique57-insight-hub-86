@@ -22,6 +22,12 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
 }) => {
   if (!data) return null;
 
+  // Helper function to safely convert to number
+  const safeNumber = (value: any, defaultValue: number = 0): number => {
+    const num = Number(value);
+    return isNaN(num) ? defaultValue : num;
+  };
+
   const renderMetricDetails = () => {
     const currentValue = typeof data.value === 'string' 
       ? parseFloat(data.value.replace(/[₹,]/g, '')) || 0 
@@ -38,7 +44,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
           </Card>
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-700">+{data.change || 12.5}%</div>
+              <div className="text-2xl font-bold text-green-700">+{safeNumber(data.change, 12.5)}%</div>
               <div className="text-sm text-green-600">Growth Rate</div>
             </CardContent>
           </Card>
@@ -71,7 +77,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
               </div>
               <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
                 <span className="font-medium text-slate-700">Weekly Trend</span>
-                <Badge className="bg-green-100 text-green-800 border-green-200">+{(data.change || 12.5).toFixed(1)}%</Badge>
+                <Badge className="bg-green-100 text-green-800 border-green-200">+{safeNumber(data.change, 12.5).toFixed(1)}%</Badge>
               </div>
               <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
                 <span className="font-medium text-slate-700">Monthly Projection</span>
@@ -107,7 +113,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   };
 
   const renderProductDetails = () => {
-    const grossRevenue = data.grossRevenue || data.totalValue || 0;
+    const grossRevenue = safeNumber(data.grossRevenue || data.totalValue, 0);
     
     return (
       <div className="space-y-6">
@@ -127,7 +133,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                 <Users className="w-4 h-4 text-green-600" />
                 <span className="text-sm font-medium text-green-600">Customers</span>
               </div>
-              <div className="text-xl font-bold text-green-700">{formatNumber(data.uniqueMembers || 0)}</div>
+              <div className="text-xl font-bold text-green-700">{formatNumber(safeNumber(data.uniqueMembers, 0))}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
@@ -136,7 +142,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                 <Calendar className="w-4 h-4 text-purple-600" />
                 <span className="text-sm font-medium text-purple-600">Transactions</span>
               </div>
-              <div className="text-xl font-bold text-purple-700">{formatNumber(data.transactions || 0)}</div>
+              <div className="text-xl font-bold text-purple-700">{formatNumber(safeNumber(data.transactions, 0))}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
@@ -145,7 +151,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                 <TrendingUp className="w-4 h-4 text-orange-600" />
                 <span className="text-sm font-medium text-orange-600">ATV</span>
               </div>
-              <div className="text-xl font-bold text-orange-700">{formatCurrency(data.atv || 0)}</div>
+              <div className="text-xl font-bold text-orange-700">{formatCurrency(safeNumber(data.atv, 0))}</div>
             </CardContent>
           </Card>
         </div>
@@ -170,23 +176,23 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-slate-600">Net Revenue</span>
-                    <span className="font-bold text-green-600">{formatCurrency(data.netRevenue || grossRevenue * 0.85)}</span>
+                    <span className="font-bold text-green-600">{formatCurrency(safeNumber(data.netRevenue, grossRevenue * 0.85))}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-slate-600">Average Unit Value</span>
-                    <span className="font-bold text-purple-600">{formatCurrency(data.auv || 0)}</span>
+                    <span className="font-bold text-purple-600">{formatCurrency(safeNumber(data.auv, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-slate-600">Average Spend Value</span>
-                    <span className="font-bold text-orange-600">{formatCurrency(data.asv || 0)}</span>
+                    <span className="font-bold text-orange-600">{formatCurrency(safeNumber(data.asv, 0))}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-slate-600">Units per Transaction</span>
-                    <span className="font-bold text-indigo-600">{(data.upt || 0).toFixed(2)}</span>
+                    <span className="font-bold text-indigo-600">{safeNumber(data.upt, 0).toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
                     <span className="text-slate-600">Units Sold</span>
-                    <span className="font-bold text-slate-700">{formatNumber(data.unitsSold || 0)}</span>
+                    <span className="font-bold text-slate-700">{formatNumber(safeNumber(data.unitsSold, 0))}</span>
                   </div>
                 </div>
               </CardContent>

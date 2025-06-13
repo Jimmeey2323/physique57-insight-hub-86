@@ -8,26 +8,16 @@ import { MetricCard } from './MetricCard';
 import { InteractiveChart } from './InteractiveChart';
 import { DataTable } from './DataTable';
 import { FilterSection } from './FilterSection';
-import { TopBottomSellers } from './TopBottomSellers';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { NewClientData, NewClientFilterOptions, MetricCardData, TableData } from '@/types/dashboard';
 import { formatCurrency } from '@/utils/formatters';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 interface NewClientSectionProps {
   data?: NewClientData[];
 }
 
-const locations = [
-  { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
-  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
-  { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
-];
-
 export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: externalData }) => {
-  const [activeLocation, setActiveLocation] = useState('kwality');
-  const [currentTheme, setCurrentTheme] = useState('classic');
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [drillDownData, setDrillDownData] = useState<any>(null);
   const { data: hookData, isLoading, error } = useNewClientData();
   const data = externalData || hookData || [];
   
@@ -48,7 +38,6 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   const filteredData = useMemo(() => {
     return data.filter(item => {
-      // Apply filters here
       if (filters.location.length > 0 && !filters.location.includes(item.firstVisitLocation)) return false;
       if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(item.homeLocation)) return false;
       if (filters.trainer.length > 0 && !filters.trainer.includes(item.trainerName)) return false;
@@ -113,28 +102,40 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     const monthlyStats = filteredData.reduce((acc, item) => {
       if (!item.firstVisitDate) return acc;
       
-      const dateParts = item.firstVisitDate.split(' ')[0].split('/');
-      const date = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
-      const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
-      
-      if (!acc[monthKey]) {
-        acc[monthKey] = {
-          month: monthKey,
-          newMembers: 0,
-          retained: 0,
-          converted: 0,
-          total: 0,
-          revenue: 0
-        };
+      try {
+        const dateParts = item.firstVisitDate.split(' ')[0].split('/');
+        if (dateParts.length !== 3) return acc;
+        
+        const date = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
+        if (isNaN(date.getTime())) return acc;
+        
+        const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
+        
+        if (!acc[monthKey]) {
+          acc[monthKey] = {
+            date: monthKey,
+            month: monthKey,
+            newMembers: 0,
+            retained: 0,
+            converted: 0,
+            total: 0,
+            revenue: 0,
+            value: 0
+          };
+        }
+        
+        acc[monthKey].total += 1;
+        acc[monthKey].revenue += item.ltv;
+        acc[monthKey].value += item.ltv;
+        if (item.isNew.includes('New')) acc[monthKey].newMembers += 1;
+        if (item.retentionStatus === 'Retained') acc[monthKey].retained += 1;
+        if (item.conversionStatus === 'Converted') acc[monthKey].converted += 1;
+        
+        return acc;
+      } catch (error) {
+        console.error('Error parsing date:', item.firstVisitDate, error);
+        return acc;
       }
-      
-      acc[monthKey].total += 1;
-      acc[monthKey].revenue += item.ltv;
-      if (item.isNew.includes('New')) acc[monthKey].newMembers += 1;
-      if (item.retentionStatus === 'Retained') acc[monthKey].retained += 1;
-      if (item.conversionStatus === 'Converted') acc[monthKey].converted += 1;
-      
-      return acc;
     }, {} as Record<string, any>);
 
     return Object.values(monthlyStats).map((month: any) => ({
@@ -144,24 +145,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }));
   }, [filteredData]);
 
-  const memberDetailData = useMemo((): TableData[] => {
-    return filteredData.map(item => ({
-      'Member ID': item.memberId,
-      'Name': `${item.firstName} ${item.lastName}`,
-      'Email': item.email,
-      'Phone': item.phoneNumber,
-      'First Visit': item.firstVisitDate ? item.firstVisitDate.split(' ')[0] : 'N/A',
-      'Location': item.firstVisitLocation,
-      'Home Location': item.homeLocation || 'Not specified',
-      'Trainer': item.trainerName || 'Not assigned',
-      'LTV': formatCurrency(item.ltv),
-      'Status': item.isNew,
-      'Retention': item.retentionStatus,
-      'Conversion': item.conversionStatus
-    }));
-  }, [filteredData]);
-
-  const conversionFunnelData = useMemo((): TableData[] => {
+  const conversionFunnelData = useMemo(() => {
     const totalSignups = filteredData.length;
     const paidFirstVisit = filteredData.filter(item => item.isNew === 'New - Paid First Visit').length;
     const visitedPostTrial = filteredData.filter(item => item.visitsPostTrial > 0).length;
@@ -169,42 +153,41 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
     return [
       {
-        'Stage': 'Total Sign-ups',
-        'Count': totalSignups,
+        Stage: 'Total Sign-ups',
+        Count: totalSignups,
         'Conversion Rate': '100%',
         'Drop-off': '—'
       },
       {
-        'Stage': 'Paid First Visit',
-        'Count': paidFirstVisit,
+        Stage: 'Paid First Visit',
+        Count: paidFirstVisit,
         'Conversion Rate': totalSignups > 0 ? `${((paidFirstVisit / totalSignups) * 100).toFixed(1)}%` : '0%',
         'Drop-off': totalSignups > 0 ? `${(((totalSignups - paidFirstVisit) / totalSignups) * 100).toFixed(1)}%` : '0%'
       },
       {
-        'Stage': 'Post-Trial Visits',
-        'Count': visitedPostTrial,
+        Stage: 'Post-Trial Visits',
+        Count: visitedPostTrial,
         'Conversion Rate': paidFirstVisit > 0 ? `${((visitedPostTrial / paidFirstVisit) * 100).toFixed(1)}%` : '0%',
         'Drop-off': paidFirstVisit > 0 ? `${(((paidFirstVisit - visitedPostTrial) / paidFirstVisit) * 100).toFixed(1)}%` : '0%'
       },
       {
-        'Stage': 'Retained Members',
-        'Count': retained,
+        Stage: 'Retained Members',
+        Count: retained,
         'Conversion Rate': visitedPostTrial > 0 ? `${((retained / visitedPostTrial) * 100).toFixed(1)}%` : '0%',
         'Drop-off': visitedPostTrial > 0 ? `${(((visitedPostTrial - retained) / visitedPostTrial) * 100).toFixed(1)}%` : '0%'
       }
     ];
   }, [filteredData]);
 
-  const locationAnalysisData = useMemo((): TableData[] => {
+  const locationAnalysisData = useMemo(() => {
     const locationStats = filteredData.reduce((acc, item) => {
-      const location = item.firstVisitLocation;
+      const location = item.firstVisitLocation || 'Unknown';
       if (!acc[location]) {
         acc[location] = {
           firstVisits: 0,
           conversions: 0,
           retainedMembers: 0,
-          totalRevenue: 0,
-          avgLTV: 0
+          totalRevenue: 0
         };
       }
       
@@ -217,9 +200,9 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }, {} as Record<string, any>);
 
     return Object.entries(locationStats).map(([location, stats]: [string, any]) => ({
-      'Location': location,
+      Location: location,
       'First Visits': stats.firstVisits,
-      'Conversions': stats.conversions,
+      Conversions: stats.conversions,
       'Conversion Rate': stats.firstVisits > 0 ? `${((stats.conversions / stats.firstVisits) * 100).toFixed(1)}%` : '0%',
       'Retention Rate': stats.firstVisits > 0 ? `${((stats.retainedMembers / stats.firstVisits) * 100).toFixed(1)}%` : '0%',
       'Total Revenue': formatCurrency(stats.totalRevenue),
@@ -227,7 +210,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     }));
   }, [filteredData]);
 
-  const trainerPerformanceData = useMemo((): TableData[] => {
+  const trainerPerformanceData = useMemo(() => {
     const trainerStats = filteredData.reduce((acc, item) => {
       const trainer = item.trainerName || 'Unassigned';
       
@@ -252,7 +235,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
     return Object.entries(trainerStats)
       .map(([trainer, stats]: [string, any]) => ({
-        'Trainer': trainer,
+        Trainer: trainer,
         'Total Clients': stats.totalClients,
         'Avg. Visits': stats.totalClients > 0 ? (stats.totalVisits / stats.totalClients).toFixed(1) : '0',
         'Total Revenue': formatCurrency(stats.totalLTV),
@@ -263,7 +246,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       .sort((a, b) => parseFloat(b['Total Revenue'].replace(/[₹,]/g, '')) - parseFloat(a['Total Revenue'].replace(/[₹,]/g, '')));
   }, [filteredData]);
 
-  const paymentMethodData = useMemo((): TableData[] => {
+  const paymentMethodData = useMemo(() => {
     const paymentStats = filteredData.reduce((acc, item) => {
       const method = item.paymentMethod || 'Unknown';
       if (!acc[method]) {
@@ -292,6 +275,50 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Conversion Rate': stats.totalMembers > 0 ? `${((stats.converted / stats.totalMembers) * 100).toFixed(1)}%` : '0%'
     }));
   }, [filteredData]);
+
+  const memberDetailData = useMemo(() => {
+    return filteredData.map(item => ({
+      'Member ID': item.memberId,
+      'Name': `${item.firstName} ${item.lastName}`,
+      'Email': item.email,
+      'Phone': item.phoneNumber,
+      'First Visit': item.firstVisitDate ? item.firstVisitDate.split(' ')[0] : 'N/A',
+      'Location': item.firstVisitLocation,
+      'Home Location': item.homeLocation || 'Not specified',
+      'Trainer': item.trainerName || 'Not assigned',
+      'LTV': formatCurrency(item.ltv),
+      'Status': item.isNew,
+      'Retention': item.retentionStatus,
+      'Conversion': item.conversionStatus
+    }));
+  }, [filteredData]);
+
+  const CustomTable = ({ data, title }: { data: any[], title: string }) => (
+    <div className="w-full overflow-hidden">
+      <Table className="w-full">
+        <TableHeader>
+          <TableRow>
+            {data.length > 0 && Object.keys(data[0]).map((key) => (
+              <TableHead key={key} className="text-left font-medium text-slate-700 bg-slate-50">
+                {key}
+              </TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((row, index) => (
+            <TableRow key={index} className="hover:bg-slate-50">
+              {Object.values(row).map((value, cellIndex) => (
+                <TableCell key={cellIndex} className="text-slate-600">
+                  {String(value)}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  );
 
   const handleFiltersChange = (newFilters: NewClientFilterOptions) => {
     setFilters(newFilters);
@@ -408,7 +435,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                 <InteractiveChart
                   title=""
                   data={monthlyData}
-                  type="conversion"
+                  type="line"
                 />
               </CardContent>
             </Card>
@@ -421,7 +448,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                 <InteractiveChart
                   title=""
                   data={monthlyData}
-                  type="retention"
+                  type="bar"
                 />
               </CardContent>
             </Card>
@@ -435,12 +462,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                   Top Performing Trainers
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <DataTable
-                  title=""
-                  data={trainerPerformanceData.slice(0, 5) as any}
-                  type="category"
-                />
+              <CardContent className="w-full overflow-x-auto">
+                <CustomTable data={trainerPerformanceData.slice(0, 5)} title="" />
               </CardContent>
             </Card>
             
@@ -451,12 +474,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                   Location Performance Summary
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <DataTable
-                  title=""
-                  data={locationAnalysisData as any}
-                  type="category"
-                />
+              <CardContent className="w-full overflow-x-auto">
+                <CustomTable data={locationAnalysisData} title="" />
               </CardContent>
             </Card>
           </div>
@@ -468,12 +487,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-orange-800">Conversion Funnel Analysis</CardTitle>
               </CardHeader>
-              <CardContent>
-                <DataTable
-                  title=""
-                  data={conversionFunnelData as any}
-                  type="category"
-                />
+              <CardContent className="w-full overflow-x-auto">
+                <CustomTable data={conversionFunnelData} title="" />
               </CardContent>
             </Card>
             
@@ -481,12 +496,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               <CardHeader>
                 <CardTitle className="text-lg font-semibold text-purple-800">Monthly Performance Metrics</CardTitle>
               </CardHeader>
-              <CardContent>
-                <DataTable
-                  title=""
-                  data={monthlyData as any}
-                  type="monthly"
-                />
+              <CardContent className="w-full overflow-x-auto">
+                <CustomTable data={monthlyData} title="" />
               </CardContent>
             </Card>
           </div>
@@ -497,12 +508,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-green-800">Revenue Analysis by Payment Method</CardTitle>
             </CardHeader>
-            <CardContent>
-              <DataTable
-                title=""
-                data={paymentMethodData as any}
-                type="category"
-              />
+            <CardContent className="w-full overflow-x-auto">
+              <CustomTable data={paymentMethodData} title="" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -512,12 +519,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-blue-800">Comprehensive Location Performance</CardTitle>
             </CardHeader>
-            <CardContent>
-              <DataTable
-                title=""
-                data={locationAnalysisData as any}
-                type="category"
-              />
+            <CardContent className="w-full overflow-x-auto">
+              <CustomTable data={locationAnalysisData} title="" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -527,12 +530,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-purple-800">Detailed Trainer Performance Metrics</CardTitle>
             </CardHeader>
-            <CardContent>
-              <DataTable
-                title=""
-                data={trainerPerformanceData as any}
-                type="category"
-              />
+            <CardContent className="w-full overflow-x-auto">
+              <CustomTable data={trainerPerformanceData} title="" />
             </CardContent>
           </Card>
         </TabsContent>
@@ -542,12 +541,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
             <CardHeader>
               <CardTitle className="text-lg font-semibold text-slate-800">Complete Member Database</CardTitle>
             </CardHeader>
-            <CardContent>
-              <DataTable
-                title=""
-                data={memberDetailData as any}
-                type="category"
-              />
+            <CardContent className="w-full overflow-x-auto">
+              <CustomTable data={memberDetailData} title="" />
             </CardContent>
           </Card>
         </TabsContent>

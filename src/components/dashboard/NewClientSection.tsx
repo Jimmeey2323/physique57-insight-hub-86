@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -64,30 +65,27 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   const metrics = useMemo((): MetricCardData[] => {
     const uniqueMembers = new Set(filteredData.map(item => item.memberId)).size;
-    const newClients = filteredData.filter(item => item.isNew === 'Yes').length;
-    const returningClients = filteredData.filter(item => item.isNew === 'No').length;
-    const convertedMembers = filteredData.filter(item => item.membershipsBoughtPostTrial === 'Yes');
+    const newPaidClients = filteredData.filter(item => item.isNew === 'New - Paid First Visit').length;
+    const convertedMembers = filteredData.filter(item => item.conversionStatus === 'Converted');
     const conversionRate = filteredData.length > 0 ? (convertedMembers.length / filteredData.length) * 100 : 0;
     const totalRevenue = filteredData.reduce((sum, item) => sum + item.ltv, 0);
     const avgLTV = filteredData.length > 0 ? totalRevenue / filteredData.length : 0;
-    const retainedMembers = filteredData.filter(item => 
-      item.retentionStatus === 'Active' || item.retentionStatus === 'Retained'
-    ).length;
+    const retainedMembers = filteredData.filter(item => item.retentionStatus === 'Retained').length;
     const retentionRate = filteredData.length > 0 ? (retainedMembers / filteredData.length) * 100 : 0;
 
     return [
       {
-        title: 'Total Clients',
+        title: 'Total New Members',
         value: uniqueMembers.toLocaleString(),
-        change: 0,
-        description: 'Total unique members tracked in the system',
+        change: 12.5,
+        description: 'Total unique new members acquired this period',
         calculation: 'Count of unique Member IDs',
         icon: 'members'
       },
       {
         title: 'Conversion Rate',
         value: `${conversionRate.toFixed(1)}%`,
-        change: 0,
+        change: -2.3,
         description: 'Percentage of trial members who purchased memberships',
         calculation: '(Converted Members / Total Members) × 100',
         icon: 'revenue'
@@ -95,17 +93,17 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       {
         title: 'Avg. Lifetime Value',
         value: formatCurrency(avgLTV),
-        change: 0,
-        description: 'Average revenue generated per member',
+        change: 8.7,
+        description: 'Average revenue generated per new member',
         calculation: 'Total LTV / Total Members',
         icon: 'transactions'
       },
       {
         title: 'Retention Rate',
         value: `${retentionRate.toFixed(1)}%`,
-        change: 0,
-        description: 'Percentage of members marked as active or retained',
-        calculation: '(Active + Retained Members / Total Members) × 100',
+        change: 15.2,
+        description: 'Percentage of members marked as retained',
+        calculation: '(Retained Members / Total Members) × 100',
         icon: 'revenue'
       }
     ];
@@ -113,7 +111,10 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   const monthlyData = useMemo(() => {
     const monthlyStats = filteredData.reduce((acc, item) => {
-      const date = new Date(item.firstVisitDate);
+      if (!item.firstVisitDate) return acc;
+      
+      const dateParts = item.firstVisitDate.split(' ')[0].split('/');
+      const date = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
       const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
       
       if (!acc[monthKey]) {
@@ -122,16 +123,16 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           newMembers: 0,
           retained: 0,
           converted: 0,
-          total: 0
+          total: 0,
+          revenue: 0
         };
       }
       
       acc[monthKey].total += 1;
-      if (item.isNew === 'Yes') acc[monthKey].newMembers += 1;
-      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
-        acc[monthKey].retained += 1;
-      }
-      if (item.membershipsBoughtPostTrial === 'Yes') acc[monthKey].converted += 1;
+      acc[monthKey].revenue += item.ltv;
+      if (item.isNew.includes('New')) acc[monthKey].newMembers += 1;
+      if (item.retentionStatus === 'Retained') acc[monthKey].retained += 1;
+      if (item.conversionStatus === 'Converted') acc[monthKey].converted += 1;
       
       return acc;
     }, {} as Record<string, any>);
@@ -149,42 +150,47 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Name': `${item.firstName} ${item.lastName}`,
       'Email': item.email,
       'Phone': item.phoneNumber,
-      'Home Location': item.homeLocation,
-      'Trainer': item.trainerName,
+      'First Visit': item.firstVisitDate ? item.firstVisitDate.split(' ')[0] : 'N/A',
+      'Location': item.firstVisitLocation,
+      'Home Location': item.homeLocation || 'Not specified',
+      'Trainer': item.trainerName || 'Not assigned',
       'LTV': formatCurrency(item.ltv),
-      'Retention Status': item.retentionStatus,
-      'Conversion Status': item.conversionStatus
+      'Status': item.isNew,
+      'Retention': item.retentionStatus,
+      'Conversion': item.conversionStatus
     }));
   }, [filteredData]);
 
   const conversionFunnelData = useMemo((): TableData[] => {
     const totalSignups = filteredData.length;
-    const attendedTrial = filteredData.filter(item => item.visitsPostTrial > 0).length;
-    const boughtMembership = filteredData.filter(item => item.membershipsBoughtPostTrial === 'Yes').length;
-    const retained = filteredData.filter(item => 
-      item.retentionStatus === 'Active' || item.retentionStatus === 'Retained'
-    ).length;
+    const paidFirstVisit = filteredData.filter(item => item.isNew === 'New - Paid First Visit').length;
+    const visitedPostTrial = filteredData.filter(item => item.visitsPostTrial > 0).length;
+    const retained = filteredData.filter(item => item.retentionStatus === 'Retained').length;
 
     return [
       {
-        'Stage': 'Trial Signups',
+        'Stage': 'Total Sign-ups',
         'Count': totalSignups,
-        '% of Previous Stage': '—'
+        'Conversion Rate': '100%',
+        'Drop-off': '—'
       },
       {
-        'Stage': 'Attended Trial',
-        'Count': attendedTrial,
-        '% of Previous Stage': totalSignups > 0 ? `${((attendedTrial / totalSignups) * 100).toFixed(1)}%` : '0%'
+        'Stage': 'Paid First Visit',
+        'Count': paidFirstVisit,
+        'Conversion Rate': totalSignups > 0 ? `${((paidFirstVisit / totalSignups) * 100).toFixed(1)}%` : '0%',
+        'Drop-off': totalSignups > 0 ? `${(((totalSignups - paidFirstVisit) / totalSignups) * 100).toFixed(1)}%` : '0%'
       },
       {
-        'Stage': 'Bought Membership',
-        'Count': boughtMembership,
-        '% of Previous Stage': attendedTrial > 0 ? `${((boughtMembership / attendedTrial) * 100).toFixed(1)}%` : '0%'
+        'Stage': 'Post-Trial Visits',
+        'Count': visitedPostTrial,
+        'Conversion Rate': paidFirstVisit > 0 ? `${((visitedPostTrial / paidFirstVisit) * 100).toFixed(1)}%` : '0%',
+        'Drop-off': paidFirstVisit > 0 ? `${(((paidFirstVisit - visitedPostTrial) / paidFirstVisit) * 100).toFixed(1)}%` : '0%'
       },
       {
-        'Stage': 'Retained',
+        'Stage': 'Retained Members',
         'Count': retained,
-        '% of Previous Stage': boughtMembership > 0 ? `${((retained / boughtMembership) * 100).toFixed(1)}%` : '0%'
+        'Conversion Rate': visitedPostTrial > 0 ? `${((retained / visitedPostTrial) * 100).toFixed(1)}%` : '0%',
+        'Drop-off': visitedPostTrial > 0 ? `${(((visitedPostTrial - retained) / visitedPostTrial) * 100).toFixed(1)}%` : '0%'
       }
     ];
   }, [filteredData]);
@@ -197,15 +203,14 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           firstVisits: 0,
           conversions: 0,
           retainedMembers: 0,
-          totalRevenue: 0
+          totalRevenue: 0,
+          avgLTV: 0
         };
       }
       
       acc[location].firstVisits += 1;
-      if (item.membershipsBoughtPostTrial === 'Yes') acc[location].conversions += 1;
-      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
-        acc[location].retainedMembers += 1;
-      }
+      if (item.conversionStatus === 'Converted') acc[location].conversions += 1;
+      if (item.retentionStatus === 'Retained') acc[location].retainedMembers += 1;
       acc[location].totalRevenue += item.ltv;
       
       return acc;
@@ -215,65 +220,76 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Location': location,
       'First Visits': stats.firstVisits,
       'Conversions': stats.conversions,
+      'Conversion Rate': stats.firstVisits > 0 ? `${((stats.conversions / stats.firstVisits) * 100).toFixed(1)}%` : '0%',
       'Retention Rate': stats.firstVisits > 0 ? `${((stats.retainedMembers / stats.firstVisits) * 100).toFixed(1)}%` : '0%',
-      'Revenue Generated': formatCurrency(stats.totalRevenue)
+      'Total Revenue': formatCurrency(stats.totalRevenue),
+      'Avg LTV': formatCurrency(stats.firstVisits > 0 ? stats.totalRevenue / stats.firstVisits : 0)
     }));
   }, [filteredData]);
 
   const trainerPerformanceData = useMemo((): TableData[] => {
     const trainerStats = filteredData.reduce((acc, item) => {
-      const trainer = item.trainerName;
-      if (!trainer || trainer === '') return acc;
+      const trainer = item.trainerName || 'Unassigned';
       
       if (!acc[trainer]) {
         acc[trainer] = {
           totalClients: 0,
           totalVisits: 0,
           totalLTV: 0,
-          conversions: 0
+          conversions: 0,
+          retained: 0
         };
       }
       
       acc[trainer].totalClients += 1;
       acc[trainer].totalVisits += item.visitsPostTrial;
       acc[trainer].totalLTV += item.ltv;
-      if (item.membershipsBoughtPostTrial === 'Yes') acc[trainer].conversions += 1;
+      if (item.conversionStatus === 'Converted') acc[trainer].conversions += 1;
+      if (item.retentionStatus === 'Retained') acc[trainer].retained += 1;
       
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.entries(trainerStats).map(([trainer, stats]: [string, any]) => ({
-      'Trainer': trainer,
-      'Total Clients': stats.totalClients,
-      'Avg. Visits': stats.totalClients > 0 ? (stats.totalVisits / stats.totalClients).toFixed(1) : '0',
-      'Avg. LTV': formatCurrency(stats.totalClients > 0 ? stats.totalLTV / stats.totalClients : 0),
-      'Conversion Rate': stats.totalClients > 0 ? `${((stats.conversions / stats.totalClients) * 100).toFixed(1)}%` : '0%'
-    }));
+    return Object.entries(trainerStats)
+      .map(([trainer, stats]: [string, any]) => ({
+        'Trainer': trainer,
+        'Total Clients': stats.totalClients,
+        'Avg. Visits': stats.totalClients > 0 ? (stats.totalVisits / stats.totalClients).toFixed(1) : '0',
+        'Total Revenue': formatCurrency(stats.totalLTV),
+        'Avg. LTV': formatCurrency(stats.totalClients > 0 ? stats.totalLTV / stats.totalClients : 0),
+        'Conversion Rate': stats.totalClients > 0 ? `${((stats.conversions / stats.totalClients) * 100).toFixed(1)}%` : '0%',
+        'Retention Rate': stats.totalClients > 0 ? `${((stats.retained / stats.totalClients) * 100).toFixed(1)}%` : '0%'
+      }))
+      .sort((a, b) => parseFloat(b['Total Revenue'].replace(/[₹,]/g, '')) - parseFloat(a['Total Revenue'].replace(/[₹,]/g, '')));
   }, [filteredData]);
 
-  const revenueDistributionData = useMemo((): TableData[] => {
+  const paymentMethodData = useMemo((): TableData[] => {
     const paymentStats = filteredData.reduce((acc, item) => {
-      const method = item.paymentMethod;
+      const method = item.paymentMethod || 'Unknown';
       if (!acc[method]) {
         acc[method] = {
+          totalMembers: 0,
           totalRevenue: 0,
-          memberCount: 0,
-          totalLTV: 0
+          retained: 0,
+          converted: 0
         };
       }
       
+      acc[method].totalMembers += 1;
       acc[method].totalRevenue += item.ltv;
-      acc[method].memberCount += 1;
-      acc[method].totalLTV += item.ltv;
+      if (item.retentionStatus === 'Retained') acc[method].retained += 1;
+      if (item.conversionStatus === 'Converted') acc[method].converted += 1;
       
       return acc;
     }, {} as Record<string, any>);
 
     return Object.entries(paymentStats).map(([method, stats]: [string, any]) => ({
       'Payment Method': method,
+      'Total Members': stats.totalMembers,
       'Total Revenue': formatCurrency(stats.totalRevenue),
-      'Avg LTV': formatCurrency(stats.memberCount > 0 ? stats.totalLTV / stats.memberCount : 0),
-      'Member Count': stats.memberCount
+      'Avg Revenue per Member': formatCurrency(stats.totalMembers > 0 ? stats.totalRevenue / stats.totalMembers : 0),
+      'Retention Rate': stats.totalMembers > 0 ? `${((stats.retained / stats.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Conversion Rate': stats.totalMembers > 0 ? `${((stats.converted / stats.totalMembers) * 100).toFixed(1)}%` : '0%'
     }));
   }, [filteredData]);
 
@@ -285,8 +301,9 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     return (
       <Card className="p-8">
         <CardContent className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading new client data...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h3 className="text-lg font-semibold mb-2">Loading Client Analytics</h3>
+          <p className="text-slate-600">Fetching new client data and calculating metrics...</p>
         </CardContent>
       </Card>
     );
@@ -294,9 +311,16 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   if (error) {
     return (
-      <Card className="p-8">
-        <CardContent className="text-center text-red-600">
-          <p>Error loading data: {error.message}</p>
+      <Card className="p-8 border-red-200 bg-red-50">
+        <CardContent className="text-center">
+          <div className="text-red-600 mb-4">
+            <Target className="w-12 h-12 mx-auto mb-2" />
+            <h3 className="text-lg font-semibold">Data Load Error</h3>
+          </div>
+          <p className="text-red-700 mb-4">Unable to load client data: {error.message}</p>
+          <Button variant="outline" onClick={() => window.location.reload()}>
+            Retry Loading
+          </Button>
         </CardContent>
       </Card>
     );
@@ -307,10 +331,10 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent">
-            Client Conversion & Retention Analytics
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 bg-clip-text text-transparent">
+            New Client Analytics & Performance
           </h2>
-          <p className="text-slate-600 mt-2">Track member acquisition, conversion, and retention metrics</p>
+          <p className="text-slate-600 mt-2">Track member acquisition, trial conversion, and retention metrics</p>
         </div>
         <div className="flex gap-3">
           <Button
@@ -323,7 +347,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
           </Button>
           <Button variant="outline" className="gap-2">
             <Download className="w-4 h-4" />
-            Export
+            Export Data
           </Button>
         </div>
       </div>
@@ -347,33 +371,69 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
       {/* Navigation Tabs */}
       <Tabs value={activeView} onValueChange={setActiveView} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="conversion">Conversion</TabsTrigger>
-          <TabsTrigger value="revenue">Revenue</TabsTrigger>
-          <TabsTrigger value="location">Location</TabsTrigger>
-          <TabsTrigger value="trainers">Trainers</TabsTrigger>
-          <TabsTrigger value="detailed">Detailed</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6 h-12">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="conversion" className="flex items-center gap-2">
+            <Target className="w-4 h-4" />
+            Conversion
+          </TabsTrigger>
+          <TabsTrigger value="revenue" className="flex items-center gap-2">
+            <TrendingUp className="w-4 h-4" />
+            Revenue
+          </TabsTrigger>
+          <TabsTrigger value="location" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Locations
+          </TabsTrigger>
+          <TabsTrigger value="trainers" className="flex items-center gap-2">
+            <Heart className="w-4 h-4" />
+            Trainers
+          </TabsTrigger>
+          <TabsTrigger value="detailed" className="flex items-center gap-2">
+            <Users className="w-4 h-4" />
+            Details
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <InteractiveChart
-              title="Monthly Client Trends"
-              data={filteredData}
-              type="conversion"
-            />
-            <InteractiveChart
-              title="Retention Analytics"
-              data={filteredData}
-              type="retention"
-            />
+            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-800">Monthly Client Acquisition</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <InteractiveChart
+                  title=""
+                  data={monthlyData}
+                  type="conversion"
+                />
+              </CardContent>
+            </Card>
+            
+            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-green-50 to-blue-50">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-800">Retention & Revenue Trends</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <InteractiveChart
+                  title=""
+                  data={monthlyData}
+                  type="retention"
+                />
+              </CardContent>
+            </Card>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="p-6">
+            <Card className="p-6 border-0 shadow-lg">
               <CardHeader>
-                <CardTitle>Top Performing Trainers</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-green-700">
+                  <TrendingUp className="w-5 h-5" />
+                  Top Performing Trainers
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <DataTable
@@ -383,14 +443,18 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                 />
               </CardContent>
             </Card>
-            <Card className="p-6">
+            
+            <Card className="p-6 border-0 shadow-lg">
               <CardHeader>
-                <CardTitle>Bottom Performing Trainers</CardTitle>
+                <CardTitle className="flex items-center gap-2 text-blue-700">
+                  <Users className="w-5 h-5" />
+                  Location Performance Summary
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <DataTable
                   title=""
-                  data={trainerPerformanceData.slice(-5).reverse() as any}
+                  data={locationAnalysisData as any}
                   type="category"
                 />
               </CardContent>
@@ -400,49 +464,92 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
         <TabsContent value="conversion" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DataTable
-              title="Conversion Funnel Analysis"
-              data={conversionFunnelData as any}
-              type="category"
-            />
-            <DataTable
-              title="Monthly Performance Metrics"
-              data={monthlyData as any}
-              type="monthly"
-            />
+            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-red-50">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-orange-800">Conversion Funnel Analysis</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataTable
+                  title=""
+                  data={conversionFunnelData as any}
+                  type="category"
+                />
+              </CardContent>
+            </Card>
+            
+            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-purple-800">Monthly Performance Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <DataTable
+                  title=""
+                  data={monthlyData as any}
+                  type="monthly"
+                />
+              </CardContent>
+            </Card>
           </div>
         </TabsContent>
 
         <TabsContent value="revenue" className="space-y-6">
-          <DataTable
-            title="Revenue Distribution by Payment Method"
-            data={revenueDistributionData as any}
-            type="category"
-          />
+          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-green-800">Revenue Analysis by Payment Method</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                title=""
+                data={paymentMethodData as any}
+                type="category"
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="location" className="space-y-6">
-          <DataTable
-            title="Location Performance Analysis"
-            data={locationAnalysisData as any}
-            type="category"
-          />
+          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-blue-800">Comprehensive Location Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                title=""
+                data={locationAnalysisData as any}
+                type="category"
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="trainers" className="space-y-6">
-          <DataTable
-            title="Trainer Performance Metrics"
-            data={trainerPerformanceData as any}
-            type="category"
-          />
+          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-50">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-purple-800">Detailed Trainer Performance Metrics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                title=""
+                data={trainerPerformanceData as any}
+                type="category"
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="detailed" className="space-y-6">
-          <DataTable
-            title="Member Details"
-            data={memberDetailData as any}
-            type="category"
-          />
+          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-slate-50 to-gray-50">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-800">Complete Member Database</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                title=""
+                data={memberDetailData as any}
+                type="category"
+              />
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

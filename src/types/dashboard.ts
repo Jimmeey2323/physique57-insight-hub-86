@@ -28,45 +28,23 @@ export interface NewClientData {
   firstName: string;
   lastName: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   firstVisitDate: string;
-  isNew: string;
-  membershipUsed: string;
+  firstVisitEntityName: string;
+  firstVisitType: string;
+  firstVisitLocation: string;
   paymentMethod: string;
-  ltv: number;
-  conversionStatus: string;
-  retentionStatus: string;
+  membershipUsed: string;
+  homeLocation: string;
+  classNo: number;
+  trainerName: string;
+  isNew: string;
   visitsPostTrial: number;
-  location: string;
-}
-
-export interface TeacherData {
-  teacherId: string;
-  teacherName: string;
-  email: string;
-  location: string;
-  totalSessions: number;
-  totalNonEmptySessions: number;
-  totalCustomers: number;
-  totalPaid: number;
-  month: string;
-  sessionType: string;
-}
-
-export interface SessionData {
-  sessionId: string;
-  sessionName: string;
-  date: string;
-  time: string;
-  trainer: string;
-  location: string;
-  classType: string;
-  capacity: number;
-  countCustomersBooked: number;
-  countCustomersCheckedIn: number;
-  countCustomersLateCancelled: number;
-  totalPaid: number;
-  dayOfWeek: string;
+  membershipsBoughtPostTrial: string;
+  purchaseCountPostTrial: number;
+  ltv: number;
+  retentionStatus: string;
+  conversionStatus: string;
 }
 
 export interface FilterOptions {
@@ -83,6 +61,22 @@ export interface FilterOptions {
   maxAmount?: number;
 }
 
+export interface NewClientFilterOptions {
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  location: string[];
+  homeLocation: string[];
+  trainer: string[];
+  paymentMethod: string[];
+  retentionStatus: string[];
+  conversionStatus: string[];
+  isNew: string[];
+  minLTV?: number;
+  maxLTV?: number;
+}
+
 export interface MetricCardData {
   title: string;
   value: string;
@@ -97,3 +91,6 @@ export interface ChartDataPoint {
   value: number;
   category?: string;
 }
+
+// Generic table data type for flexible table structures
+export type TableData = Record<string, any>;

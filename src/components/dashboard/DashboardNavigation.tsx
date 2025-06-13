@@ -26,21 +26,21 @@ const sections = [
   },
   {
     id: 'funnel-leads',
-    name: 'New Client',
+    name: 'Funnel & Lead Performance',
     icon: TrendingUp,
-    description: 'New client acquisition and conversion analysis'
+    description: 'Lead conversion and funnel analysis'
   },
   {
     id: 'client-retention',
-    name: 'Client Conversion & Retention',
+    name: 'New Client Conversion & Retention',
     icon: Users,
     description: 'Client acquisition and retention metrics'
   },
   {
     id: 'trainer-performance',
-    name: 'Teacher Performance',
+    name: 'Trainer Performance & Analytics',
     icon: Award,
-    description: 'Individual teacher performance insights'
+    description: 'Individual trainer performance insights'
   },
   {
     id: 'class-attendance',

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,10 +51,10 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   // Filter data by location and other filters
   const applyFilters = (rawData: NewClientData[]) => {
-    let filtered = rawData;
-
-    // Apply location filter first
-    filtered = filtered.filter(item => {
+    console.log('Raw data length:', rawData.length);
+    
+    // First filter by selected location tab
+    let locationFiltered = rawData.filter(item => {
       const locationMatch = activeLocation === 'kwality' 
         ? item.firstVisitLocation === 'Kwality House, Kemps Corner'
         : activeLocation === 'supreme'
@@ -63,25 +64,37 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return locationMatch;
     });
 
-    // Apply other filters
-    if (filters.location.length > 0 && !filters.location.includes(item.firstVisitLocation)) return false;
-    if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(item.homeLocation)) return false;
-    if (filters.trainer.length > 0 && !filters.trainer.includes(item.trainerName)) return false;
-    if (filters.paymentMethod.length > 0 && !filters.paymentMethod.includes(item.paymentMethod)) return false;
-    if (filters.retentionStatus.length > 0 && !filters.retentionStatus.includes(item.retentionStatus)) return false;
-    if (filters.conversionStatus.length > 0 && !filters.conversionStatus.includes(item.conversionStatus)) return false;
-    if (filters.isNew.length > 0 && !filters.isNew.includes(item.isNew)) return false;
-    if (filters.minLTV !== undefined && item.ltv < filters.minLTV) return false;
-    if (filters.maxLTV !== undefined && item.ltv > filters.maxLTV) return false;
+    console.log('Location filtered data length:', locationFiltered.length);
+    console.log('Active location:', activeLocation);
 
+    // Then apply additional filters
+    let filtered = locationFiltered.filter(item => {
+      if (filters.location.length > 0 && !filters.location.includes(item.firstVisitLocation)) return false;
+      if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(item.homeLocation)) return false;
+      if (filters.trainer.length > 0 && !filters.trainer.includes(item.trainerName)) return false;
+      if (filters.paymentMethod.length > 0 && !filters.paymentMethod.includes(item.paymentMethod)) return false;
+      if (filters.retentionStatus.length > 0 && !filters.retentionStatus.includes(item.retentionStatus)) return false;
+      if (filters.conversionStatus.length > 0 && !filters.conversionStatus.includes(item.conversionStatus)) return false;
+      if (filters.isNew.length > 0 && !filters.isNew.includes(item.isNew)) return false;
+      if (filters.minLTV !== undefined && item.ltv < filters.minLTV) return false;
+      if (filters.maxLTV !== undefined && item.ltv > filters.maxLTV) return false;
+
+      return true;
+    });
+
+    console.log('Final filtered data length:', filtered.length);
     return filtered;
   };
 
   const filteredData = useMemo(() => {
-    return applyFilters(data);
+    const result = applyFilters(data);
+    console.log('Filtered data result:', result.length, 'items');
+    return result;
   }, [data, activeLocation, filters]);
 
   const metrics = useMemo((): MetricCardData[] => {
+    console.log('Calculating metrics for', filteredData.length, 'items');
+    
     const uniqueMembers = new Set(filteredData.map(item => item.memberId)).size;
     const newClients = filteredData.filter(item => item.isNew === 'Yes').length;
     const returningClients = filteredData.filter(item => item.isNew === 'No').length;
@@ -95,6 +108,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     const retentionRate = filteredData.length > 0 ? (retainedMembers / filteredData.length) * 100 : 0;
     const avgVisitsPostTrial = convertedMembers.length > 0 ? 
       convertedMembers.reduce((sum, item) => sum + item.visitsPostTrial, 0) / convertedMembers.length : 0;
+
+    console.log('Metrics calculated:', { uniqueMembers, conversionRate, avgLTV, retentionRate });
 
     return [
       {
@@ -166,6 +181,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   // Month-on-Month Analysis
   const monthlyAnalysis = useMemo(() => {
+    console.log('Calculating monthly analysis for', filteredData.length, 'items');
+    
     const monthlyStats = filteredData.reduce((acc, item) => {
       const date = new Date(item.firstVisitDate);
       const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
@@ -194,7 +211,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.values(monthlyStats).map((month: any) => ({
+    const result = Object.values(monthlyStats).map((month: any) => ({
       'Month': month.month,
       'Total Members': month.totalMembers,
       'New Members': month.newMembers,
@@ -205,6 +222,9 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Total Revenue': formatCurrency(month.totalRevenue),
       'Avg LTV': formatCurrency(month.totalMembers > 0 ? month.totalRevenue / month.totalMembers : 0)
     }));
+
+    console.log('Monthly analysis result:', result.length, 'months');
+    return result;
   }, [filteredData]);
 
   // Year-on-Year Analysis
@@ -442,6 +462,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     );
   }
 
+  console.log('Rendering with filtered data length:', filteredData.length);
+
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
       <div className="text-center mb-8">
@@ -513,6 +535,9 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                   <Download className="w-4 h-4" />
                   Export
                 </Button>
+              </div>
+              <div className="text-sm text-gray-600">
+                Showing {filteredData.length} records for {location.name}
               </div>
             </div>
 

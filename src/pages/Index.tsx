@@ -2,14 +2,17 @@
 import React, { useState } from 'react';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
 import { SalesAnalyticsSection } from '@/components/dashboard/SalesAnalyticsSection';
-import { useGoogleSheets } from '@/hooks/useGoogleSheets';
+import { NewClientAnalyticsSection } from '@/components/dashboard/NewClientAnalyticsSection';
+import { TeacherPerformanceSection } from '@/components/dashboard/TeacherPerformanceSection';
+import { ClassAttendanceSection } from '@/components/dashboard/ClassAttendanceSection';
+import { useAllSheetsData } from '@/hooks/useAllSheetsData';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [activeSection, setActiveSection] = useState('sales-analytics');
-  const { data, loading, error, refetch } = useGoogleSheets();
+  const { salesData, newClientData, teacherData, sessionData, loading, error, refetch } = useAllSheetsData();
 
   if (loading) {
     return (
@@ -19,7 +22,7 @@ const Index = () => {
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             <div>
               <p className="text-lg font-semibold text-slate-800">Loading Dashboard</p>
-              <p className="text-sm text-slate-600">Fetching latest sales data from Google Sheets...</p>
+              <p className="text-sm text-slate-600">Fetching latest data from Google Sheets...</p>
             </div>
           </CardContent>
         </Card>
@@ -50,16 +53,9 @@ const Index = () => {
   const renderActiveSection = () => {
     switch (activeSection) {
       case 'sales-analytics':
-        return <SalesAnalyticsSection data={data} />;
+        return <SalesAnalyticsSection data={salesData} />;
       case 'funnel-leads':
-        return (
-          <Card className="p-8">
-            <CardContent className="text-center">
-              <h3 className="text-2xl font-semibold mb-4">Funnel & Lead Performance</h3>
-              <p className="text-slate-600">Coming soon - Lead conversion metrics and funnel analysis</p>
-            </CardContent>
-          </Card>
-        );
+        return <NewClientAnalyticsSection data={newClientData} />;
       case 'client-retention':
         return (
           <Card className="p-8">
@@ -70,23 +66,9 @@ const Index = () => {
           </Card>
         );
       case 'trainer-performance':
-        return (
-          <Card className="p-8">
-            <CardContent className="text-center">
-              <h3 className="text-2xl font-semibold mb-4">Trainer Performance</h3>
-              <p className="text-slate-600">Coming soon - Individual trainer performance insights</p>
-            </CardContent>
-          </Card>
-        );
+        return <TeacherPerformanceSection data={teacherData} />;
       case 'class-attendance':
-        return (
-          <Card className="p-8">
-            <CardContent className="text-center">
-              <h3 className="text-2xl font-semibold mb-4">Class Attendance</h3>
-              <p className="text-slate-600">Coming soon - Class utilization and attendance patterns</p>
-            </CardContent>
-          </Card>
-        );
+        return <ClassAttendanceSection data={sessionData} />;
       case 'discounts-promotions':
         return (
           <Card className="p-8">
@@ -106,7 +88,7 @@ const Index = () => {
           </Card>
         );
       default:
-        return <SalesAnalyticsSection data={data} />;
+        return <SalesAnalyticsSection data={salesData} />;
     }
   };
 

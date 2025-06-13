@@ -23,6 +23,52 @@ export interface SalesData {
   cleanedCategory: string;
 }
 
+export interface NewClientData {
+  memberId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  firstVisitDate: string;
+  isNew: string;
+  membershipUsed: string;
+  paymentMethod: string;
+  ltv: number;
+  conversionStatus: string;
+  retentionStatus: string;
+  visitsPostTrial: number;
+  location: string;
+}
+
+export interface TeacherData {
+  teacherId: string;
+  teacherName: string;
+  email: string;
+  location: string;
+  totalSessions: number;
+  totalNonEmptySessions: number;
+  totalCustomers: number;
+  totalPaid: number;
+  month: string;
+  sessionType: string;
+}
+
+export interface SessionData {
+  sessionId: string;
+  sessionName: string;
+  date: string;
+  time: string;
+  trainer: string;
+  location: string;
+  classType: string;
+  capacity: number;
+  countCustomersBooked: number;
+  countCustomersCheckedIn: number;
+  countCustomersLateCancelled: number;
+  totalPaid: number;
+  dayOfWeek: string;
+}
+
 export interface FilterOptions {
   dateRange: {
     start: string;

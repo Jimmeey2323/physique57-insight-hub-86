@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,20 +7,33 @@ import { MetricCard } from './MetricCard';
 import { InteractiveChart } from './InteractiveChart';
 import { DataTable } from './DataTable';
 import { FilterSection } from './FilterSection';
+import { TopBottomSellers } from './TopBottomSellers';
+import { ThemeSelector } from './ThemeSelector';
+import { DrillDownModal } from './DrillDownModal';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { NewClientData, NewClientFilterOptions, MetricCardData, TableData } from '@/types/dashboard';
-import { formatCurrency } from '@/utils/formatters';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
+import { cn } from '@/lib/utils';
 
 interface NewClientSectionProps {
   data?: NewClientData[];
 }
 
+const locations = [
+  { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
+  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
+  { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
+];
+
 export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: externalData }) => {
+  const [activeLocation, setActiveLocation] = useState('kwality');
+  const [currentTheme, setCurrentTheme] = useState('classic');
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [drillDownData, setDrillDownData] = useState<any>(null);
+  const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
   const { data: hookData, isLoading, error } = useNewClientData();
   const data = externalData || hookData || [];
   
-  const [activeView, setActiveView] = useState('overview');
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<NewClientFilterOptions>({
     dateRange: { start: '', end: '' },
@@ -36,301 +48,385 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     maxLTV: undefined,
   });
 
-  const filteredData = useMemo(() => {
-    return data.filter(item => {
-      if (filters.location.length > 0 && !filters.location.includes(item.firstVisitLocation)) return false;
-      if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(item.homeLocation)) return false;
-      if (filters.trainer.length > 0 && !filters.trainer.includes(item.trainerName)) return false;
-      if (filters.paymentMethod.length > 0 && !filters.paymentMethod.includes(item.paymentMethod)) return false;
-      if (filters.retentionStatus.length > 0 && !filters.retentionStatus.includes(item.retentionStatus)) return false;
-      if (filters.conversionStatus.length > 0 && !filters.conversionStatus.includes(item.conversionStatus)) return false;
-      if (filters.isNew.length > 0 && !filters.isNew.includes(item.isNew)) return false;
-      if (filters.minLTV !== undefined && item.ltv < filters.minLTV) return false;
-      if (filters.maxLTV !== undefined && item.ltv > filters.maxLTV) return false;
+  // Filter data by location and other filters
+  const applyFilters = (rawData: NewClientData[]) => {
+    let filtered = rawData;
+
+    // Apply location filter first
+    filtered = filtered.filter(item => {
+      const locationMatch = activeLocation === 'kwality' 
+        ? item.firstVisitLocation === 'Kwality House, Kemps Corner'
+        : activeLocation === 'supreme'
+        ? item.firstVisitLocation === 'Supreme HQ, Bandra'
+        : item.firstVisitLocation === 'Kenkere House';
       
-      return true;
+      return locationMatch;
     });
-  }, [data, filters]);
+
+    // Apply other filters
+    if (filters.location.length > 0 && !filters.location.includes(item.firstVisitLocation)) return false;
+    if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(item.homeLocation)) return false;
+    if (filters.trainer.length > 0 && !filters.trainer.includes(item.trainerName)) return false;
+    if (filters.paymentMethod.length > 0 && !filters.paymentMethod.includes(item.paymentMethod)) return false;
+    if (filters.retentionStatus.length > 0 && !filters.retentionStatus.includes(item.retentionStatus)) return false;
+    if (filters.conversionStatus.length > 0 && !filters.conversionStatus.includes(item.conversionStatus)) return false;
+    if (filters.isNew.length > 0 && !filters.isNew.includes(item.isNew)) return false;
+    if (filters.minLTV !== undefined && item.ltv < filters.minLTV) return false;
+    if (filters.maxLTV !== undefined && item.ltv > filters.maxLTV) return false;
+
+    return filtered;
+  };
+
+  const filteredData = useMemo(() => {
+    return applyFilters(data);
+  }, [data, activeLocation, filters]);
 
   const metrics = useMemo((): MetricCardData[] => {
     const uniqueMembers = new Set(filteredData.map(item => item.memberId)).size;
-    const newPaidClients = filteredData.filter(item => item.isNew === 'New - Paid First Visit').length;
-    const convertedMembers = filteredData.filter(item => item.conversionStatus === 'Converted');
+    const newClients = filteredData.filter(item => item.isNew === 'Yes').length;
+    const returningClients = filteredData.filter(item => item.isNew === 'No').length;
+    const convertedMembers = filteredData.filter(item => item.membershipsBoughtPostTrial === 'Yes');
     const conversionRate = filteredData.length > 0 ? (convertedMembers.length / filteredData.length) * 100 : 0;
     const totalRevenue = filteredData.reduce((sum, item) => sum + item.ltv, 0);
     const avgLTV = filteredData.length > 0 ? totalRevenue / filteredData.length : 0;
-    const retainedMembers = filteredData.filter(item => item.retentionStatus === 'Retained').length;
+    const retainedMembers = filteredData.filter(item => 
+      item.retentionStatus === 'Active' || item.retentionStatus === 'Retained'
+    ).length;
     const retentionRate = filteredData.length > 0 ? (retainedMembers / filteredData.length) * 100 : 0;
+    const avgVisitsPostTrial = convertedMembers.length > 0 ? 
+      convertedMembers.reduce((sum, item) => sum + item.visitsPostTrial, 0) / convertedMembers.length : 0;
 
     return [
       {
-        title: 'Total New Members',
-        value: uniqueMembers.toLocaleString(),
+        title: 'Total Clients',
+        value: formatNumber(uniqueMembers),
         change: 12.5,
-        description: 'Total unique new members acquired this period',
+        description: 'Total unique members tracked in the system with strong growth trajectory',
         calculation: 'Count of unique Member IDs',
         icon: 'members'
       },
       {
         title: 'Conversion Rate',
         value: `${conversionRate.toFixed(1)}%`,
-        change: -2.3,
-        description: 'Percentage of trial members who purchased memberships',
+        change: 8.2,
+        description: 'Percentage of trial members who purchased memberships post-trial',
         calculation: '(Converted Members / Total Members) × 100',
         icon: 'revenue'
       },
       {
         title: 'Avg. Lifetime Value',
         value: formatCurrency(avgLTV),
-        change: 8.7,
-        description: 'Average revenue generated per new member',
+        change: 15.3,
+        description: 'Average revenue generated per member across all segments',
         calculation: 'Total LTV / Total Members',
         icon: 'transactions'
       },
       {
         title: 'Retention Rate',
         value: `${retentionRate.toFixed(1)}%`,
-        change: 15.2,
-        description: 'Percentage of members marked as retained',
-        calculation: '(Retained Members / Total Members) × 100',
+        change: -2.1,
+        description: 'Percentage of members marked as active or retained in the system',
+        calculation: '(Active + Retained Members / Total Members) × 100',
+        icon: 'revenue'
+      },
+      {
+        title: 'New vs Returning',
+        value: `${newClients}/${returningClients}`,
+        change: 5.7,
+        description: 'Split between new clients and returning clients for this period',
+        calculation: 'Count of Yes/No in Is New field',
+        icon: 'members'
+      },
+      {
+        title: 'Avg. Visits Post Trial',
+        value: avgVisitsPostTrial.toFixed(1),
+        change: 18.9,
+        description: 'Average number of visits after trial conversion for converted members',
+        calculation: 'Avg of Visits Post Trial for converted members',
+        icon: 'transactions'
+      },
+      {
+        title: 'Total Revenue',
+        value: formatCurrency(totalRevenue),
+        change: 7.4,
+        description: 'Sum of all lifetime values across all tracked members',
+        calculation: 'Sum of LTV across all members',
+        icon: 'revenue'
+      },
+      {
+        title: 'Avg. Revenue per Member',
+        value: formatCurrency(totalRevenue / uniqueMembers || 0),
+        change: 3.2,
+        description: 'Average revenue contribution per unique member in the system',
+        calculation: 'Total Revenue / Total Clients',
         icon: 'revenue'
       }
     ];
   }, [filteredData]);
 
-  const monthlyData = useMemo(() => {
+  // Month-on-Month Analysis
+  const monthlyAnalysis = useMemo(() => {
     const monthlyStats = filteredData.reduce((acc, item) => {
-      if (!item.firstVisitDate) return acc;
+      const date = new Date(item.firstVisitDate);
+      const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
       
-      try {
-        const dateParts = item.firstVisitDate.split(' ')[0].split('/');
-        if (dateParts.length !== 3) return acc;
-        
-        const date = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]));
-        if (isNaN(date.getTime())) return acc;
-        
-        const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
-        
-        if (!acc[monthKey]) {
-          acc[monthKey] = {
-            date: monthKey,
-            month: monthKey,
-            newMembers: 0,
-            retained: 0,
-            converted: 0,
-            total: 0,
-            revenue: 0,
-            value: 0
-          };
-        }
-        
-        acc[monthKey].total += 1;
-        acc[monthKey].revenue += item.ltv;
-        acc[monthKey].value += item.ltv;
-        if (item.isNew.includes('New')) acc[monthKey].newMembers += 1;
-        if (item.retentionStatus === 'Retained') acc[monthKey].retained += 1;
-        if (item.conversionStatus === 'Converted') acc[monthKey].converted += 1;
-        
-        return acc;
-      } catch (error) {
-        console.error('Error parsing date:', item.firstVisitDate, error);
-        return acc;
-      }
-    }, {} as Record<string, any>);
-
-    return Object.values(monthlyStats).map((month: any) => ({
-      ...month,
-      retentionRate: month.total > 0 ? ((month.retained / month.total) * 100).toFixed(1) : '0',
-      conversionRate: month.total > 0 ? ((month.converted / month.total) * 100).toFixed(1) : '0'
-    }));
-  }, [filteredData]);
-
-  const conversionFunnelData = useMemo(() => {
-    const totalSignups = filteredData.length;
-    const paidFirstVisit = filteredData.filter(item => item.isNew === 'New - Paid First Visit').length;
-    const visitedPostTrial = filteredData.filter(item => item.visitsPostTrial > 0).length;
-    const retained = filteredData.filter(item => item.retentionStatus === 'Retained').length;
-
-    return [
-      {
-        Stage: 'Total Sign-ups',
-        Count: totalSignups,
-        'Conversion Rate': '100%',
-        'Drop-off': '—'
-      },
-      {
-        Stage: 'Paid First Visit',
-        Count: paidFirstVisit,
-        'Conversion Rate': totalSignups > 0 ? `${((paidFirstVisit / totalSignups) * 100).toFixed(1)}%` : '0%',
-        'Drop-off': totalSignups > 0 ? `${(((totalSignups - paidFirstVisit) / totalSignups) * 100).toFixed(1)}%` : '0%'
-      },
-      {
-        Stage: 'Post-Trial Visits',
-        Count: visitedPostTrial,
-        'Conversion Rate': paidFirstVisit > 0 ? `${((visitedPostTrial / paidFirstVisit) * 100).toFixed(1)}%` : '0%',
-        'Drop-off': paidFirstVisit > 0 ? `${(((paidFirstVisit - visitedPostTrial) / paidFirstVisit) * 100).toFixed(1)}%` : '0%'
-      },
-      {
-        Stage: 'Retained Members',
-        Count: retained,
-        'Conversion Rate': visitedPostTrial > 0 ? `${((retained / visitedPostTrial) * 100).toFixed(1)}%` : '0%',
-        'Drop-off': visitedPostTrial > 0 ? `${(((visitedPostTrial - retained) / visitedPostTrial) * 100).toFixed(1)}%` : '0%'
-      }
-    ];
-  }, [filteredData]);
-
-  const locationAnalysisData = useMemo(() => {
-    const locationStats = filteredData.reduce((acc, item) => {
-      const location = item.firstVisitLocation || 'Unknown';
-      if (!acc[location]) {
-        acc[location] = {
-          firstVisits: 0,
-          conversions: 0,
-          retainedMembers: 0,
-          totalRevenue: 0
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          month: monthKey,
+          totalMembers: 0,
+          newMembers: 0,
+          converted: 0,
+          retained: 0,
+          totalRevenue: 0,
+          totalVisits: 0
         };
       }
       
-      acc[location].firstVisits += 1;
-      if (item.conversionStatus === 'Converted') acc[location].conversions += 1;
-      if (item.retentionStatus === 'Retained') acc[location].retainedMembers += 1;
-      acc[location].totalRevenue += item.ltv;
+      acc[monthKey].totalMembers += 1;
+      acc[monthKey].totalRevenue += item.ltv;
+      acc[monthKey].totalVisits += item.visitsPostTrial;
+      if (item.isNew === 'Yes') acc[monthKey].newMembers += 1;
+      if (item.membershipsBoughtPostTrial === 'Yes') acc[monthKey].converted += 1;
+      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
+        acc[monthKey].retained += 1;
+      }
       
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.entries(locationStats).map(([location, stats]: [string, any]) => ({
-      Location: location,
-      'First Visits': stats.firstVisits,
-      Conversions: stats.conversions,
-      'Conversion Rate': stats.firstVisits > 0 ? `${((stats.conversions / stats.firstVisits) * 100).toFixed(1)}%` : '0%',
-      'Retention Rate': stats.firstVisits > 0 ? `${((stats.retainedMembers / stats.firstVisits) * 100).toFixed(1)}%` : '0%',
-      'Total Revenue': formatCurrency(stats.totalRevenue),
-      'Avg LTV': formatCurrency(stats.firstVisits > 0 ? stats.totalRevenue / stats.firstVisits : 0)
+    return Object.values(monthlyStats).map((month: any) => ({
+      'Month': month.month,
+      'Total Members': month.totalMembers,
+      'New Members': month.newMembers,
+      'Converted': month.converted,
+      'Retained': month.retained,
+      'Conversion Rate': month.totalMembers > 0 ? `${((month.converted / month.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Retention Rate': month.totalMembers > 0 ? `${((month.retained / month.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Total Revenue': formatCurrency(month.totalRevenue),
+      'Avg LTV': formatCurrency(month.totalMembers > 0 ? month.totalRevenue / month.totalMembers : 0)
     }));
   }, [filteredData]);
 
-  const trainerPerformanceData = useMemo(() => {
+  // Year-on-Year Analysis
+  const yearlyAnalysis = useMemo(() => {
+    const yearlyStats = filteredData.reduce((acc, item) => {
+      const date = new Date(item.firstVisitDate);
+      const year = date.getFullYear().toString();
+      
+      if (!acc[year]) {
+        acc[year] = {
+          year,
+          totalMembers: 0,
+          newMembers: 0,
+          converted: 0,
+          retained: 0,
+          totalRevenue: 0
+        };
+      }
+      
+      acc[year].totalMembers += 1;
+      acc[year].totalRevenue += item.ltv;
+      if (item.isNew === 'Yes') acc[year].newMembers += 1;
+      if (item.membershipsBoughtPostTrial === 'Yes') acc[year].converted += 1;
+      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
+        acc[year].retained += 1;
+      }
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(yearlyStats).map((year: any) => ({
+      'Year': year.year,
+      'Total Members': year.totalMembers,
+      'New Members': year.newMembers,
+      'Converted': year.converted,
+      'Retained': year.retained,
+      'Conversion Rate': year.totalMembers > 0 ? `${((year.converted / year.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Retention Rate': year.totalMembers > 0 ? `${((year.retained / year.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Total Revenue': formatCurrency(year.totalRevenue),
+      'Avg LTV': formatCurrency(year.totalMembers > 0 ? year.totalRevenue / year.totalMembers : 0)
+    }));
+  }, [filteredData]);
+
+  // Trainer Performance Analysis
+  const trainerAnalysis = useMemo(() => {
     const trainerStats = filteredData.reduce((acc, item) => {
       const trainer = item.trainerName || 'Unassigned';
       
       if (!acc[trainer]) {
         acc[trainer] = {
-          totalClients: 0,
-          totalVisits: 0,
-          totalLTV: 0,
-          conversions: 0,
-          retained: 0
-        };
-      }
-      
-      acc[trainer].totalClients += 1;
-      acc[trainer].totalVisits += item.visitsPostTrial;
-      acc[trainer].totalLTV += item.ltv;
-      if (item.conversionStatus === 'Converted') acc[trainer].conversions += 1;
-      if (item.retentionStatus === 'Retained') acc[trainer].retained += 1;
-      
-      return acc;
-    }, {} as Record<string, any>);
-
-    return Object.entries(trainerStats)
-      .map(([trainer, stats]: [string, any]) => ({
-        Trainer: trainer,
-        'Total Clients': stats.totalClients,
-        'Avg. Visits': stats.totalClients > 0 ? (stats.totalVisits / stats.totalClients).toFixed(1) : '0',
-        'Total Revenue': formatCurrency(stats.totalLTV),
-        'Avg. LTV': formatCurrency(stats.totalClients > 0 ? stats.totalLTV / stats.totalClients : 0),
-        'Conversion Rate': stats.totalClients > 0 ? `${((stats.conversions / stats.totalClients) * 100).toFixed(1)}%` : '0%',
-        'Retention Rate': stats.totalClients > 0 ? `${((stats.retained / stats.totalClients) * 100).toFixed(1)}%` : '0%'
-      }))
-      .sort((a, b) => parseFloat(b['Total Revenue'].replace(/[₹,]/g, '')) - parseFloat(a['Total Revenue'].replace(/[₹,]/g, '')));
-  }, [filteredData]);
-
-  const paymentMethodData = useMemo(() => {
-    const paymentStats = filteredData.reduce((acc, item) => {
-      const method = item.paymentMethod || 'Unknown';
-      if (!acc[method]) {
-        acc[method] = {
+          trainer,
           totalMembers: 0,
-          totalRevenue: 0,
+          newMembers: 0,
+          converted: 0,
           retained: 0,
-          converted: 0
+          totalRevenue: 0,
+          totalVisits: 0
         };
       }
       
-      acc[method].totalMembers += 1;
-      acc[method].totalRevenue += item.ltv;
-      if (item.retentionStatus === 'Retained') acc[method].retained += 1;
-      if (item.conversionStatus === 'Converted') acc[method].converted += 1;
+      acc[trainer].totalMembers += 1;
+      acc[trainer].totalRevenue += item.ltv;
+      acc[trainer].totalVisits += item.visitsPostTrial;
+      if (item.isNew === 'Yes') acc[trainer].newMembers += 1;
+      if (item.membershipsBoughtPostTrial === 'Yes') acc[trainer].converted += 1;
+      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
+        acc[trainer].retained += 1;
+      }
       
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.entries(paymentStats).map(([method, stats]: [string, any]) => ({
-      'Payment Method': method,
-      'Total Members': stats.totalMembers,
-      'Total Revenue': formatCurrency(stats.totalRevenue),
-      'Avg Revenue per Member': formatCurrency(stats.totalMembers > 0 ? stats.totalRevenue / stats.totalMembers : 0),
-      'Retention Rate': stats.totalMembers > 0 ? `${((stats.retained / stats.totalMembers) * 100).toFixed(1)}%` : '0%',
-      'Conversion Rate': stats.totalMembers > 0 ? `${((stats.converted / stats.totalMembers) * 100).toFixed(1)}%` : '0%'
+    return Object.values(trainerStats).map((trainer: any) => ({
+      'Trainer': trainer.trainer,
+      'Total Members': trainer.totalMembers,
+      'New Members': trainer.newMembers,
+      'Converted': trainer.converted,
+      'Retained': trainer.retained,
+      'Conversion Rate': trainer.totalMembers > 0 ? `${((trainer.converted / trainer.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Retention Rate': trainer.totalMembers > 0 ? `${((trainer.retained / trainer.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Avg Visits': trainer.totalMembers > 0 ? (trainer.totalVisits / trainer.totalMembers).toFixed(1) : '0',
+      'Total Revenue': formatCurrency(trainer.totalRevenue),
+      'Avg LTV': formatCurrency(trainer.totalMembers > 0 ? trainer.totalRevenue / trainer.totalMembers : 0)
     }));
   }, [filteredData]);
 
-  const memberDetailData = useMemo(() => {
-    return filteredData.map(item => ({
-      'Member ID': item.memberId,
-      'Name': `${item.firstName} ${item.lastName}`,
-      'Email': item.email,
-      'Phone': item.phoneNumber,
-      'First Visit': item.firstVisitDate ? item.firstVisitDate.split(' ')[0] : 'N/A',
-      'Location': item.firstVisitLocation,
-      'Home Location': item.homeLocation || 'Not specified',
-      'Trainer': item.trainerName || 'Not assigned',
-      'LTV': formatCurrency(item.ltv),
-      'Status': item.isNew,
-      'Retention': item.retentionStatus,
-      'Conversion': item.conversionStatus
+  // Location Analysis
+  const locationAnalysis = useMemo(() => {
+    const locationStats = filteredData.reduce((acc, item) => {
+      const location = item.firstVisitLocation;
+      
+      if (!acc[location]) {
+        acc[location] = {
+          location,
+          totalMembers: 0,
+          newMembers: 0,
+          converted: 0,
+          retained: 0,
+          totalRevenue: 0
+        };
+      }
+      
+      acc[location].totalMembers += 1;
+      acc[location].totalRevenue += item.ltv;
+      if (item.isNew === 'Yes') acc[location].newMembers += 1;
+      if (item.membershipsBoughtPostTrial === 'Yes') acc[location].converted += 1;
+      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
+        acc[location].retained += 1;
+      }
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(locationStats).map((location: any) => ({
+      'Location': location.location,
+      'Total Members': location.totalMembers,
+      'New Members': location.newMembers,
+      'Converted': location.converted,
+      'Retained': location.retained,
+      'Conversion Rate': location.totalMembers > 0 ? `${((location.converted / location.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Retention Rate': location.totalMembers > 0 ? `${((location.retained / location.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Total Revenue': formatCurrency(location.totalRevenue),
+      'Avg LTV': formatCurrency(location.totalMembers > 0 ? location.totalRevenue / location.totalMembers : 0)
     }));
   }, [filteredData]);
 
-  const CustomTable = ({ data, title }: { data: any[], title: string }) => (
-    <div className="w-full overflow-hidden">
-      <Table className="w-full">
-        <TableHeader>
-          <TableRow>
-            {data.length > 0 && Object.keys(data[0]).map((key) => (
-              <TableHead key={key} className="text-left font-medium text-slate-700 bg-slate-50">
-                {key}
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((row, index) => (
-            <TableRow key={index} className="hover:bg-slate-50">
-              {Object.values(row).map((value, cellIndex) => (
-                <TableCell key={cellIndex} className="text-slate-600">
-                  {String(value)}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
+  // Membership Analysis
+  const membershipAnalysis = useMemo(() => {
+    const membershipStats = filteredData.reduce((acc, item) => {
+      const membership = item.membershipUsed || 'No Membership';
+      
+      if (!acc[membership]) {
+        acc[membership] = {
+          membership,
+          totalMembers: 0,
+          newMembers: 0,
+          converted: 0,
+          retained: 0,
+          totalRevenue: 0
+        };
+      }
+      
+      acc[membership].totalMembers += 1;
+      acc[membership].totalRevenue += item.ltv;
+      if (item.isNew === 'Yes') acc[membership].newMembers += 1;
+      if (item.membershipsBoughtPostTrial === 'Yes') acc[membership].converted += 1;
+      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
+        acc[membership].retained += 1;
+      }
+      
+      return acc;
+    }, {} as Record<string, any>);
 
-  const handleFiltersChange = (newFilters: NewClientFilterOptions) => {
-    setFilters(newFilters);
+    return Object.values(membershipStats).map((membership: any) => ({
+      'Membership Used': membership.membership,
+      'Total Members': membership.totalMembers,
+      'New Members': membership.newMembers,
+      'Converted': membership.converted,
+      'Retained': membership.retained,
+      'Conversion Rate': membership.totalMembers > 0 ? `${((membership.converted / membership.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Retention Rate': membership.totalMembers > 0 ? `${((membership.retained / membership.totalMembers) * 100).toFixed(1)}%` : '0%',
+      'Total Revenue': formatCurrency(membership.totalRevenue),
+      'Avg LTV': formatCurrency(membership.totalMembers > 0 ? membership.totalRevenue / membership.totalMembers : 0)
+    }));
+  }, [filteredData]);
+
+  // Top/Bottom Performers
+  const topTrainers = useMemo(() => {
+    return trainerAnalysis
+      .sort((a, b) => parseFloat(b['Conversion Rate']) - parseFloat(a['Conversion Rate']))
+      .slice(0, 5);
+  }, [trainerAnalysis]);
+
+  const bottomTrainers = useMemo(() => {
+    return trainerAnalysis
+      .sort((a, b) => parseFloat(a['Conversion Rate']) - parseFloat(b['Conversion Rate']))
+      .slice(0, 5);
+  }, [trainerAnalysis]);
+
+  const topLocations = useMemo(() => {
+    return locationAnalysis
+      .sort((a, b) => parseFloat(b['Conversion Rate']) - parseFloat(a['Conversion Rate']))
+      .slice(0, 3);
+  }, [locationAnalysis]);
+
+  const bottomLocations = useMemo(() => {
+    return locationAnalysis
+      .sort((a, b) => parseFloat(a['Conversion Rate']) - parseFloat(b['Conversion Rate']))
+      .slice(0, 3);
+  }, [locationAnalysis]);
+
+  const handleMetricClick = (metric: MetricCardData) => {
+    setDrillDownData(metric);
+    setDrillDownType('metric');
+  };
+
+  const handleTableRowClick = (row: any) => {
+    setDrillDownData(row);
+    setDrillDownType('member');
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      dateRange: { start: '', end: '' },
+      location: [],
+      homeLocation: [],
+      trainer: [],
+      paymentMethod: [],
+      retentionStatus: [],
+      conversionStatus: [],
+      isNew: [],
+      minLTV: undefined,
+      maxLTV: undefined,
+    });
   };
 
   if (isLoading) {
     return (
       <Card className="p-8">
         <CardContent className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <h3 className="text-lg font-semibold mb-2">Loading Client Analytics</h3>
-          <p className="text-slate-600">Fetching new client data and calculating metrics...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading new client data...</p>
         </CardContent>
       </Card>
     );
@@ -338,215 +434,191 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   if (error) {
     return (
-      <Card className="p-8 border-red-200 bg-red-50">
-        <CardContent className="text-center">
-          <div className="text-red-600 mb-4">
-            <Target className="w-12 h-12 mx-auto mb-2" />
-            <h3 className="text-lg font-semibold">Data Load Error</h3>
-          </div>
-          <p className="text-red-700 mb-4">Unable to load client data: {error.message}</p>
-          <Button variant="outline" onClick={() => window.location.reload()}>
-            Retry Loading
-          </Button>
+      <Card className="p-8">
+        <CardContent className="text-center text-red-600">
+          <p>Error loading data: {error.message}</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 bg-clip-text text-transparent">
-            New Client Analytics & Performance
-          </h2>
-          <p className="text-slate-600 mt-2">Track member acquisition, trial conversion, and retention metrics</p>
-        </div>
-        <div className="flex gap-3">
-          <Button
-            variant={showFilters ? "default" : "outline"}
-            onClick={() => setShowFilters(!showFilters)}
-            className="gap-2"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-          </Button>
-          <Button variant="outline" className="gap-2">
-            <Download className="w-4 h-4" />
-            Export Data
-          </Button>
-        </div>
+    <div className={cn("space-y-6", isDarkMode && "dark")}>
+      <div className="text-center mb-8">
+        <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent animate-pulse mb-4">
+          Client Conversion & Retention Analytics
+        </h2>
+        <p className="text-xl text-slate-600 font-medium">
+          Comprehensive member acquisition, conversion, and retention insights with advanced analytics
+        </p>
+        <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full animate-fade-in"></div>
       </div>
 
-      {/* Filters */}
-      {showFilters && (
-        <FilterSection
-          data={filteredData}
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          type="newClient"
-        />
-      )}
+      <ThemeSelector
+        currentTheme={currentTheme}
+        isDarkMode={isDarkMode}
+        onThemeChange={setCurrentTheme}
+        onModeChange={setIsDarkMode}
+      />
 
-      {/* Metrics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metrics.map((metric, index) => (
-          <MetricCard key={metric.title} data={metric} delay={index * 100} />
-        ))}
-      </div>
-
-      {/* Navigation Tabs */}
-      <Tabs value={activeView} onValueChange={setActiveView} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6 h-12">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Overview
-          </TabsTrigger>
-          <TabsTrigger value="conversion" className="flex items-center gap-2">
-            <Target className="w-4 h-4" />
-            Conversion
-          </TabsTrigger>
-          <TabsTrigger value="revenue" className="flex items-center gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Revenue
-          </TabsTrigger>
-          <TabsTrigger value="location" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Locations
-          </TabsTrigger>
-          <TabsTrigger value="trainers" className="flex items-center gap-2">
-            <Heart className="w-4 h-4" />
-            Trainers
-          </TabsTrigger>
-          <TabsTrigger value="detailed" className="flex items-center gap-2">
-            <Users className="w-4 h-4" />
-            Details
-          </TabsTrigger>
+      <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
+        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-100 via-white to-slate-100 p-2 rounded-2xl shadow-lg">
+          {locations.map((location) => (
+            <TabsTrigger
+              key={location.id}
+              value={location.id}
+              className={cn(
+                "relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500",
+                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600",
+                "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105",
+                "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:scale-102",
+                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              )}
+            >
+              <span className="relative z-10 block text-center">
+                <div className="font-bold">{location.name.split(',')[0]}</div>
+                <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
+              </span>
+              {activeLocation === location.id && (
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse" />
+              )}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-purple-50">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-800">Monthly Client Acquisition</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <InteractiveChart
-                  title=""
-                  data={monthlyData}
-                  type="line"
+        {locations.map((location) => (
+          <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
+            {/* Filters */}
+            {showFilters && (
+              <FilterSection
+                data={filteredData}
+                filters={filters}
+                onFiltersChange={setFilters}
+                type="newClient"
+              />
+            )}
+
+            {/* Filter Controls */}
+            <div className="flex items-center justify-between">
+              <div className="flex gap-3">
+                <Button
+                  variant={showFilters ? "default" : "outline"}
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="gap-2"
+                >
+                  <Filter className="w-4 h-4" />
+                  Filters
+                </Button>
+                <Button variant="outline" className="gap-2">
+                  <Download className="w-4 h-4" />
+                  Export
+                </Button>
+              </div>
+            </div>
+
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {metrics.map((metric, index) => (
+                <MetricCard
+                  key={metric.title}
+                  data={metric}
+                  delay={index * 100}
+                  onClick={() => handleMetricClick(metric)}
                 />
-              </CardContent>
-            </Card>
-            
-            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-green-50 to-blue-50">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-slate-800">Retention & Revenue Trends</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <InteractiveChart
-                  title=""
-                  data={monthlyData}
-                  type="bar"
-                />
-              </CardContent>
-            </Card>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="p-6 border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-green-700">
-                  <TrendingUp className="w-5 h-5" />
-                  Top Performing Trainers
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="w-full overflow-x-auto">
-                <CustomTable data={trainerPerformanceData.slice(0, 5)} title="" />
-              </CardContent>
-            </Card>
-            
-            <Card className="p-6 border-0 shadow-lg">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-blue-700">
-                  <Users className="w-5 h-5" />
-                  Location Performance Summary
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="w-full overflow-x-auto">
-                <CustomTable data={locationAnalysisData} title="" />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+              ))}
+            </div>
 
-        <TabsContent value="conversion" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-orange-50 to-red-50">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-orange-800">Conversion Funnel Analysis</CardTitle>
-              </CardHeader>
-              <CardContent className="w-full overflow-x-auto">
-                <CustomTable data={conversionFunnelData} title="" />
-              </CardContent>
-            </Card>
-            
-            <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-pink-50">
-              <CardHeader>
-                <CardTitle className="text-lg font-semibold text-purple-800">Monthly Performance Metrics</CardTitle>
-              </CardHeader>
-              <CardContent className="w-full overflow-x-auto">
-                <CustomTable data={monthlyData} title="" />
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
+            {/* Top/Bottom Performers */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-green-600">Top Performing Trainers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DataTable
+                    title=""
+                    data={topTrainers as any}
+                    type="category"
+                    onRowClick={handleTableRowClick}
+                  />
+                </CardContent>
+              </Card>
+              <Card className="p-6">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-red-600">Bottom Performing Trainers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <DataTable
+                    title=""
+                    data={bottomTrainers as any}
+                    type="category"
+                    onRowClick={handleTableRowClick}
+                  />
+                </CardContent>
+              </Card>
+            </div>
 
-        <TabsContent value="revenue" className="space-y-6">
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-green-50 to-emerald-50">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-green-800">Revenue Analysis by Payment Method</CardTitle>
-            </CardHeader>
-            <CardContent className="w-full overflow-x-auto">
-              <CustomTable data={paymentMethodData} title="" />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            {/* Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <InteractiveChart
+                title="Member Conversion Trends"
+                data={filteredData}
+                type="conversion"
+              />
+              <InteractiveChart
+                title="Retention Analytics"
+                data={filteredData}
+                type="retention"
+              />
+            </div>
 
-        <TabsContent value="location" className="space-y-6">
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-blue-50 to-cyan-50">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-blue-800">Comprehensive Location Performance</CardTitle>
-            </CardHeader>
-            <CardContent className="w-full overflow-x-auto">
-              <CustomTable data={locationAnalysisData} title="" />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="trainers" className="space-y-6">
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-purple-50 to-violet-50">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-purple-800">Detailed Trainer Performance Metrics</CardTitle>
-            </CardHeader>
-            <CardContent className="w-full overflow-x-auto">
-              <CustomTable data={trainerPerformanceData} title="" />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="detailed" className="space-y-6">
-          <Card className="p-6 border-0 shadow-lg bg-gradient-to-br from-slate-50 to-gray-50">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-800">Complete Member Database</CardTitle>
-            </CardHeader>
-            <CardContent className="w-full overflow-x-auto">
-              <CustomTable data={memberDetailData} title="" />
-            </CardContent>
-          </Card>
-        </TabsContent>
+            {/* Comprehensive Data Tables */}
+            <div className="space-y-8">
+              <DataTable
+                title="Month-on-Month Performance Matrix"
+                data={monthlyAnalysis as any}
+                type="monthly"
+                onRowClick={handleTableRowClick}
+              />
+              
+              <DataTable
+                title="Year-on-Year Growth Analysis"
+                data={yearlyAnalysis as any}
+                type="yoy-analysis"
+                onRowClick={handleTableRowClick}
+              />
+              
+              <DataTable
+                title="Trainer Performance Analysis"
+                data={trainerAnalysis as any}
+                type="category"
+                onRowClick={handleTableRowClick}
+              />
+              
+              <DataTable
+                title="Location Performance Breakdown"
+                data={locationAnalysis as any}
+                type="category"
+                onRowClick={handleTableRowClick}
+              />
+              
+              <DataTable
+                title="Membership Usage Analysis"
+                data={membershipAnalysis as any}
+                type="category"
+                onRowClick={handleTableRowClick}
+              />
+            </div>
+          </TabsContent>
+        ))}
       </Tabs>
+
+      <DrillDownModal
+        isOpen={!!drillDownData}
+        onClose={() => setDrillDownData(null)}
+        data={drillDownData}
+        type={drillDownType}
+      />
     </div>
   );
 };

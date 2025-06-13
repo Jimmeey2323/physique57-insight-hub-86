@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -92,6 +91,12 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     return result;
   }, [data, activeLocation, filters]);
 
+  // Handle filter changes with proper type safety
+  const handleFiltersChange = (newFilters: NewClientFilterOptions) => {
+    setFilters(newFilters);
+  };
+
+  // Metrics calculation
   const metrics = useMemo((): MetricCardData[] => {
     console.log('Calculating metrics for', filteredData.length, 'items');
     
@@ -515,7 +520,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               <FilterSection
                 data={filteredData}
                 filters={filters}
-                onFiltersChange={setFilters}
+                onFiltersChange={handleFiltersChange}
                 type="newClient"
               />
             )}

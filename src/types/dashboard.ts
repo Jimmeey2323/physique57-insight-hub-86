@@ -23,30 +23,6 @@ export interface SalesData {
   cleanedCategory: string;
 }
 
-export interface NewClientData {
-  memberId: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phoneNumber: string;
-  firstVisitDate: string;
-  firstVisitEntityName: string;
-  firstVisitType: string;
-  firstVisitLocation: string;
-  paymentMethod: string;
-  membershipUsed: string;
-  homeLocation: string;
-  classNo: number;
-  trainerName: string;
-  isNew: string;
-  visitsPostTrial: number;
-  membershipsBoughtPostTrial: string;
-  purchaseCountPostTrial: number;
-  ltv: number;
-  retentionStatus: string;
-  conversionStatus: string;
-}
-
 export interface FilterOptions {
   dateRange: {
     start: string;
@@ -59,22 +35,6 @@ export interface FilterOptions {
   paymentMethod: string[];
   minAmount?: number;
   maxAmount?: number;
-}
-
-export interface NewClientFilterOptions {
-  dateRange: {
-    start: string;
-    end: string;
-  };
-  location: string[];
-  homeLocation: string[];
-  trainer: string[];
-  paymentMethod: string[];
-  retentionStatus: string[];
-  conversionStatus: string[];
-  isNew: string[];
-  minLTV?: number;
-  maxLTV?: number;
 }
 
 export interface MetricCardData {
@@ -91,6 +51,3 @@ export interface ChartDataPoint {
   value: number;
   category?: string;
 }
-
-// Generic table data type for flexible table structures
-export type TableData = Record<string, any>;

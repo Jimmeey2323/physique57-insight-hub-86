@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
 import { SalesAnalyticsSection } from '@/components/dashboard/SalesAnalyticsSection';
-import { NewClientSection } from '@/components/dashboard/NewClientSection';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
@@ -52,14 +51,21 @@ const Index = () => {
     switch (activeSection) {
       case 'sales-analytics':
         return <SalesAnalyticsSection data={data} />;
-      case 'client-retention':
-        return <NewClientSection />;
       case 'funnel-leads':
         return (
           <Card className="p-8">
             <CardContent className="text-center">
               <h3 className="text-2xl font-semibold mb-4">Funnel & Lead Performance</h3>
               <p className="text-slate-600">Coming soon - Lead conversion metrics and funnel analysis</p>
+            </CardContent>
+          </Card>
+        );
+      case 'client-retention':
+        return (
+          <Card className="p-8">
+            <CardContent className="text-center">
+              <h3 className="text-2xl font-semibold mb-4">Client Conversion & Retention</h3>
+              <p className="text-slate-600">Coming soon - Client acquisition and retention analytics</p>
             </CardContent>
           </Card>
         );

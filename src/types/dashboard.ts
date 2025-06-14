@@ -47,6 +47,37 @@ export interface NewClientData {
   conversionStatus: string;
 }
 
+export interface PayrollData {
+  teacherId: string;
+  teacherName: string;
+  teacherEmail: string;
+  location: string;
+  cycleSessions: number;
+  emptyCycleSessions: number;
+  nonEmptyCycleSessions: number;
+  cycleCustomers: number;
+  cyclePaid: number;
+  barreSessions: number;
+  emptyBarreSessions: number;
+  nonEmptyBarreSessions: number;
+  barreCustomers: number;
+  barrePaid: number;
+  totalSessions: number;
+  totalEmptySessions: number;
+  totalNonEmptySessions: number;
+  totalCustomers: number;
+  totalPaid: number;
+  monthYear: string;
+  unique: string;
+  new: number;
+  retained: number;
+  retention: string;
+  converted: number;
+  conversion: string;
+  classAverageInclEmpty: number;
+  classAverageExclEmpty: number;
+}
+
 export interface FilterOptions {
   dateRange: {
     start: string;
@@ -77,6 +108,16 @@ export interface NewClientFilterOptions {
   maxLTV?: number;
 }
 
+export interface TrainerFilterOptions {
+  dateRange: {
+    start: string;
+    end: string;
+  };
+  location: string[];
+  trainer: string[];
+  sessionType: string[];
+}
+
 export interface MetricCardData {
   title: string;
   value: string;
@@ -94,3 +135,6 @@ export interface ChartDataPoint {
 
 // Generic table data type for flexible table structures
 export type TableData = Record<string, any>;
+
+// Trainer-specific metric types
+export type TrainerMetricType = 'totalSessions' | 'totalCustomers' | 'totalPaid' | 'classAverage' | 'retention' | 'conversion';

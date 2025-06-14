@@ -11,15 +11,9 @@ import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
 import { YearOnYearTrainerTable } from './YearOnYearTrainerTable';
 import { InteractiveChart } from './InteractiveChart';
 import { usePayrollData, PayrollData } from '@/hooks/usePayrollData';
+import { TrainerFilterOptions, TrainerMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
-
-interface FilterOptions {
-  dateRange: { start: string; end: string };
-  location: string[];
-  trainer: string[];
-  sessionType: string[];
-}
 
 const LOCATION_MAPPING = [
   { id: 'kwality', name: 'Kwality', subName: 'House', fullName: 'Kwality House, Kemps Corner' },
@@ -29,14 +23,34 @@ const LOCATION_MAPPING = [
   { id: 'other', name: 'Other', subName: 'Locations', fullName: 'Other Locations' }
 ];
 
-type MetricType = 'totalSessions' | 'totalCustomers' | 'totalPaid' | 'classAverage' | 'retention' | 'conversion';
+// Trainer-specific filter section component
+const TrainerFilterSection = ({ 
+  data, 
+  onFiltersChange, 
+  activeLocation 
+}: { 
+  data: PayrollData[]; 
+  onFiltersChange: (filters: TrainerFilterOptions) => void; 
+  activeLocation: string;
+}) => {
+  return (
+    <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-bold text-slate-800">Filter Options</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-slate-600">Filter options for trainer performance data will be implemented here.</p>
+      </CardContent>
+    </Card>
+  );
+};
 
 export const TrainerPerformanceSection = () => {
   const { data: rawData, isLoading, error } = usePayrollData();
   const [activeLocation, setActiveLocation] = useState<string>('kwality');
   const [selectedTrainer, setSelectedTrainer] = useState<string>('');
-  const [activeMetric, setActiveMetric] = useState<MetricType>('totalSessions');
-  const [filters, setFilters] = useState<FilterOptions>({
+  const [activeMetric, setActiveMetric] = useState<TrainerMetricType>('totalSessions');
+  const [filters, setFilters] = useState<TrainerFilterOptions>({
     dateRange: { start: '2025-01-01', end: '2025-06-30' },
     location: [],
     trainer: [],
@@ -265,7 +279,7 @@ export const TrainerPerformanceSection = () => {
       </Card>
 
       {/* Filter Section */}
-      <FilterSection
+      <TrainerFilterSection
         data={filteredData}
         onFiltersChange={setFilters}
         activeLocation={activeLocation}
@@ -297,7 +311,7 @@ export const TrainerPerformanceSection = () => {
               <BarChart3 className="w-6 h-6 text-blue-600" />
               Month-on-Month Performance Analysis
             </CardTitle>
-            <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as MetricType)}>
+            <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as TrainerMetricType)}>
               <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg grid grid-cols-6 gap-1">
                 {[
                   { key: 'totalSessions' as const, label: 'Sessions', icon: Calendar, color: 'from-blue-500 to-cyan-600' },
@@ -348,16 +362,22 @@ export const TrainerPerformanceSection = () => {
 
       {/* Interactive Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <InteractiveChart
-          title="Trainer Performance Trends"
-          data={filteredData}
-          type="performance"
-        />
-        <InteractiveChart
-          title="Revenue Distribution"
-          data={filteredData}
-          type="revenue"
-        />
+        <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold text-slate-800">Trainer Performance Trends</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600">Performance trend charts will be implemented here.</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-lg font-bold text-slate-800">Revenue Distribution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-slate-600">Revenue distribution charts will be implemented here.</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Summary Statistics */}

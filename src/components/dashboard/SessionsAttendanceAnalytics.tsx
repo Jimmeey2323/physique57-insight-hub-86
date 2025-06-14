@@ -20,7 +20,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
         className.toLowerCase().includes(keyword.toLowerCase())
       );
       
-      return !hasExcludedKeyword;
+      return !hasExcludedKeyword && session.sessionCount >= 2;
     });
   }, [data]);
 
@@ -113,14 +113,18 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
 
   const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#84CC16'];
 
-  const customTooltip = (active: any, payload: any, label: any) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-lg shadow-lg border-0 backdrop-blur-sm">
-          <p className="font-semibold text-gray-900">{`${label}`}</p>
+        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-xl border border-gray-200/50">
+          <p className="font-semibold text-gray-900 mb-2">{`${label}`}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
-              {`${entry.dataKey}: ${entry.value}`}
+            <p key={index} className="text-sm flex items-center gap-2" style={{ color: entry.color }}>
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: entry.color }}
+              />
+              {`${entry.name}: ${typeof entry.value === 'number' ? entry.value.toLocaleString() : entry.value}`}
             </p>
           ))}
         </div>
@@ -131,13 +135,16 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 lg:col-span-2">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50">
+      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 lg:col-span-2 hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100/50">
           <CardTitle className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
-              <Calendar className="w-4 h-4 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Calendar className="w-5 h-5 text-white" />
             </div>
-            Attendance by Day of Week
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Attendance by Day of Week</h3>
+              <p className="text-sm text-gray-600">Weekly pattern analysis</p>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -149,37 +156,44 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
                   <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} />
               <XAxis 
                 dataKey="day" 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                axisLine={{ stroke: '#D1D5DB' }}
+                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
+                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
+                tickLine={{ stroke: '#D1D5DB' }}
               />
               <YAxis 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                axisLine={{ stroke: '#D1D5DB' }}
+                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
+                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
+                tickLine={{ stroke: '#D1D5DB' }}
               />
-              <Tooltip content={customTooltip} />
+              <Tooltip content={<CustomTooltip />} />
               <Area 
                 type="monotone" 
                 dataKey="attendance" 
                 stroke="#3B82F6" 
                 strokeWidth={3}
                 fill="url(#attendanceGradient)" 
+                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2, fill: '#fff' }}
               />
-              <Bar dataKey="sessions" fill="#8B5CF6" opacity={0.6} />
+              <Bar dataKey="sessions" fill="#8B5CF6" opacity={0.6} radius={[4, 4, 0, 0]} />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50">
+      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 border-b border-gray-100/50">
           <CardTitle className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-teal-500 rounded-lg flex items-center justify-center">
-              <MapPin className="w-4 h-4 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
+              <MapPin className="w-5 h-5 text-white" />
             </div>
-            Attendance by Location
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Attendance by Location</h3>
+              <p className="text-sm text-gray-600">Location performance</p>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
@@ -194,76 +208,119 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
                 outerRadius={120}
                 fill="#8884d8"
                 dataKey="attendance"
+                stroke="#fff"
+                strokeWidth={2}
               >
                 {locationData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip content={customTooltip} />
+              <Tooltip content={<CustomTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 xl:col-span-2">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 xl:col-span-2 hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-100/50">
           <CardTitle className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-              <Clock className="w-4 h-4 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Clock className="w-5 h-5 text-white" />
             </div>
-            Attendance by Time Slot
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Attendance by Time Slot</h3>
+              <p className="text-sm text-gray-600">Peak hours analysis</p>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={timeSlotData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <BarChart data={timeSlotData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+              <defs>
+                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.9}/>
+                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.6}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} />
               <XAxis 
                 dataKey="time" 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                axisLine={{ stroke: '#D1D5DB' }}
+                tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
+                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
+                tickLine={{ stroke: '#D1D5DB' }}
                 angle={-45}
                 textAnchor="end"
                 height={80}
               />
               <YAxis 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                axisLine={{ stroke: '#D1D5DB' }}
+                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
+                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
+                tickLine={{ stroke: '#D1D5DB' }}
               />
-              <Tooltip content={customTooltip} />
-              <Bar dataKey="attendance" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="avgAttendance" fill="#10B981" opacity={0.7} radius={[4, 4, 0, 0]} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar 
+                dataKey="attendance" 
+                fill="url(#barGradient)" 
+                radius={[6, 6, 0, 0]}
+                stroke="#8B5CF6"
+                strokeWidth={1}
+              />
+              <Bar 
+                dataKey="avgAttendance" 
+                fill="#10B981" 
+                opacity={0.7} 
+                radius={[6, 6, 0, 0]}
+                stroke="#10B981"
+                strokeWidth={1}
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
 
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0">
-        <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50">
+      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 hover:shadow-xl transition-all duration-300">
+        <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-100/50">
           <CardTitle className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
-              <Target className="w-4 h-4 text-white" />
+            <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
+              <Target className="w-5 h-5 text-white" />
             </div>
-            Fill Rate Distribution
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Fill Rate Distribution</h3>
+              <p className="text-sm text-gray-600">Capacity utilization</p>
+            </div>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-6">
           <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={fillRateData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+            <BarChart data={fillRateData} layout="horizontal" margin={{ top: 20, right: 30, left: 60, bottom: 20 }}>
+              <defs>
+                <linearGradient id="fillRateGradient" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.9}/>
+                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.6}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} />
               <XAxis 
                 type="number" 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                axisLine={{ stroke: '#D1D5DB' }}
+                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
+                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
+                tickLine={{ stroke: '#D1D5DB' }}
               />
               <YAxis 
                 type="category" 
                 dataKey="range" 
-                tick={{ fontSize: 12, fill: '#6B7280' }}
-                axisLine={{ stroke: '#D1D5DB' }}
+                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
+                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
+                tickLine={{ stroke: '#D1D5DB' }}
               />
-              <Tooltip content={customTooltip} />
-              <Bar dataKey="sessions" fill="#F59E0B" radius={[0, 4, 4, 0]} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar 
+                dataKey="sessions" 
+                fill="url(#fillRateGradient)" 
+                radius={[0, 6, 6, 0]}
+                stroke="#F59E0B"
+                strokeWidth={1}
+              />
             </BarChart>
           </ResponsiveContainer>
         </CardContent>

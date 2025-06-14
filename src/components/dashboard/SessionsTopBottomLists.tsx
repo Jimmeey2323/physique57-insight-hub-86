@@ -24,6 +24,18 @@ interface SessionsTopBottomListsProps {
 
 type MetricType = 'attendance' | 'fillRate' | 'revenue' | 'lateCancellations';
 
+interface GroupedItem {
+  name: string;
+  displayName: string;
+  totalAttendance: number;
+  avgFillRate: number;
+  totalRevenue: number;
+  lateCancellations: number;
+  sessions: number;
+  avgAttendance: number;
+  trainerName?: string;
+}
+
 export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   data,
   title,
@@ -43,7 +55,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     }
 
     // Create a results object to store grouped data
-    const groupedResults = {};
+    const groupedResults: Record<string, GroupedItem> = {};
 
     // Process each session and group the data
     for (let i = 0; i < data.length; i++) {
@@ -91,7 +103,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     }
 
     // Calculate averages for each group
-    const groupedItems = Object.values(groupedResults);
+    const groupedItems: GroupedItem[] = Object.values(groupedResults);
     for (let j = 0; j < groupedItems.length; j++) {
       const item = groupedItems[j];
       const relevantSessions = data.filter(sessionItem => {
@@ -115,7 +127,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     }
 
     // Sort the data based on selected metric and variant
-    const sortedData = groupedItems.sort((a, b) => {
+    const sortedData = groupedItems.sort((a: GroupedItem, b: GroupedItem) => {
       let aValue = 0;
       let bValue = 0;
       
@@ -145,13 +157,13 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   }, [data, type, selectedMetric, variant, showCount, includeTrainer]);
 
   const metricOptions = [
-    { value: 'attendance', label: 'Class Average', icon: Users },
-    { value: 'fillRate', label: 'Fill Rate %', icon: Target },
-    { value: 'revenue', label: 'Revenue', icon: DollarSign },
-    { value: 'lateCancellations', label: 'Late Cancellations', icon: TrendingDown }
+    { value: 'attendance' as MetricType, label: 'Class Average', icon: Users },
+    { value: 'fillRate' as MetricType, label: 'Fill Rate %', icon: Target },
+    { value: 'revenue' as MetricType, label: 'Revenue', icon: DollarSign },
+    { value: 'lateCancellations' as MetricType, label: 'Late Cancellations', icon: TrendingDown }
   ];
 
-  const getMetricValue = (item) => {
+  const getMetricValue = (item: GroupedItem) => {
     if (!item) return '';
     
     if (selectedMetric === 'attendance') {
@@ -167,7 +179,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     }
   };
 
-  const getMetricSubtext = (item) => {
+  const getMetricSubtext = (item: GroupedItem) => {
     if (!item) return '';
     
     if (selectedMetric === 'attendance') {

@@ -324,12 +324,12 @@ export const DiscountsSection: React.FC = () => {
               <InteractiveChart
                 title="Revenue vs Discount Trends"
                 data={filteredData}
-                type="discount-revenue"
+                type="revenue"
               />
               <InteractiveChart
                 title="Discount Performance by Category"
                 data={filteredData}
-                type="discount-category"
+                type="performance"
               />
             </div>
 
@@ -337,7 +337,7 @@ export const DiscountsSection: React.FC = () => {
               <DataTable
                 title="Month-on-Month Discount Analysis"
                 data={filteredData}
-                type="discount-monthly"
+                type="monthly"
                 filters={filters}
                 onRowClick={handleTableRowClick}
               />
@@ -345,7 +345,7 @@ export const DiscountsSection: React.FC = () => {
               <DataTable
                 title="Product Discount Performance"
                 data={filteredData}
-                type="discount-product"
+                type="product"
                 filters={filters}
                 onRowClick={handleTableRowClick}
               />
@@ -353,7 +353,7 @@ export const DiscountsSection: React.FC = () => {
               <DataTable
                 title="Category Discount Breakdown"
                 data={filteredData}
-                type="discount-category"
+                type="category"
                 filters={filters}
                 onRowClick={handleTableRowClick}
               />
@@ -361,7 +361,7 @@ export const DiscountsSection: React.FC = () => {
               <DataTable
                 title="Sales Rep Discount Analysis"
                 data={filteredData}
-                type="discount-rep"
+                type="yearly"
                 filters={filters}
                 onRowClick={handleTableRowClick}
               />

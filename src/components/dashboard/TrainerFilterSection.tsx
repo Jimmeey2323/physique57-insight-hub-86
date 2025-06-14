@@ -20,9 +20,9 @@ export const TrainerFilterSection: React.FC<TrainerFilterSectionProps> = ({
   isCollapsed,
   onToggleCollapse
 }) => {
-  const [selectedLocation, setSelectedLocation] = useState<string>('');
-  const [selectedTrainer, setSelectedTrainer] = useState<string>('');
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [selectedTrainer, setSelectedTrainer] = useState<string>('all');
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
 
   const locations = Array.from(new Set(data.map(item => item.location))).filter(Boolean);
   const trainers = Array.from(new Set(data.map(item => item.teacherName))).filter(Boolean);
@@ -30,19 +30,19 @@ export const TrainerFilterSection: React.FC<TrainerFilterSectionProps> = ({
 
   useEffect(() => {
     onFiltersChange({
-      location: selectedLocation,
-      trainer: selectedTrainer,
-      month: selectedMonth
+      location: selectedLocation === 'all' ? '' : selectedLocation,
+      trainer: selectedTrainer === 'all' ? '' : selectedTrainer,
+      month: selectedMonth === 'all' ? '' : selectedMonth
     });
   }, [selectedLocation, selectedTrainer, selectedMonth, onFiltersChange]);
 
   const clearFilters = () => {
-    setSelectedLocation('');
-    setSelectedTrainer('');
-    setSelectedMonth('');
+    setSelectedLocation('all');
+    setSelectedTrainer('all');
+    setSelectedMonth('all');
   };
 
-  const hasActiveFilters = selectedLocation || selectedTrainer || selectedMonth;
+  const hasActiveFilters = selectedLocation !== 'all' || selectedTrainer !== 'all' || selectedMonth !== 'all';
 
   if (isCollapsed) {
     return (
@@ -54,7 +54,7 @@ export const TrainerFilterSection: React.FC<TrainerFilterSectionProps> = ({
               <span className="text-sm font-medium text-slate-700">Filters</span>
               {hasActiveFilters && (
                 <Badge variant="secondary" className="text-xs">
-                  {[selectedLocation, selectedTrainer, selectedMonth].filter(Boolean).length} active
+                  {[selectedLocation, selectedTrainer, selectedMonth].filter(f => f !== 'all').length} active
                 </Badge>
               )}
             </div>
@@ -115,7 +115,7 @@ export const TrainerFilterSection: React.FC<TrainerFilterSectionProps> = ({
                 <SelectValue placeholder="All Locations" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Locations</SelectItem>
+                <SelectItem value="all">All Locations</SelectItem>
                 {locations.map((location) => (
                   <SelectItem key={location} value={location}>
                     {location}
@@ -135,7 +135,7 @@ export const TrainerFilterSection: React.FC<TrainerFilterSectionProps> = ({
                 <SelectValue placeholder="All Trainers" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Trainers</SelectItem>
+                <SelectItem value="all">All Trainers</SelectItem>
                 {trainers.map((trainer) => (
                   <SelectItem key={trainer} value={trainer}>
                     {trainer}
@@ -155,7 +155,7 @@ export const TrainerFilterSection: React.FC<TrainerFilterSectionProps> = ({
                 <SelectValue placeholder="All Months" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Months</SelectItem>
+                <SelectItem value="all">All Months</SelectItem>
                 {months.map((month) => (
                   <SelectItem key={month} value={month}>
                     {month}

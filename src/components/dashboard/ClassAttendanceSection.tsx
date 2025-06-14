@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +13,7 @@ import { SessionsComparisonTool } from './SessionsComparisonTool';
 import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
 import { SessionsTrendsInsights } from './SessionsTrendsInsights';
 import { SessionsAnomalyDetection } from './SessionsAnomalyDetection';
+import { SessionsForecasting } from './SessionsForecasting';
 
 const locations = [
   { id: 'all', name: 'All Locations', fullName: 'All Locations' },
@@ -183,6 +183,8 @@ export const ClassAttendanceSection: React.FC = () => {
             <SessionsGroupedTable data={filteredData} />
 
             <SessionsAttendanceAnalytics data={filteredData} />
+
+            <SessionsForecasting data={filteredData} />
 
             <SessionsComparisonTool data={filteredData} />
 

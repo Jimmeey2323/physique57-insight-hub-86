@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Calendar, Activity, MapPin, Building2 } from 'lucide-react';
+import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard, MapPin, Building2 } from 'lucide-react';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
 import { SessionsMetricCards } from './SessionsMetricCards';
@@ -110,13 +110,21 @@ export const SessionsSection: React.FC = () => {
       {/* Modern Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-700 text-white">
         <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="60" cy="60" r="30"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
+        <div className="absolute inset-0 opacity-30">
+          <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full">
+            <g fill="none" fillRule="evenodd">
+              <g fill="#ffffff" fillOpacity="0.05">
+                <circle cx="60" cy="60" r="30"/>
+              </g>
+            </g>
+          </svg>
+        </div>
         
         <div className="relative px-8 py-12">
           <div className="max-w-7xl mx-auto">
             <div className="text-center space-y-4">
               <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 border border-white/20">
-                <Activity className="w-5 h-5" />
+                <Target className="w-5 h-5" />
                 <span className="font-medium">Class Attendance Analytics</span>
               </div>
               

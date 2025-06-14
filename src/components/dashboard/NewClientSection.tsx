@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +15,14 @@ import { useNewClientData } from '@/hooks/useNewClientData';
 import { NewClientData, NewClientFilterOptions, MetricCardData, TableData } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface NewClientSectionProps {
   data?: NewClientData[];
@@ -34,6 +43,10 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   const { data: hookData, isLoading, error } = useNewClientData();
   const data = externalData || hookData || [];
   
+  console.log('NewClientSection - Raw data:', data);
+  console.log('NewClientSection - Data length:', data.length);
+  console.log('NewClientSection - First 3 items:', data.slice(0, 3));
+  
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<NewClientFilterOptions>({
     dateRange: { start: '', end: '' },
@@ -50,7 +63,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   // Filter data by location and other filters
   const applyFilters = (rawData: NewClientData[]) => {
-    console.log('Raw data length:', rawData.length);
+    console.log('ApplyFilters - Raw data length:', rawData.length);
     
     // First filter by selected location tab
     let locationFiltered = rawData.filter(item => {
@@ -63,8 +76,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return locationMatch;
     });
 
-    console.log('Location filtered data length:', locationFiltered.length);
-    console.log('Active location:', activeLocation);
+    console.log('ApplyFilters - Location filtered data length:', locationFiltered.length);
+    console.log('ApplyFilters - Active location:', activeLocation);
 
     // Then apply additional filters
     let filtered = locationFiltered.filter(item => {
@@ -81,13 +94,13 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return true;
     });
 
-    console.log('Final filtered data length:', filtered.length);
+    console.log('ApplyFilters - Final filtered data length:', filtered.length);
     return filtered;
   };
 
   const filteredData = useMemo(() => {
     const result = applyFilters(data);
-    console.log('Filtered data result:', result.length, 'items');
+    console.log('Filtered data memoized result:', result.length, 'items');
     return result;
   }, [data, activeLocation, filters]);
 
@@ -190,6 +203,11 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     
     const monthlyStats = filteredData.reduce((acc, item) => {
       const date = new Date(item.firstVisitDate);
+      if (isNaN(date.getTime())) {
+        console.log('Invalid date found:', item.firstVisitDate);
+        return acc;
+      }
+      
       const monthKey = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
       
       if (!acc[monthKey]) {
@@ -228,53 +246,14 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Avg LTV': formatCurrency(month.totalMembers > 0 ? month.totalRevenue / month.totalMembers : 0)
     }));
 
-    console.log('Monthly analysis result:', result.length, 'months');
+    console.log('Monthly analysis result:', result.length, 'months', result);
     return result;
-  }, [filteredData]);
-
-  // Year-on-Year Analysis
-  const yearlyAnalysis = useMemo(() => {
-    const yearlyStats = filteredData.reduce((acc, item) => {
-      const date = new Date(item.firstVisitDate);
-      const year = date.getFullYear().toString();
-      
-      if (!acc[year]) {
-        acc[year] = {
-          year,
-          totalMembers: 0,
-          newMembers: 0,
-          converted: 0,
-          retained: 0,
-          totalRevenue: 0
-        };
-      }
-      
-      acc[year].totalMembers += 1;
-      acc[year].totalRevenue += item.ltv;
-      if (item.isNew === 'Yes') acc[year].newMembers += 1;
-      if (item.membershipsBoughtPostTrial === 'Yes') acc[year].converted += 1;
-      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
-        acc[year].retained += 1;
-      }
-      
-      return acc;
-    }, {} as Record<string, any>);
-
-    return Object.values(yearlyStats).map((year: any) => ({
-      'Year': year.year,
-      'Total Members': year.totalMembers,
-      'New Members': year.newMembers,
-      'Converted': year.converted,
-      'Retained': year.retained,
-      'Conversion Rate': year.totalMembers > 0 ? `${((year.converted / year.totalMembers) * 100).toFixed(1)}%` : '0%',
-      'Retention Rate': year.totalMembers > 0 ? `${((year.retained / year.totalMembers) * 100).toFixed(1)}%` : '0%',
-      'Total Revenue': formatCurrency(year.totalRevenue),
-      'Avg LTV': formatCurrency(year.totalMembers > 0 ? year.totalRevenue / year.totalMembers : 0)
-    }));
   }, [filteredData]);
 
   // Trainer Performance Analysis
   const trainerAnalysis = useMemo(() => {
+    console.log('Calculating trainer analysis for', filteredData.length, 'items');
+    
     const trainerStats = filteredData.reduce((acc, item) => {
       const trainer = item.trainerName || 'Unassigned';
       
@@ -302,7 +281,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       return acc;
     }, {} as Record<string, any>);
 
-    return Object.values(trainerStats).map((trainer: any) => ({
+    const result = Object.values(trainerStats).map((trainer: any) => ({
       'Trainer': trainer.trainer,
       'Total Members': trainer.totalMembers,
       'New Members': trainer.newMembers,
@@ -314,86 +293,9 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       'Total Revenue': formatCurrency(trainer.totalRevenue),
       'Avg LTV': formatCurrency(trainer.totalMembers > 0 ? trainer.totalRevenue / trainer.totalMembers : 0)
     }));
-  }, [filteredData]);
 
-  // Location Analysis
-  const locationAnalysis = useMemo(() => {
-    const locationStats = filteredData.reduce((acc, item) => {
-      const location = item.firstVisitLocation;
-      
-      if (!acc[location]) {
-        acc[location] = {
-          location,
-          totalMembers: 0,
-          newMembers: 0,
-          converted: 0,
-          retained: 0,
-          totalRevenue: 0
-        };
-      }
-      
-      acc[location].totalMembers += 1;
-      acc[location].totalRevenue += item.ltv;
-      if (item.isNew === 'Yes') acc[location].newMembers += 1;
-      if (item.membershipsBoughtPostTrial === 'Yes') acc[location].converted += 1;
-      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
-        acc[location].retained += 1;
-      }
-      
-      return acc;
-    }, {} as Record<string, any>);
-
-    return Object.values(locationStats).map((location: any) => ({
-      'Location': location.location,
-      'Total Members': location.totalMembers,
-      'New Members': location.newMembers,
-      'Converted': location.converted,
-      'Retained': location.retained,
-      'Conversion Rate': location.totalMembers > 0 ? `${((location.converted / location.totalMembers) * 100).toFixed(1)}%` : '0%',
-      'Retention Rate': location.totalMembers > 0 ? `${((location.retained / location.totalMembers) * 100).toFixed(1)}%` : '0%',
-      'Total Revenue': formatCurrency(location.totalRevenue),
-      'Avg LTV': formatCurrency(location.totalMembers > 0 ? location.totalRevenue / location.totalMembers : 0)
-    }));
-  }, [filteredData]);
-
-  // Membership Analysis
-  const membershipAnalysis = useMemo(() => {
-    const membershipStats = filteredData.reduce((acc, item) => {
-      const membership = item.membershipUsed || 'No Membership';
-      
-      if (!acc[membership]) {
-        acc[membership] = {
-          membership,
-          totalMembers: 0,
-          newMembers: 0,
-          converted: 0,
-          retained: 0,
-          totalRevenue: 0
-        };
-      }
-      
-      acc[membership].totalMembers += 1;
-      acc[membership].totalRevenue += item.ltv;
-      if (item.isNew === 'Yes') acc[membership].newMembers += 1;
-      if (item.membershipsBoughtPostTrial === 'Yes') acc[membership].converted += 1;
-      if (item.retentionStatus === 'Active' || item.retentionStatus === 'Retained') {
-        acc[membership].retained += 1;
-      }
-      
-      return acc;
-    }, {} as Record<string, any>);
-
-    return Object.values(membershipStats).map((membership: any) => ({
-      'Membership Used': membership.membership,
-      'Total Members': membership.totalMembers,
-      'New Members': membership.newMembers,
-      'Converted': membership.converted,
-      'Retained': membership.retained,
-      'Conversion Rate': membership.totalMembers > 0 ? `${((membership.converted / membership.totalMembers) * 100).toFixed(1)}%` : '0%',
-      'Retention Rate': membership.totalMembers > 0 ? `${((membership.retained / membership.totalMembers) * 100).toFixed(1)}%` : '0%',
-      'Total Revenue': formatCurrency(membership.totalRevenue),
-      'Avg LTV': formatCurrency(membership.totalMembers > 0 ? membership.totalRevenue / membership.totalMembers : 0)
-    }));
+    console.log('Trainer analysis result:', result.length, 'trainers', result);
+    return result;
   }, [filteredData]);
 
   // Top/Bottom Performers
@@ -409,17 +311,51 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       .slice(0, 5);
   }, [trainerAnalysis]);
 
-  const topLocations = useMemo(() => {
-    return locationAnalysis
-      .sort((a, b) => parseFloat(b['Conversion Rate']) - parseFloat(a['Conversion Rate']))
-      .slice(0, 3);
-  }, [locationAnalysis]);
+  // Custom table rendering to avoid DataTable issues
+  const renderSimpleTable = (title: string, data: any[]) => {
+    if (!data || data.length === 0) {
+      return (
+        <Card className="p-6">
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-500">No data available</p>
+          </CardContent>
+        </Card>
+      );
+    }
 
-  const bottomLocations = useMemo(() => {
-    return locationAnalysis
-      .sort((a, b) => parseFloat(a['Conversion Rate']) - parseFloat(b['Conversion Rate']))
-      .slice(0, 3);
-  }, [locationAnalysis]);
+    const columns = Object.keys(data[0]);
+
+    return (
+      <Card className="p-6">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {columns.map((column) => (
+                  <TableHead key={column}>{column}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((row, index) => (
+                <TableRow key={index}>
+                  {columns.map((column) => (
+                    <TableCell key={column}>{row[column]}</TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    );
+  };
 
   const handleMetricClick = (metric: MetricCardData) => {
     setDrillDownData(metric);
@@ -429,21 +365,6 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   const handleTableRowClick = (row: any) => {
     setDrillDownData(row);
     setDrillDownType('member');
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      dateRange: { start: '', end: '' },
-      location: [],
-      homeLocation: [],
-      trainer: [],
-      paymentMethod: [],
-      retentionStatus: [],
-      conversionStatus: [],
-      isNew: [],
-      minLTV: undefined,
-      maxLTV: undefined,
-    });
   };
 
   if (isLoading) {
@@ -565,25 +486,54 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                   <CardTitle className="text-xl font-bold text-green-600">Top Performing Trainers</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DataTable
-                    title=""
-                    data={topTrainers as any}
-                    type="category"
-                    onRowClick={handleTableRowClick}
-                  />
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Trainer</TableHead>
+                        <TableHead>Total Members</TableHead>
+                        <TableHead>Conversion Rate</TableHead>
+                        <TableHead>Retention Rate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {topTrainers.map((trainer, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{trainer.Trainer}</TableCell>
+                          <TableCell>{trainer['Total Members']}</TableCell>
+                          <TableCell>{trainer['Conversion Rate']}</TableCell>
+                          <TableCell>{trainer['Retention Rate']}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
+              
               <Card className="p-6">
                 <CardHeader>
                   <CardTitle className="text-xl font-bold text-red-600">Bottom Performing Trainers</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <DataTable
-                    title=""
-                    data={bottomTrainers as any}
-                    type="category"
-                    onRowClick={handleTableRowClick}
-                  />
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Trainer</TableHead>
+                        <TableHead>Total Members</TableHead>
+                        <TableHead>Conversion Rate</TableHead>
+                        <TableHead>Retention Rate</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {bottomTrainers.map((trainer, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{trainer.Trainer}</TableCell>
+                          <TableCell>{trainer['Total Members']}</TableCell>
+                          <TableCell>{trainer['Conversion Rate']}</TableCell>
+                          <TableCell>{trainer['Retention Rate']}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
             </div>
@@ -602,42 +552,10 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
               />
             </div>
 
-            {/* Comprehensive Data Tables */}
+            {/* Comprehensive Data Tables using simple table rendering */}
             <div className="space-y-8">
-              <DataTable
-                title="Month-on-Month Performance Matrix"
-                data={monthlyAnalysis as any}
-                type="monthly"
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Year-on-Year Growth Analysis"
-                data={yearlyAnalysis as any}
-                type="yoy-analysis"
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Trainer Performance Analysis"
-                data={trainerAnalysis as any}
-                type="category"
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Location Performance Breakdown"
-                data={locationAnalysis as any}
-                type="category"
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Membership Usage Analysis"
-                data={membershipAnalysis as any}
-                type="category"
-                onRowClick={handleTableRowClick}
-              />
+              {renderSimpleTable("Month-on-Month Performance Matrix", monthlyAnalysis)}
+              {renderSimpleTable("Trainer Performance Analysis", trainerAnalysis)}
             </div>
           </TabsContent>
         ))}

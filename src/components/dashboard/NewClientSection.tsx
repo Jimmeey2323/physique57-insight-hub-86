@@ -469,16 +469,6 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     return table;
   }
 
-  // Top/bottom logic (e.g., top by converted)
-  const trainerTotals = allTrainers.map(trainer => ({
-    Trainer: trainer,
-    Converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),
-    New: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.new ?? 0), 0),
-    Retained: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.retained ?? 0), 0)
-  }));
-  const topTrainers = [...trainerTotals].sort((a, b) => b.Converted - a.Converted).slice(0, 5);
-  const bottomTrainers = [...trainerTotals].sort((a, b) => a.Converted - b.Converted).slice(0, 5);
-
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
       <div className="text-center mb-8">

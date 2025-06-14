@@ -16,7 +16,7 @@ import { LeadMonthOnMonthTable } from './LeadMonthOnMonthTable';
 import { LeadSourceMonthOnMonthTable } from './LeadSourceMonthOnMonthTable';
 import { YearOnYearTrainerTable } from './YearOnYearTrainerTable';
 import { ThemeSelector } from './ThemeSelector';
-import { LeadProvider, useLeads } from '../contexts/LeadContext';
+import { LeadProvider, useLeads } from '@/contexts/LeadContext';
 import { LeadsMetricType } from '@/types/leads';
 import { MetricCardData, TrainerMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';

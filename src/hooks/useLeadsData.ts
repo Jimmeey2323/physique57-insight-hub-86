@@ -22,7 +22,7 @@ const parseDate = (dateString: string) => {
     // MM/DD/YYYY or DD/MM/YYYY format
     const parts = dateString.split('/');
     if (parts.length === 3) {
-      parsedDate = new Date(parts[2], parts[0] - 1, parts[1]);
+      parsedDate = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
     }
   } else if (dateString.includes('-')) {
     // YYYY-MM-DD format

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -109,6 +110,92 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   const handleFiltersChange = (newFilters: NewClientFilterOptions) => {
     setFilters(newFilters);
   };
+
+  // --- DATA SHAPING FOR NEW METRICS
+  // Group data by trainer, month, and calculate correct metrics.
+  const getMonthKey = (dateStr: string) => {
+    const d = new Date(dateStr);
+    // fallback for dd/mm/yyyy or "20/05/2022 ..."
+    if (!isNaN(d.getTime())) return d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+    const parts = dateStr.split(/[ /:]+/); // try to get DD/MM/YYYY
+    if (parts.length >= 3) {
+      const month = Number(parts[1]);
+      const year = parts[2] ? parts[2].slice(-2) : '??';
+      try {
+        const dt = new Date(Number(parts[2]), month-1, Number(parts[0]));
+        if (!isNaN(dt.getTime())) return dt.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+        return `${parts[1]}-${year}`;
+      } catch { return 'Unknown'; }
+    }
+    return 'Unknown';
+  };
+
+  function groupMonthsDescending(months: string[]): string[] {
+    // Convert to "MMM-YY", sort by newest first using Date objects robustly
+    const monthIndex = (str: string) => {
+      // e.g. "Jan-25"
+      const [m, y] = str.split('-');
+      const month = new Date(Date.parse(`${m} 1, 2000`)).getMonth(); // 0-based
+      const year = Number('20' + y);
+      return new Date(year, month, 1).getTime();
+    };
+    return [...months].sort((a, b) => monthIndex(b) - monthIndex(a));
+  }
+
+  // Process data and prepare variables in the correct order
+  const { allMonths, allTrainers, groupedData } = useMemo(() => {
+    const allMonthsSet = new Set<string>();
+    const trainerNamesSet = new Set<string>();
+    let processedGroupedData: Record<string, Record<string, any>> = {};
+
+    filteredData.forEach(item => {
+      const month = getMonthKey(item.firstVisitDate);
+      allMonthsSet.add(month);
+
+      const trainer = item.trainerName || 'Unassigned';
+      trainerNamesSet.add(trainer);
+
+      // Metric logic
+      const isNew = !!item.isNew && (item.isNew.toLowerCase().includes('new'));
+      const isConverted = item.conversionStatus?.toLowerCase() === 'converted';
+      const isRetained = item.retentionStatus?.toLowerCase() === 'retained';
+
+      if (!processedGroupedData[trainer]) processedGroupedData[trainer] = {};
+      if (!processedGroupedData[trainer][month]) processedGroupedData[trainer][month] = { new: 0, converted: 0, retained: 0, ltv: 0 };
+
+      if (isNew) processedGroupedData[trainer][month].new += 1;
+      if (isConverted) processedGroupedData[trainer][month].converted += 1;
+      if (isRetained) processedGroupedData[trainer][month].retained += 1;
+      processedGroupedData[trainer][month].ltv += Number(item.ltv || 0);
+    });
+
+    const processedAllMonths = groupMonthsDescending(Array.from(allMonthsSet));
+    const processedAllTrainers = Array.from(trainerNamesSet);
+
+    return {
+      allMonths: processedAllMonths,
+      allTrainers: processedAllTrainers,
+      groupedData: processedGroupedData
+    };
+  }, [filteredData]);
+
+  // Now calculate trainer totals AFTER allTrainers and groupedData are defined
+  const trainerTotals = useMemo(() => {
+    return allTrainers.map(trainer => ({
+      Trainer: trainer,
+      Converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),
+      New: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.new ?? 0), 0),
+      Retained: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.retained ?? 0), 0)
+    }));
+  }, [allTrainers, allMonths, groupedData]);
+
+  const topTrainers = useMemo(() => {
+    return [...trainerTotals].sort((a, b) => b.Converted - a.Converted).slice(0, 5);
+  }, [trainerTotals]);
+
+  const bottomTrainers = useMemo(() => {
+    return [...trainerTotals].sort((a, b) => a.Converted - b.Converted).slice(0, 5);
+  }, [trainerTotals]);
 
   // Metrics calculation
   const metrics = useMemo((): MetricCardData[] => {
@@ -299,16 +386,17 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     return result;
   }, [filteredData]);
 
-  // --- Top/bottom logic (e.g., top by converted) ---
-  // Only declared ONCE, AFTER allTrainers is defined.
-  const trainerTotals = allTrainers.map(trainer => ({
-    Trainer: trainer,
-    Converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),
-    New: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.new ?? 0), 0),
-    Retained: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.retained ?? 0), 0)
-  }));
-  const topTrainers = [...trainerTotals].sort((a, b) => b.Converted - a.Converted).slice(0, 5);
-  const bottomTrainers = [...trainerTotals].sort((a, b) => a.Converted - b.Converted).slice(0, 5);
+  // Shape data for MonthOnMonthTrainerTable
+  function getMetricData(metric: 'new' | 'converted' | 'retained' | 'ltv') {
+    const table: Record<string, Record<string, number>> = {};
+    allTrainers.forEach(trainer => {
+      table[trainer] = {};
+      allMonths.forEach(month => {
+        table[trainer][month] = groupedData[trainer]?.[month]?.[metric] ?? 0;
+      });
+    });
+    return table;
+  }
 
   // Custom table rendering to avoid DataTable issues
   const renderSimpleTable = (title: string, data: any[]) => {
@@ -396,78 +484,6 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       dateRange: { start: '2025-06-01', end: '2025-01-31' }
     }));
   }, []);
-
-  // --- DATA SHAPING FOR NEW METRICS
-  // Group data by trainer, month, and calculate correct metrics.
-  const getMonthKey = (dateStr: string) => {
-    const d = new Date(dateStr);
-    // fallback for dd/mm/yyyy or "20/05/2022 ..."
-    if (!isNaN(d.getTime())) return d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-    const parts = dateStr.split(/[ /:]+/); // try to get DD/MM/YYYY
-    if (parts.length >= 3) {
-      const month = Number(parts[1]);
-      const year = parts[2] ? parts[2].slice(-2) : '??';
-      try {
-        const dt = new Date(Number(parts[2]), month-1, Number(parts[0]));
-        if (!isNaN(dt.getTime())) return dt.toLocaleString('en-US', { month: 'short', year: '2-digit' });
-        return `${parts[1]}-${year}`;
-      } catch { return 'Unknown'; }
-    }
-    return 'Unknown';
-  };
-
-  function groupMonthsDescending(months: string[]): string[] {
-    // Convert to "MMM-YY", sort by newest first using Date objects robustly
-    const monthIndex = (str: string) => {
-      // e.g. "Jan-25"
-      const [m, y] = str.split('-');
-      const month = new Date(Date.parse(`${m} 1, 2000`)).getMonth(); // 0-based
-      const year = Number('20' + y);
-      return new Date(year, month, 1).getTime();
-    };
-    return [...months].sort((a, b) => monthIndex(b) - monthIndex(a));
-  }
-
-  const allMonthsSet = new Set<string>();
-  const trainerNamesSet = new Set<string>();
-
-  let groupedData: Record<string, Record<string, any>> = {};
-
-  filteredData.forEach(item => {
-    const month = getMonthKey(item.firstVisitDate);
-    allMonthsSet.add(month);
-
-    const trainer = item.trainerName || 'Unassigned';
-    trainerNamesSet.add(trainer);
-
-    // Metric logic
-    const isNew = !!item.isNew && (item.isNew.toLowerCase().includes('new'));
-    const isConverted = item.conversionStatus?.toLowerCase() === 'converted';
-    const isRetained = item.retentionStatus?.toLowerCase() === 'retained';
-
-    if (!groupedData[trainer]) groupedData[trainer] = {};
-    if (!groupedData[trainer][month]) groupedData[trainer][month] = { new: 0, converted: 0, retained: 0, ltv: 0 };
-
-    if (isNew) groupedData[trainer][month].new += 1;
-    if (isConverted) groupedData[trainer][month].converted += 1;
-    if (isRetained) groupedData[trainer][month].retained += 1;
-    groupedData[trainer][month].ltv += Number(item.ltv || 0);
-  });
-
-  const allMonths = groupMonthsDescending(Array.from(allMonthsSet));
-  const allTrainers = Array.from(trainerNamesSet);
-
-  // Shape data for MonthOnMonthTrainerTable
-  function getMetricData(metric: 'new' | 'converted' | 'retained' | 'ltv') {
-    const table: Record<string, Record<string, number>> = {};
-    allTrainers.forEach(trainer => {
-      table[trainer] = {};
-      allMonths.forEach(month => {
-        table[trainer][month] = groupedData[trainer]?.[month]?.[metric] ?? 0;
-      });
-    });
-    return table;
-  }
 
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
@@ -575,7 +591,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {topTrainers.map((trainer, index) => (
+                      {trainerAnalysis.slice(0, 5).map((trainer, index) => (
                         <TableRow key={index}>
                           <TableCell>{trainer.Trainer}</TableCell>
                           <TableCell>{trainer['Total Members']}</TableCell>
@@ -603,7 +619,7 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {bottomTrainers.map((trainer, index) => (
+                      {trainerAnalysis.slice(-5).map((trainer, index) => (
                         <TableRow key={index}>
                           <TableCell>{trainer.Trainer}</TableCell>
                           <TableCell>{trainer['Total Members']}</TableCell>

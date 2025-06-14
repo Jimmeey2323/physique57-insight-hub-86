@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
 import { SalesAnalyticsSection } from '@/components/dashboard/SalesAnalyticsSection';
@@ -65,14 +64,7 @@ const Index = () => {
           </Card>
         );
       case 'trainer-performance':
-        return (
-          <Card className="p-8">
-            <CardContent className="text-center">
-              <h3 className="text-2xl font-semibold mb-4">Trainer Performance</h3>
-              <p className="text-slate-600">Coming soon - Individual trainer performance insights</p>
-            </CardContent>
-          </Card>
-        );
+        return <TrainerPerformanceSection />;
       case 'class-attendance':
         return (
           <Card className="p-8">

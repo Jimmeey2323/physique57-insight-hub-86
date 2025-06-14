@@ -35,6 +35,10 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   const [includeTrainer, setIncludeTrainer] = useState(false);
 
   const processedData = useMemo(() => {
+    if (!data || data.length === 0) {
+      return [];
+    }
+
     const grouped: Record<string, {
       name: string;
       displayName: string;
@@ -47,21 +51,24 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       trainerName?: string;
     }> = {};
 
+    // Process each session
     data.forEach(session => {
-      let key: string;
-      let displayName: string;
+      if (!session) return;
+      
+      let key = '';
+      let displayName = '';
       
       if (type === 'classes') {
         if (includeTrainer) {
-          key = `${session.cleanedClass}-${session.trainerName}`;
-          displayName = `${session.cleanedClass} (${session.trainerName})`;
+          key = `${session.cleanedClass || ''}-${session.trainerName || ''}`;
+          displayName = `${session.cleanedClass || 'Unknown'} (${session.trainerName || 'Unknown'})`;
         } else {
-          key = session.cleanedClass;
-          displayName = session.cleanedClass;
+          key = session.cleanedClass || '';
+          displayName = session.cleanedClass || 'Unknown';
         }
       } else {
-        key = session.trainerName;
-        displayName = session.trainerName;
+        key = session.trainerName || '';
+        displayName = session.trainerName || 'Unknown';
       }
       
       if (!key) return;
@@ -80,18 +87,22 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
         };
       }
 
-      grouped[key].totalAttendance += session.checkedInCount;
-      grouped[key].totalRevenue += session.totalPaid;
-      grouped[key].lateCancellations += session.lateCancelledCount;
+      // Safely add numeric values
+      grouped[key].totalAttendance += Number(session.checkedInCount || 0);
+      grouped[key].totalRevenue += Number(session.totalPaid || 0);
+      grouped[key].lateCancellations += Number(session.lateCancelledCount || 0);
       grouped[key].sessions += 1;
     });
 
-    // Calculate averages
+    // Calculate averages for each group
     Object.values(grouped).forEach(item => {
       const relevantSessions = data.filter(s => {
+        if (!s) return false;
+        
         if (type === 'classes') {
           if (includeTrainer) {
-            return s.cleanedClass === item.name.split('-')[0] && s.trainerName === item.name.split('-')[1];
+            const sessionKey = `${s.cleanedClass || ''}-${s.trainerName || ''}`;
+            return sessionKey === item.name;
           } else {
             return s.cleanedClass === item.name;
           }
@@ -100,13 +111,15 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
         }
       });
       
-      const totalCapacity = relevantSessions.reduce((sum, s) => sum + s.capacity, 0);
+      const totalCapacity = relevantSessions.reduce((sum, s) => sum + Number(s.capacity || 0), 0);
       item.avgFillRate = totalCapacity > 0 ? (item.totalAttendance / totalCapacity) * 100 : 0;
       item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     });
 
+    // Sort the data
     const sortedData = Object.values(grouped).sort((a, b) => {
-      let aValue: number, bValue: number;
+      let aValue = 0;
+      let bValue = 0;
       
       switch (selectedMetric) {
         case 'attendance':
@@ -144,6 +157,8 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   ];
 
   const getMetricValue = (item: typeof processedData[0]) => {
+    if (!item) return '';
+    
     switch (selectedMetric) {
       case 'attendance':
         return formatNumber(Number(item.avgAttendance.toFixed(1)));
@@ -159,15 +174,17 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   };
 
   const getMetricSubtext = (item: typeof processedData[0]) => {
+    if (!item) return '';
+    
     switch (selectedMetric) {
       case 'attendance':
         return `${item.sessions} sessions, ${formatNumber(item.totalAttendance)} total`;
       case 'fillRate':
         return `${formatNumber(item.totalAttendance)} attendees`;
       case 'revenue':
-        return `Avg: ${formatCurrency(item.totalRevenue / item.sessions)}`;
+        return `Avg: ${formatCurrency(item.totalRevenue / Math.max(item.sessions, 1))}`;
       case 'lateCancellations':
-        return `${((item.lateCancellations / item.sessions) * 100).toFixed(1)}% rate`;
+        return `${((item.lateCancellations / Math.max(item.sessions, 1)) * 100).toFixed(1)}% rate`;
       default:
         return `${item.sessions} sessions`;
     }

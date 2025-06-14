@@ -32,227 +32,119 @@ export interface PayrollData {
   classAverageExclEmpty: number;
 }
 
-const mockPayrollData: PayrollData[] = [
-  {
-    teacherId: '53133',
-    teacherName: 'Anisha Shah',
-    teacherEmail: 'anisha@physique57india.com',
-    location: 'Kwality House, Kemps Corner',
-    cycleSessions: 0,
-    emptyCycleSessions: 0,
-    nonEmptyCycleSessions: 0,
-    cycleCustomers: 0,
-    cyclePaid: 0,
-    barreSessions: 5,
-    emptyBarreSessions: 5,
-    nonEmptyBarreSessions: 0,
-    barreCustomers: 0,
-    barrePaid: 0,
-    totalSessions: 5,
-    totalEmptySessions: 5,
-    totalNonEmptySessions: 0,
-    totalCustomers: 0,
-    totalPaid: 0,
-    monthYear: 'Jun-2025',
-    unique: '45809Anisha ShahKwality House, Kemps Corner',
-    new: 1,
-    retained: 1,
-    retention: '100%',
-    converted: 1,
-    conversion: '100%',
-    classAverageInclEmpty: 0.0,
-    classAverageExclEmpty: 0
-  },
-  {
-    teacherId: '54169',
-    teacherName: 'Mrigakshi Jaiswal',
-    teacherEmail: 'mrigakshi@physique57mumbai.com',
-    location: 'Kwality House, Kemps Corner',
-    cycleSessions: 0,
-    emptyCycleSessions: 0,
-    nonEmptyCycleSessions: 0,
-    cycleCustomers: 0,
-    cyclePaid: 0,
-    barreSessions: 11,
-    emptyBarreSessions: 6,
-    nonEmptyBarreSessions: 5,
-    barreCustomers: 30,
-    barrePaid: 31045,
-    totalSessions: 11,
-    totalEmptySessions: 6,
-    totalNonEmptySessions: 5,
-    totalCustomers: 30,
-    totalPaid: 31045,
-    monthYear: 'Jun-2025',
-    unique: '45809Mrigakshi JaiswalKwality House, Kemps Corner',
-    new: 1,
-    retained: 1,
-    retention: '100%',
-    converted: 1,
-    conversion: '100%',
-    classAverageInclEmpty: 2.7,
-    classAverageExclEmpty: 6.0
-  },
-  {
-    teacherId: '54175',
-    teacherName: 'Richard D\'Costa',
-    teacherEmail: 'richard@physique57mumbai.com',
-    location: 'Kwality House, Kemps Corner',
-    cycleSessions: 0,
-    emptyCycleSessions: 0,
-    nonEmptyCycleSessions: 0,
-    cycleCustomers: 0,
-    cyclePaid: 0,
-    barreSessions: 19,
-    emptyBarreSessions: 5,
-    nonEmptyBarreSessions: 14,
-    barreCustomers: 61,
-    barrePaid: 50913,
-    totalSessions: 19,
-    totalEmptySessions: 5,
-    totalNonEmptySessions: 14,
-    totalCustomers: 61,
-    totalPaid: 50913,
-    monthYear: 'Jun-2025',
-    unique: '45809Richard D\'CostaKwality House, Kemps Corner',
-    new: 1,
-    retained: 1,
-    retention: '100%',
-    converted: 1,
-    conversion: '100%',
-    classAverageInclEmpty: 3.2,
-    classAverageExclEmpty: 4.4
-  },
-  {
-    teacherId: '54176',
-    teacherName: 'Rohan Dahima',
-    teacherEmail: 'rohan@physique57mumbai.com',
-    location: 'Kwality House, Kemps Corner',
-    cycleSessions: 0,
-    emptyCycleSessions: 0,
-    nonEmptyCycleSessions: 0,
-    cycleCustomers: 0,
-    cyclePaid: 0,
-    barreSessions: 18,
-    emptyBarreSessions: 7,
-    nonEmptyBarreSessions: 11,
-    barreCustomers: 96,
-    barrePaid: 79315,
-    totalSessions: 18,
-    totalEmptySessions: 7,
-    totalNonEmptySessions: 11,
-    totalCustomers: 96,
-    totalPaid: 79315,
-    monthYear: 'Jun-2025',
-    unique: '45809Rohan DahimaKwality House, Kemps Corner',
-    new: 1,
-    retained: 1,
-    retention: '100%',
-    converted: 1,
-    conversion: '100%',
-    classAverageInclEmpty: 5.3,
-    classAverageExclEmpty: 8.7
-  },
-  {
-    teacherId: '54195',
-    teacherName: 'Pranjali Jain',
-    teacherEmail: 'pranjali@physique57mumbai.com',
-    location: 'Kwality House, Kemps Corner',
-    cycleSessions: 0,
-    emptyCycleSessions: 0,
-    nonEmptyCycleSessions: 0,
-    cycleCustomers: 0,
-    cyclePaid: 0,
-    barreSessions: 23,
-    emptyBarreSessions: 8,
-    nonEmptyBarreSessions: 15,
-    barreCustomers: 108,
-    barrePaid: 98666,
-    totalSessions: 23,
-    totalEmptySessions: 8,
-    totalNonEmptySessions: 15,
-    totalCustomers: 108,
-    totalPaid: 98666,
-    monthYear: 'Jun-2025',
-    unique: '45809Pranjali JainKwality House, Kemps Corner',
-    new: 1,
-    retained: 1,
-    retention: '100%',
-    converted: 1,
-    conversion: '100%',
-    classAverageInclEmpty: 4.7,
-    classAverageExclEmpty: 7.2
-  },
-  {
-    teacherId: '54196',
-    teacherName: 'Atulan Purohit',
-    teacherEmail: 'atulan@physique57mumbai.com',
-    location: 'Kwality House, Kemps Corner',
-    cycleSessions: 0,
-    emptyCycleSessions: 0,
-    nonEmptyCycleSessions: 0,
-    cycleCustomers: 0,
-    cyclePaid: 0,
-    barreSessions: 14,
-    emptyBarreSessions: 4,
-    nonEmptyBarreSessions: 10,
-    barreCustomers: 90,
-    barrePaid: 82017,
-    totalSessions: 14,
-    totalEmptySessions: 4,
-    totalNonEmptySessions: 10,
-    totalCustomers: 90,
-    totalPaid: 82017,
-    monthYear: 'Jun-2025',
-    unique: '45809Atulan PurohitKwality House, Kemps Corner',
-    new: 1,
-    retained: 1,
-    retention: '100%',
-    converted: 1,
-    conversion: '100%',
-    classAverageInclEmpty: 6.4,
-    classAverageExclEmpty: 9.0
-  },
-  {
-    teacherId: '54197',
-    teacherName: 'Vivaran Dhasmana',
-    teacherEmail: 'vivaran@physique57mumbai.com',
-    location: 'Kwality House, Kemps Corner',
-    cycleSessions: 0,
-    emptyCycleSessions: 0,
-    nonEmptyCycleSessions: 0,
-    cycleCustomers: 0,
-    cyclePaid: 0,
-    barreSessions: 4,
-    emptyBarreSessions: 2,
-    nonEmptyBarreSessions: 2,
-    barreCustomers: 10,
-    barrePaid: 8685,
-    totalSessions: 4,
-    totalEmptySessions: 2,
-    totalNonEmptySessions: 2,
-    totalCustomers: 10,
-    totalPaid: 8685,
-    monthYear: 'Jun-2025',
-    unique: '45809Vivaran DhasmanaKwality House, Kemps Corner',
-    new: 1,
-    retained: 1,
-    retention: '100%',
-    converted: 1,
-    conversion: '100%',
-    classAverageInclEmpty: 2.5,
-    classAverageExclEmpty: 5.0
+const GOOGLE_CONFIG = {
+  CLIENT_ID: "416630995185-g7b0fm679lb4p45p5lou070cqscaalaf.apps.googleusercontent.com",
+  CLIENT_SECRET: "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",
+  REFRESH_TOKEN: "1//0gT2uoYBlNdGXCgYIARAAGBASNwF-L9IrBK_ijYwpce6-TdqDfji4GxYuc4uxIBKasdgoZBPm-tu_EU0xS34cNirqfLgXbJ8_NMk",
+  TOKEN_URL: "https://oauth2.googleapis.com/token"
+};
+
+const SPREADSHEET_ID = "1ms082PTG8lt566ndWBf687baIl-knERPL1r2v7-dPxg";
+
+const getAccessToken = async () => {
+  try {
+    const response = await fetch(GOOGLE_CONFIG.TOKEN_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        client_id: GOOGLE_CONFIG.CLIENT_ID,
+        client_secret: GOOGLE_CONFIG.CLIENT_SECRET,
+        refresh_token: GOOGLE_CONFIG.REFRESH_TOKEN,
+        grant_type: 'refresh_token',
+      }),
+    });
+
+    const tokenData = await response.json();
+    return tokenData.access_token;
+  } catch (error) {
+    console.error('Error getting access token:', error);
+    throw error;
   }
-];
+};
+
+const fetchPayrollData = async (): Promise<PayrollData[]> => {
+  try {
+    console.log('Fetching payroll data from Google Sheets...');
+    const accessToken = await getAccessToken();
+    
+    const response = await fetch(
+      `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/◉ Payroll?alt=json`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch payroll data: ${response.status}`);
+    }
+
+    const result = await response.json();
+    const rows = result.values || [];
+    
+    if (rows.length < 2) {
+      console.log('No payroll data found');
+      return [];
+    }
+
+    const headers = rows[0];
+    console.log('Payroll data headers:', headers);
+    
+    const payrollData: PayrollData[] = rows.slice(1).map((row: any[], index: number) => {
+      try {
+        return {
+          teacherId: String(row[0] || ''),
+          teacherName: String(row[1] || ''),
+          teacherEmail: String(row[2] || ''),
+          location: String(row[3] || ''),
+          cycleSessions: parseInt(row[4]) || 0,
+          emptyCycleSessions: parseInt(row[5]) || 0,
+          nonEmptyCycleSessions: parseInt(row[6]) || 0,
+          cycleCustomers: parseInt(row[7]) || 0,
+          cyclePaid: parseFloat(String(row[8]).replace(/,/g, '')) || 0,
+          barreSessions: parseInt(row[9]) || 0,
+          emptyBarreSessions: parseInt(row[10]) || 0,
+          nonEmptyBarreSessions: parseInt(row[11]) || 0,
+          barreCustomers: parseInt(row[12]) || 0,
+          barrePaid: parseFloat(String(row[13]).replace(/,/g, '')) || 0,
+          totalSessions: parseInt(row[14]) || 0,
+          totalEmptySessions: parseInt(row[15]) || 0,
+          totalNonEmptySessions: parseInt(row[16]) || 0,
+          totalCustomers: parseInt(row[17]) || 0,
+          totalPaid: parseFloat(String(row[18]).replace(/,/g, '')) || 0,
+          monthYear: String(row[19] || ''),
+          unique: String(row[20] || ''),
+          new: parseInt(row[21]) || 0,
+          retained: parseInt(row[22]) || 0,
+          retention: String(row[23] || '0%'),
+          converted: parseInt(row[24]) || 0,
+          conversion: String(row[25] || '0%'),
+          classAverageInclEmpty: parseFloat(row[26]) || 0,
+          classAverageExclEmpty: parseFloat(row[27]) || 0,
+        };
+      } catch (error) {
+        console.error(`Error parsing payroll data row ${index + 2}:`, error, row);
+        return null;
+      }
+    }).filter((item): item is PayrollData => item !== null);
+
+    console.log(`Successfully parsed ${payrollData.length} payroll records`);
+    return payrollData;
+  } catch (error) {
+    console.error('Error fetching payroll data:', error);
+    throw error;
+  }
+};
 
 export const usePayrollData = () => {
   return useQuery({
     queryKey: ['payroll-data'],
-    queryFn: async () => {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return mockPayrollData;
-    },
+    queryFn: fetchPayrollData,
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 };

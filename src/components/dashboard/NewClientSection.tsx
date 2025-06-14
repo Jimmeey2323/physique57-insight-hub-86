@@ -299,8 +299,8 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     return result;
   }, [filteredData]);
 
-  // Top/Bottom Performers
-  // Trainer totals for top/bottom logic
+  // --- Top/bottom logic (e.g., top by converted) ---
+  // Only declared ONCE, AFTER allTrainers is defined.
   const trainerTotals = allTrainers.map(trainer => ({
     Trainer: trainer,
     Converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),

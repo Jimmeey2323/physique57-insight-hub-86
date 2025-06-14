@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,11 +19,13 @@ const locations = [
   { id: 'other', name: 'Other', subName: 'Locations', fullName: 'Other Locations' }
 ];
 
+type MetricType = 'new' | 'converted' | 'retained' | 'ltv' | 'conversionRate' | 'retentionRate' | 'conversionSpan';
+
 export const NewClientSection = () => {
   const { data: rawData, isLoading, error } = useNewClientData();
   const [activeLocation, setActiveLocation] = useState<string>('kwality');
   const [selectedTrainer, setSelectedTrainer] = useState<string>('');
-  const [activeMetric, setActiveMetric] = useState<'new' | 'converted' | 'retained' | 'ltv' | 'conversionRate' | 'retentionRate' | 'conversionSpan'>('new');
+  const [activeMetric, setActiveMetric] = useState<MetricType>('new');
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: { start: '2025-01-01', end: '2025-06-30' },
     location: [],
@@ -585,7 +586,7 @@ export const NewClientSection = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <Tabs value={activeMetric} onValueChange={setActiveMetric}>
+                <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as MetricType)}>
                   <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg grid grid-cols-7 gap-1">
                     {[
                       { key: 'new' as const, label: 'New Members', icon: Users, color: 'from-blue-500 to-cyan-600' },

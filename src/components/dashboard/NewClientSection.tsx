@@ -1,5 +1,4 @@
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
+import { TopBottomTrainerList } from './TopBottomTrainerList';
 
 interface NewClientSectionProps {
   data?: NewClientData[];
@@ -390,6 +391,96 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   console.log('Rendering with filtered data length:', filteredData.length);
 
+  // Set default date filter: Jun 2025 to Jan 2025 (descending)
+  React.useEffect(() => {
+    setFilters(f => ({
+      ...f,
+      dateRange: { start: '2025-06-01', end: '2025-01-31' }
+    }));
+  }, []);
+
+  // --- DATA SHAPING FOR NEW METRICS
+  // Group data by trainer, month, and calculate correct metrics.
+  const getMonthKey = (dateStr: string) => {
+    const d = new Date(dateStr);
+    // fallback for dd/mm/yyyy or "20/05/2022 ..."
+    if (!isNaN(d.getTime())) return d.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+    const parts = dateStr.split(/[ /:]+/); // try to get DD/MM/YYYY
+    if (parts.length >= 3) {
+      const month = Number(parts[1]);
+      const year = parts[2] ? parts[2].slice(-2) : '??';
+      try {
+        const dt = new Date(Number(parts[2]), month-1, Number(parts[0]));
+        if (!isNaN(dt.getTime())) return dt.toLocaleString('en-US', { month: 'short', year: '2-digit' });
+        return `${parts[1]}-${year}`;
+      } catch { return 'Unknown'; }
+    }
+    return 'Unknown';
+  };
+
+  function groupMonthsDescending(months: string[]): string[] {
+    // Convert to "MMM-YY", sort by newest first
+    return [...months]
+      .sort((a, b) => {
+        const [am, ay] = a.split('-');
+        const [bm, by] = b.split('-');
+        const ad = new Date(`20${ay}`, new Date(Date.parse(`${am} 1, 2000`)).getMonth(), 1);
+        const bd = new Date(`20${by}`, new Date(Date.parse(`${bm} 1, 2000`)).getMonth(), 1);
+        return bd.getTime() - ad.getTime();
+      });
+  }
+
+  const allMonthsSet = new Set<string>();
+  const trainerNamesSet = new Set<string>();
+
+  let groupedData: Record<string, Record<string, any>> = {};
+
+  filteredData.forEach(item => {
+    const month = getMonthKey(item.firstVisitDate);
+    allMonthsSet.add(month);
+
+    const trainer = item.trainerName || 'Unassigned';
+    trainerNamesSet.add(trainer);
+
+    // Metric logic
+    const isNew = !!item.isNew && (item.isNew.toLowerCase().includes('new'));
+    const isConverted = item.conversionStatus?.toLowerCase() === 'converted';
+    const isRetained = item.retentionStatus?.toLowerCase() === 'retained';
+
+    if (!groupedData[trainer]) groupedData[trainer] = {};
+    if (!groupedData[trainer][month]) groupedData[trainer][month] = { new: 0, converted: 0, retained: 0, ltv: 0 };
+
+    if (isNew) groupedData[trainer][month].new += 1;
+    if (isConverted) groupedData[trainer][month].converted += 1;
+    if (isRetained) groupedData[trainer][month].retained += 1;
+    groupedData[trainer][month].ltv += Number(item.ltv || 0);
+  });
+
+  const allMonths = groupMonthsDescending(Array.from(allMonthsSet));
+  const allTrainers = Array.from(trainerNamesSet);
+
+  // Shape data for MonthOnMonthTrainerTable
+  function getMetricData(metric: 'new' | 'converted' | 'retained' | 'ltv') {
+    const table: Record<string, Record<string, number>> = {};
+    allTrainers.forEach(trainer => {
+      table[trainer] = {};
+      allMonths.forEach(month => {
+        table[trainer][month] = groupedData[trainer]?.[month]?.[metric] ?? 0;
+      });
+    });
+    return table;
+  }
+
+  // Top/bottom logic (e.g., top by converted)
+  const trainerTotals = allTrainers.map(trainer => ({
+    name: trainer,
+    converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),
+    new: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.new ?? 0), 0),
+    retained: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.retained ?? 0), 0)
+  }));
+  const topTrainers = [...trainerTotals].sort((a, b) => b.converted - a.converted).slice(0, 5);
+  const bottomTrainers = [...trainerTotals].sort((a, b) => a.converted - b.converted).slice(0, 5);
+
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
       <div className="text-center mb-8">
@@ -561,6 +652,48 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
         ))}
       </Tabs>
 
+      {/* Quick filter buttons */}
+      <div className="flex flex-row gap-2 mb-4">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8"
+          onClick={() =>
+            setFilters((f) => ({
+              ...f,
+              dateRange: { start: "2025-06-01", end: "2025-01-31" }
+            }))
+          }
+        >
+          Jun 2025 - Jan 2025
+        </Button>
+        {/* Add more quick presets if wished */}
+      </div>
+
+      {/* Month-on-month metric table with tabs */}
+      <MonthOnMonthTrainerTable
+        data={getMetricData('new')}
+        months={allMonths}
+        trainers={allTrainers}
+        defaultMetric="new"
+        onRowClick={(trainer) => setDrillDownData({ type: 'trainer', trainer })}
+      />
+
+      {/* Top and bottom trainers lists side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+        <TopBottomTrainerList
+          title="Top 5 Trainers (by Converted Members)"
+          trainers={topTrainers.map(t => ({ name: t.name, value: t.converted }))}
+          variant="top"
+        />
+        <TopBottomTrainerList
+          title="Bottom 5 Trainers (by Converted Members)"
+          trainers={bottomTrainers.map(t => ({ name: t.name, value: t.converted }))}
+          variant="bottom"
+        />
+      </div>
+
+      {/* Drilldown modal */}
       <DrillDownModal
         isOpen={!!drillDownData}
         onClose={() => setDrillDownData(null)}
@@ -570,3 +703,5 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
     </div>
   );
 };
+
+export default NewClientSection;

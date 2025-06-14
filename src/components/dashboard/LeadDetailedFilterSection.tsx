@@ -3,235 +3,396 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Filter, X, Calendar as CalendarIcon, ChevronDown, Search, RefreshCw } from 'lucide-react';
-import { format } from 'date-fns';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  CalendarIcon, 
+  Filter, 
+  X, 
+  ChevronDown, 
+  Search,
+  Tag,
+  Users,
+  Building,
+  Activity,
+  Clock
+} from 'lucide-react';
 import { useLeads } from '@/contexts/LeadContext';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export const LeadDetailedFilterSection: React.FC = () => {
-  const { filters, setFilters, options } = useLeads();
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const { 
+    filters, 
+    setFilters, 
+    clearFilters,
+    sourceOptions,
+    associateOptions,
+    centerOptions,
+    stageOptions,
+    statusOptions
+  } = useLeads();
 
-  const activeFiltersCount = 
-    filters.source.length + 
-    filters.stage.length + 
-    filters.status.length + 
-    filters.associate.length + 
-    filters.center.length +
-    (filters.dateRange.start || filters.dateRange.end ? 1 : 0);
+  const [openPopover, setOpenPopover] = useState<string | null>(null);
 
-  const clearAllFilters = () => {
-    setFilters({
-      source: [],
-      stage: [],
-      status: [],
-      associate: [],
-      center: [],
-      dateRange: { start: null, end: null }
-    });
-    setSearchTerm('');
-  };
-
-  const removeFilter = (type: keyof typeof filters, value: string) => {
-    if (type === 'dateRange') {
-      setFilters({
-        ...filters,
-        dateRange: { start: null, end: null }
-      });
-      return;
+  const filterConfigs = [
+    {
+      key: 'source',
+      label: 'Lead Sources',
+      icon: Tag,
+      options: sourceOptions,
+      values: filters.source as string[],
+      description: 'Filter by lead generation sources'
+    },
+    {
+      key: 'associate',
+      label: 'Associates',
+      icon: Users,
+      options: associateOptions,
+      values: filters.associate as string[],
+      description: 'Filter by sales associates'
+    },
+    {
+      key: 'center',
+      label: 'Centers',
+      icon: Building,
+      options: centerOptions,
+      values: filters.center as string[],
+      description: 'Filter by business centers'
+    },
+    {
+      key: 'stage',
+      label: 'Lead Stages',
+      icon: Activity,
+      options: stageOptions,
+      values: filters.stage as string[],
+      description: 'Filter by lead pipeline stages'
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      icon: Clock,
+      options: statusOptions,
+      values: filters.status as string[],
+      description: 'Filter by lead status'
     }
-
-    setFilters({
-      ...filters,
-      [type]: filters[type as keyof Omit<typeof filters, 'dateRange'>].filter((item: string) => item !== value)
-    });
-  };
-
-  const toggleFilter = (type: keyof typeof filters, value: string) => {
-    if (type === 'dateRange') return;
-
-    const currentValues = filters[type as keyof Omit<typeof filters, 'dateRange'>];
-    const isSelected = currentValues.includes(value);
-
-    setFilters({
-      ...filters,
-      [type]: isSelected 
-        ? currentValues.filter((item: string) => item !== value)
-        : [...currentValues, value]
-    });
-  };
-
-  const filterOptions = [
-    { key: 'source', label: 'Lead Sources', options: options.sourceOptions, color: 'bg-blue-100 text-blue-800' },
-    { key: 'stage', label: 'Lead Stages', options: options.stageOptions, color: 'bg-green-100 text-green-800' },
-    { key: 'status', label: 'Lead Status', options: options.statusOptions, color: 'bg-purple-100 text-purple-800' },
-    { key: 'associate', label: 'Associates', options: options.associateOptions, color: 'bg-orange-100 text-orange-800' },
-    { key: 'center', label: 'Centers', options: options.centerOptions, color: 'bg-pink-100 text-pink-800' }
   ];
 
-  const filteredOptions = (options: string[]) => 
-    options.filter(option => 
-      option.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const handleFilterChange = (filterKey: string, value: string) => {
+    const currentValues = [...(filters[filterKey as keyof typeof filters] as string[])];
+    const index = currentValues.indexOf(value);
+    
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(value);
+    }
+    
+    setFilters({ 
+      ...filters, 
+      [filterKey]: currentValues 
+    });
+  };
+
+  const handleDateRangeChange = (type: 'start' | 'end', date: Date | null) => {
+    setFilters({
+      ...filters,
+      dateRange: {
+        ...filters.dateRange,
+        [type]: date
+      }
+    });
+  };
+
+  const clearFilter = (filterKey: string) => {
+    setFilters({
+      ...filters,
+      [filterKey]: []
+    });
+  };
+
+  const clearDateRange = () => {
+    setFilters({
+      ...filters,
+      dateRange: { start: null, end: null }
+    });
+  };
+
+  const activeFilterCount = filterConfigs.reduce((count, config) => {
+    return count + config.values.length;
+  }, 0) + (filters.dateRange.start ? 1 : 0) + (filters.dateRange.end ? 1 : 0);
+
+  const MultiSelectFilter = ({ config }: { config: typeof filterConfigs[0] }) => (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <config.icon className="w-4 h-4 text-gray-600" />
+          <label className="font-medium text-sm text-gray-700">{config.label}</label>
+          {config.values.length > 0 && (
+            <Badge variant="secondary" className="text-xs">
+              {config.values.length}
+            </Badge>
+          )}
+        </div>
+        {config.values.length > 0 && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => clearFilter(config.key)}
+            className="h-6 px-2 text-xs text-gray-500 hover:text-gray-700"
+          >
+            Clear
+          </Button>
+        )}
+      </div>
+      
+      <Popover 
+        open={openPopover === config.key} 
+        onOpenChange={(open) => setOpenPopover(open ? config.key : null)}
+      >
+        <PopoverTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full justify-between text-left font-normal"
+            size="sm"
+          >
+            <span className="truncate">
+              {config.values.length > 0 
+                ? `${config.values.length} selected`
+                : `Select ${config.label.toLowerCase()}`
+              }
+            </span>
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-0" align="start">
+          <Command>
+            <CommandInput placeholder={`Search ${config.label.toLowerCase()}...`} />
+            <CommandList>
+              <CommandEmpty>No {config.label.toLowerCase()} found.</CommandEmpty>
+              <CommandGroup>
+                {config.options.map((option) => (
+                  <CommandItem
+                    key={option}
+                    onSelect={() => handleFilterChange(config.key, option)}
+                    className="cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <div className={cn(
+                        "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                        config.values.includes(option)
+                          ? "bg-primary text-primary-foreground"
+                          : "opacity-50 [&_svg]:invisible"
+                      )}>
+                        <Search className="h-3 w-3" />
+                      </div>
+                      <span>{option}</span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      
+      {config.values.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {config.values.slice(0, 3).map((value) => (
+            <Badge 
+              key={value} 
+              variant="secondary" 
+              className="text-xs cursor-pointer hover:bg-red-100"
+              onClick={() => handleFilterChange(config.key, value)}
+            >
+              {value}
+              <X className="h-3 w-3 ml-1" />
+            </Badge>
+          ))}
+          {config.values.length > 3 && (
+            <Badge variant="outline" className="text-xs">
+              +{config.values.length - 3} more
+            </Badge>
+          )}
+        </div>
+      )}
+      
+      <p className="text-xs text-gray-500 mt-1">{config.description}</p>
+    </div>
+  );
 
   return (
     <Card className="bg-white shadow-sm border border-gray-200">
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-gray-50 transition-colors border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Filter className="w-5 h-5 text-blue-600" />
-                <CardTitle className="text-gray-800">Advanced Filters</CardTitle>
-                {activeFiltersCount > 0 && (
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    {activeFiltersCount} active
-                  </Badge>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {activeFiltersCount > 0 && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearAllFilters();
-                    }}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-1" />
-                    Clear All
-                  </Button>
-                )}
-                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-              </div>
+      <CardHeader className="border-b border-gray-100">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-gray-800 flex items-center gap-2">
+            <Filter className="w-5 h-5 text-blue-600" />
+            Advanced Filters
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {activeFilterCount > 0 && (
+              <Badge className="bg-blue-600 text-white">
+                {activeFilterCount} Active
+              </Badge>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={clearFilters}
+              disabled={activeFilterCount === 0}
+              className="gap-1"
+            >
+              <X className="h-4 w-4" />
+              Clear All
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="p-6">
+        <Tabs defaultValue="filters" className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-6">
+            <TabsTrigger value="filters">Filter Options</TabsTrigger>
+            <TabsTrigger value="dateRange">Date Range</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="filters" className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filterConfigs.map((config) => (
+                <MultiSelectFilter key={config.key} config={config} />
+              ))}
             </div>
-          </CardHeader>
-        </CollapsibleTrigger>
-
-        <CollapsibleContent>
-          <CardContent className="space-y-6 p-6">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-              <Input
-                placeholder="Search filters..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-
-            {/* Date Range Filter */}
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-gray-700">Date Range</Label>
-              <div className="flex gap-4">
+          </TabsContent>
+          
+          <TabsContent value="dateRange" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-medium text-sm text-gray-700 flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4" />
+                    Start Date
+                  </label>
+                  {filters.dateRange.start && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDateRangeChange('start', null)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-left font-normal"
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filters.dateRange.start ? format(filters.dateRange.start, 'PPP') : 'Start date'}
+                      {filters.dateRange.start 
+                        ? format(filters.dateRange.start, 'PPP')
+                        : 'Select start date'
+                      }
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={filters.dateRange.start || undefined}
-                      onSelect={(date) => setFilters({
-                        ...filters,
-                        dateRange: { ...filters.dateRange, start: date || null }
-                      })}
+                      onSelect={(date) => handleDateRangeChange('start', date || null)}
+                      disabled={(date) => 
+                        filters.dateRange.end 
+                          ? date > filters.dateRange.end 
+                          : false
+                      }
+                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
-
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-medium text-sm text-gray-700 flex items-center gap-2">
+                    <CalendarIcon className="w-4 h-4" />
+                    End Date
+                  </label>
+                  {filters.dateRange.end && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDateRangeChange('end', null)}
+                      className="h-6 px-2 text-xs"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start text-left font-normal"
+                    >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {filters.dateRange.end ? format(filters.dateRange.end, 'PPP') : 'End date'}
+                      {filters.dateRange.end 
+                        ? format(filters.dateRange.end, 'PPP')
+                        : 'Select end date'
+                      }
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
+                  <PopoverContent className="w-auto p-0" align="start">
                     <Calendar
                       mode="single"
                       selected={filters.dateRange.end || undefined}
-                      onSelect={(date) => setFilters({
-                        ...filters,
-                        dateRange: { ...filters.dateRange, end: date || null }
-                      })}
+                      onSelect={(date) => handleDateRangeChange('end', date || null)}
+                      disabled={(date) => 
+                        filters.dateRange.start 
+                          ? date < filters.dateRange.start 
+                          : false
+                      }
+                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
               </div>
             </div>
-
-            {/* Multi-Select Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filterOptions.map((filterGroup) => (
-                <div key={filterGroup.key} className="space-y-3">
-                  <Label className="text-sm font-medium text-gray-700">{filterGroup.label}</Label>
-                  <div className="border rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
-                    {filteredOptions(filterGroup.options).map((option) => (
-                      <div key={option} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                        <label className="flex items-center gap-2 cursor-pointer flex-1">
-                          <input
-                            type="checkbox"
-                            checked={filters[filterGroup.key as keyof typeof filters].includes(option)}
-                            onChange={() => toggleFilter(filterGroup.key as keyof typeof filters, option)}
-                            className="rounded border-gray-300"
-                          />
-                          <span className="text-sm text-gray-700 truncate">{option}</span>
-                        </label>
-                      </div>
-                    ))}
-                    {filteredOptions(filterGroup.options).length === 0 && (
-                      <p className="text-sm text-gray-500 text-center py-2">No options found</p>
-                    )}
-                  </div>
+            
+            {(filters.dateRange.start || filters.dateRange.end) && (
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
+                <div className="text-sm text-blue-800">
+                  <strong>Selected Range:</strong> {' '}
+                  {filters.dateRange.start && format(filters.dateRange.start, 'MMM d, yyyy')}
+                  {filters.dateRange.start && filters.dateRange.end && ' to '}
+                  {filters.dateRange.end && format(filters.dateRange.end, 'MMM d, yyyy')}
                 </div>
-              ))}
-            </div>
-
-            {/* Active Filters Display */}
-            {activeFiltersCount > 0 && (
-              <div className="space-y-3 pt-4 border-t border-gray-200">
-                <Label className="text-sm font-medium text-gray-700">Active Filters</Label>
-                <div className="flex flex-wrap gap-2">
-                  {filters.dateRange.start && (
-                    <Badge variant="secondary" className="bg-indigo-100 text-indigo-800">
-                      Date: {format(filters.dateRange.start, 'MMM dd')} - {filters.dateRange.end ? format(filters.dateRange.end, 'MMM dd') : 'ongoing'}
-                      <X 
-                        className="w-3 h-3 ml-1 cursor-pointer" 
-                        onClick={() => removeFilter('dateRange', '')} 
-                      />
-                    </Badge>
-                  )}
-                  
-                  {filterOptions.map((filterGroup) => 
-                    filters[filterGroup.key as keyof typeof filters].map((value: string) => (
-                      <Badge key={`${filterGroup.key}-${value}`} variant="secondary" className={filterGroup.color}>
-                        {filterGroup.label.slice(0, -1)}: {value}
-                        <X 
-                          className="w-3 h-3 ml-1 cursor-pointer" 
-                          onClick={() => removeFilter(filterGroup.key as keyof typeof filters, value)} 
-                        />
-                      </Badge>
-                    ))
-                  )}
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearDateRange}
+                  className="text-blue-600 border-blue-600 hover:bg-blue-100"
+                >
+                  Clear Range
+                </Button>
               </div>
             )}
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
     </Card>
   );
 };

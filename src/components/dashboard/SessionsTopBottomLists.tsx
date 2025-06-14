@@ -187,9 +187,11 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       case 'fillRate':
         return `${formatNumber(item.totalAttendance)} attendees`;
       case 'revenue':
-        return `Avg: ${formatCurrency(item.totalRevenue / Math.max(item.sessions, 1))}`;
+        const avgRevenue = item.totalRevenue / Math.max(item.sessions, 1);
+        return `Avg: ${formatCurrency(avgRevenue)}`;
       case 'lateCancellations':
-        return `${((item.lateCancellations / Math.max(item.sessions, 1)) * 100).toFixed(1)}% rate`;
+        const cancellationRate = (item.lateCancellations / Math.max(item.sessions, 1)) * 100;
+        return `${cancellationRate.toFixed(1)}% rate`;
       default:
         return `${item.sessions} sessions`;
     }

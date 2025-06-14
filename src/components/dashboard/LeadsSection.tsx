@@ -3,22 +3,21 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard, Phone, Mail } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard } from 'lucide-react';
 import { useLeadsData } from '@/hooks/useLeadsData';
 import { LeadsFilterSection } from './LeadsFilterSection';
 import { LeadsFunnelVisualization } from './LeadsFunnelVisualization';
 import { MetricCard } from './MetricCard';
-import { TopBottomTrainerList } from './TopBottomTrainerList';
-import { InteractiveChart } from './InteractiveChart';
-import { DataTable } from './DataTable';
-import { ThemeSelector } from './ThemeSelector';
+import { LeadDataTable } from './LeadDataTable';
+import { LeadInteractiveChart } from './LeadInteractiveChart';
+import { LeadTopBottomLists } from './LeadTopBottomLists';
+import { LeadMonthOnMonthTable } from './LeadMonthOnMonthTable';
 import { YearOnYearTrainerTable } from './YearOnYearTrainerTable';
-import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
+import { ThemeSelector } from './ThemeSelector';
 import { LeadsFilterOptions, LeadsMetricType } from '@/types/leads';
-import { MetricCardData, SalesData, TrainerMetricType } from '@/types/dashboard';
-import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
-import { cn } from '@/lib/utils';
+import { MetricCardData, TrainerMetricType } from '@/types/dashboard';
+import { formatCurrency, formatNumber } from '@/utils/formatters';
 
 const locations = [
   { id: 'all', name: 'All Locations', fullName: 'All Locations' },
@@ -44,16 +43,18 @@ export const LeadsSection: React.FC = () => {
   });
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [activeMetric, setActiveMetric] = useState<LeadsMetricType>('totalLeads');
-  const [yoyMetric, setYoyMetric] = useState<TrainerMetricType>('totalCustomers');
   const [stageMetric, setStageMetric] = useState<LeadsMetricType>('totalLeads');
+  const [yoyMetric, setYoyMetric] = useState<TrainerMetricType>('totalCustomers');
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  console.log('Raw leads data:', data);
+  console.log('Raw leads data:', data?.length || 0, 'records');
   console.log('Active location:', activeLocation);
   console.log('Applied filters:', filters);
 
   const filteredData = useMemo(() => {
+    if (!data) return [];
+    
     let filtered = data;
     console.log('Starting with data count:', filtered.length);
 
@@ -121,31 +122,21 @@ export const LeadsSection: React.FC = () => {
   }, [data, activeLocation, filters]);
 
   const availableOptions = useMemo(() => {
-    const locations = [...new Set(data.map(item => item.center))].filter(Boolean);
-    const sources = [...new Set(data.map(item => item.source))].filter(Boolean);
-    const stages = [...new Set(data.map(item => item.stage))].filter(Boolean);
-    const statuses = [...new Set(data.map(item => item.status))].filter(Boolean);
-    const associates = [...new Set(data.map(item => item.associate))].filter(Boolean);
-    const channels = [...new Set(data.map(item => item.channel))].filter(Boolean);
-    const trialStatuses = [...new Set(data.map(item => item.trialStatus))].filter(Boolean);
-    const conversionStatuses = [...new Set(data.map(item => item.conversionStatus))].filter(Boolean);
-    const retentionStatuses = [...new Set(data.map(item => item.retentionStatus))].filter(Boolean);
-
-    console.log('Available options:', {
-      locations, sources, stages, statuses, associates, channels, 
-      trialStatuses, conversionStatuses, retentionStatuses
-    });
-
+    if (!data) return {
+      locations: [], sources: [], stages: [], statuses: [], associates: [], 
+      channels: [], trialStatuses: [], conversionStatuses: [], retentionStatuses: []
+    };
+    
     return {
-      locations,
-      sources,
-      stages,
-      statuses,
-      associates,
-      channels,
-      trialStatuses,
-      conversionStatuses,
-      retentionStatuses,
+      locations: [...new Set(data.map(item => item.center))].filter(Boolean),
+      sources: [...new Set(data.map(item => item.source))].filter(Boolean),
+      stages: [...new Set(data.map(item => item.stage))].filter(Boolean),
+      statuses: [...new Set(data.map(item => item.status))].filter(Boolean),
+      associates: [...new Set(data.map(item => item.associate))].filter(Boolean),
+      channels: [...new Set(data.map(item => item.channel))].filter(Boolean),
+      trialStatuses: [...new Set(data.map(item => item.trialStatus))].filter(Boolean),
+      conversionStatuses: [...new Set(data.map(item => item.conversionStatus))].filter(Boolean),
+      retentionStatuses: [...new Set(data.map(item => item.retentionStatus))].filter(Boolean),
     };
   }, [data]);
 
@@ -197,84 +188,6 @@ export const LeadsSection: React.FC = () => {
     ];
   }, [filteredData]);
 
-  // Create chart data with complete SalesData structure
-  const chartData = useMemo((): SalesData[] => {
-    const monthlyData = filteredData.reduce((acc, item) => {
-      const month = item.createdAt.substring(0, 7);
-      if (!acc[month]) {
-        acc[month] = {
-          totalLeads: 0,
-          trialsCompleted: 0,
-          membershipsSold: 0,
-          avgLTV: 0,
-        };
-      }
-      acc[month].totalLeads++;
-      if (item.stage === 'Trial Completed') acc[month].trialsCompleted++;
-      if (item.conversionStatus === 'Converted') acc[month].membershipsSold++;
-      acc[month].avgLTV += item.ltv;
-      return acc;
-    }, {} as Record<string, any>);
-
-    return Object.entries(monthlyData).map(([month, data]) => ({
-      memberId: month,
-      customerName: month,
-      customerEmail: '',
-      payingMemberId: '',
-      transactionDate: month,
-      expiryDate: '',
-      packageName: 'Lead Generation',
-      packageAmount: data[activeMetric] || data.totalLeads,
-      paymentMode: 'Lead Source',
-      createdAt: month,
-      trainerName: '',
-      trainerImageUrl: '',
-      transactionId: month,
-      membershipType: '',
-      duration: 0,
-      sessions: 0,
-      packageType: 'Lead',
-      discount: 0,
-      taxAmount: 0,
-      totalAmount: data[activeMetric] || data.totalLeads,
-      status: 'Active',
-      center: activeLocation,
-      source: 'Lead Funnel',
-      notes: '',
-      saleItemId: month,
-      paymentCategory: 'Leads',
-      paymentDate: month,
-      paymentValue: data[activeMetric] || data.totalLeads,
-      memberName: month,
-      trainerTeam: '',
-      studiosLocation: activeLocation,
-      dateOfJoining: month,
-      subscriptionStartDate: month,
-      subscriptionEndDate: month,
-      subscriptionCycle: '',
-      totalSessions: 0,
-      sessionsCompleted: 0,
-      sessionsRemaining: 0,
-      avgSessionsPerWeek: 0,
-      conversionRate: 0,
-      retentionRate: 0,
-      paidInMoneyCredits: 0,
-      paymentVAT: 0,
-      paymentItem: 'Lead',
-      paymentStatus: 'Succeeded',
-      soldBy: '',
-      calculatedLocation: activeLocation,
-      cleanedCategory: 'Leads',
-      cleanedName: 'Lead Generation',
-      // Add missing required properties
-      paymentMethod: 'Lead Source',
-      paymentTransactionId: month,
-      stripeToken: '',
-      saleReference: month,
-      cleanedProduct: 'Lead Generation'
-    })).sort((a, b) => a.transactionDate.localeCompare(b.transactionDate));
-  }, [filteredData, activeMetric, activeLocation]);
-
   const topSources = useMemo(() => {
     const sourceStats = filteredData.reduce((acc, item) => {
       if (!acc[item.source]) {
@@ -287,13 +200,12 @@ export const LeadsSection: React.FC = () => {
       return acc;
     }, {} as Record<string, { leads: number; conversions: number }>);
 
-    console.log('Source stats:', sourceStats);
-
     return Object.entries(sourceStats)
       .map(([source, stats]) => ({
         name: source,
         value: stats.leads,
         extra: `${((stats.conversions / stats.leads) * 100).toFixed(1)}%`,
+        conversionRate: (stats.conversions / stats.leads) * 100,
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
@@ -316,72 +228,10 @@ export const LeadsSection: React.FC = () => {
         name: associate,
         value: stats.leads,
         extra: `${((stats.conversions / stats.leads) * 100).toFixed(1)}%`,
+        conversionRate: (stats.conversions / stats.leads) * 100,
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
-  }, [filteredData]);
-
-  // Create table data with complete SalesData structure
-  const tableData = useMemo((): SalesData[] => {
-    console.log('Creating table data from filtered data:', filteredData.length);
-    
-    return filteredData.map(item => ({
-      memberId: item.id,
-      customerName: item.fullName,
-      customerEmail: item.email,
-      payingMemberId: item.phone,
-      transactionDate: item.createdAt,
-      expiryDate: item.convertedToCustomerAt,
-      packageName: item.source,
-      packageAmount: item.ltv,
-      paymentMode: item.stage,
-      createdAt: item.createdAt,
-      trainerName: item.associate,
-      trainerImageUrl: '',
-      transactionId: item.id,
-      membershipType: item.status,
-      duration: item.visits,
-      sessions: item.purchasesMade,
-      packageType: item.classType,
-      discount: 0,
-      taxAmount: 0,
-      totalAmount: item.ltv,
-      status: item.conversionStatus,
-      center: item.center,
-      source: item.source,
-      notes: item.remarks,
-      saleItemId: item.id,
-      paymentCategory: item.source,
-      paymentDate: item.createdAt,
-      paymentValue: item.ltv,
-      memberName: item.fullName,
-      trainerTeam: item.associate,
-      studiosLocation: item.center,
-      dateOfJoining: item.createdAt,
-      subscriptionStartDate: item.createdAt,
-      subscriptionEndDate: item.convertedToCustomerAt,
-      subscriptionCycle: '',
-      totalSessions: item.visits,
-      sessionsCompleted: item.visits,
-      sessionsRemaining: 0,
-      avgSessionsPerWeek: 0,
-      conversionRate: 0,
-      retentionRate: 0,
-      paidInMoneyCredits: 0,
-      paymentVAT: 0,
-      paymentItem: item.source,
-      paymentStatus: 'Succeeded',
-      soldBy: item.associate,
-      calculatedLocation: item.center,
-      cleanedCategory: item.source,
-      cleanedName: item.fullName,
-      // Add missing required properties
-      paymentMethod: item.stage,
-      paymentTransactionId: item.id,
-      stripeToken: '',
-      saleReference: item.id,
-      cleanedProduct: item.source
-    }));
   }, [filteredData]);
 
   // Create year-on-year data for lead metrics
@@ -398,7 +248,6 @@ export const LeadsSection: React.FC = () => {
           totalLeads: 0,
           trialsCompleted: 0,
           membershipsSold: 0,
-          avgLTV: 0,
           ltvSum: 0
         };
       }
@@ -411,7 +260,6 @@ export const LeadsSection: React.FC = () => {
         acc[associate][month].membershipsSold++;
       }
       acc[associate][month].ltvSum += item.ltv;
-      acc[associate][month].avgLTV = acc[associate][month].ltvSum / acc[associate][month].totalLeads;
       
       return acc;
     }, {} as Record<string, Record<string, any>>);
@@ -445,7 +293,6 @@ export const LeadsSection: React.FC = () => {
       });
     });
 
-    console.log('YoY lead data:', result);
     return result;
   }, [filteredData, yoyMetric]);
 
@@ -463,7 +310,6 @@ export const LeadsSection: React.FC = () => {
           totalLeads: 0,
           trialsCompleted: 0,
           membershipsSold: 0,
-          avgLTV: 0,
           ltvSum: 0
         };
       }
@@ -476,12 +322,11 @@ export const LeadsSection: React.FC = () => {
         acc[stage][month].membershipsSold++;
       }
       acc[stage][month].ltvSum += item.ltv;
-      acc[stage][month].avgLTV = acc[stage][month].ltvSum / acc[stage][month].totalLeads;
       
       return acc;
     }, {} as Record<string, Record<string, any>>);
 
-    // Convert to the format expected by MonthOnMonthTrainerTable
+    // Convert to the format expected by LeadMonthOnMonthTable
     const result: Record<string, Record<string, number>> = {};
     Object.entries(monthlyStageStats).forEach(([stage, months]) => {
       result[stage] = {};
@@ -497,7 +342,7 @@ export const LeadsSection: React.FC = () => {
             result[stage][month] = stats.trialsCompleted > 0 ? (stats.membershipsSold / stats.trialsCompleted) * 100 : 0;
             break;
           case 'ltv':
-            result[stage][month] = stats.avgLTV;
+            result[stage][month] = stats.totalLeads > 0 ? stats.ltvSum / stats.totalLeads : 0;
             break;
           default:
             result[stage][month] = stats.totalLeads;
@@ -505,24 +350,8 @@ export const LeadsSection: React.FC = () => {
       });
     });
 
-    console.log('Stage performance data:', result);
     return result;
   }, [filteredData, stageMetric]);
-
-  const resetFilters = () => {
-    setFilters({
-      dateRange: { start: '', end: '' },
-      location: [],
-      source: [],
-      stage: [],
-      status: [],
-      associate: [],
-      channel: [],
-      trialStatus: [],
-      conversionStatus: [],
-      retentionStatus: [],
-    });
-  };
 
   if (loading) {
     return (
@@ -556,6 +385,16 @@ export const LeadsSection: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-slate-600">No leads data available</p>
+        </div>
       </div>
     );
   }
@@ -617,7 +456,7 @@ export const LeadsSection: React.FC = () => {
               <CardContent className="p-6">
                 <LeadsFunnelVisualization
                   data={{
-                    totalLeads: metrics.find(m => m.title === "Total Leads")?.value.replace(/,/g, '') ? parseInt(metrics.find(m => m.title === "Total Leads")!.value.replace(/,/g, '')) : 0,
+                    totalLeads: filteredData.length,
                     trialScheduled: filteredData.filter(item => item.trialStatus !== 'Not Tried').length,
                     trialCompleted: filteredData.filter(item => item.stage === 'Trial Completed').length,
                     membershipsSold: filteredData.filter(item => item.conversionStatus === 'Converted').length,
@@ -636,117 +475,68 @@ export const LeadsSection: React.FC = () => {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <Card className="bg-white shadow-sm border border-gray-200">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle className="text-gray-800">Top Lead Sources</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <TopBottomTrainerList
-                    title="Top Lead Sources"
-                    trainers={topSources}
-                    variant="top"
-                  />
-                </CardContent>
-              </Card>
+            <LeadInteractiveChart
+              data={filteredData}
+              title="Lead Performance Trends"
+              activeMetric={activeMetric}
+            />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <LeadTopBottomLists
+                title="Top Lead Sources"
+                items={topSources}
+                variant="top"
+                type="source"
+              />
               
-              <Card className="bg-white shadow-sm border border-gray-200">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle className="text-gray-800">Top Associates</CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <TopBottomTrainerList
-                    title="Top Associates"
-                    trainers={topAssociates}
-                    variant="top"
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white shadow-sm border border-gray-200">
-                <CardHeader className="border-b border-gray-100">
-                  <CardTitle className="text-gray-800 flex items-center justify-between">
-                    Leads Trend
-                    <Select value={activeMetric} onValueChange={(value: LeadsMetricType) => setActiveMetric(value)}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="totalLeads">Total Leads</SelectItem>
-                        <SelectItem value="leadToTrialConversion">Lead to Trial</SelectItem>
-                        <SelectItem value="trialToMembershipConversion">Trial to Membership</SelectItem>
-                        <SelectItem value="ltv">Average LTV</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <InteractiveChart
-                    data={chartData}
-                    title="Leads Trend"
-                    type="revenue"
-                  />
-                </CardContent>
-              </Card>
+              <LeadTopBottomLists
+                title="Top Associates"
+                items={topAssociates}
+                variant="top"
+                type="associate"
+              />
             </div>
 
             <div className="space-y-8">
-              <DataTable
-                title="Lead Source Performance Analysis"
-                data={tableData}
-                type="product"
-                filters={{
-                  dateRange: filters.dateRange,
-                  location: [],
-                  category: [],
-                  product: [],
-                  soldBy: [],
-                  paymentMethod: []
-                }}
+              <LeadDataTable
+                title="Lead Performance Analysis"
+                data={filteredData}
+              />
+              
+              <LeadMonthOnMonthTable
+                data={stagePerformanceData}
+                months={availableMonths}
+                stages={availableStages}
+                activeMetric={stageMetric}
+                onMetricChange={setStageMetric}
               />
               
               <Card className="bg-white shadow-sm border border-gray-200">
                 <CardHeader className="border-b border-gray-100 space-y-4">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-gray-800">Stage Performance Breakdown</CardTitle>
-                    <Select value={stageMetric} onValueChange={(value: LeadsMetricType) => setStageMetric(value)}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="totalLeads">Total Leads</SelectItem>
-                        <SelectItem value="leadToTrialConversion">Lead to Trial Rate</SelectItem>
-                        <SelectItem value="trialToMembershipConversion">Trial to Membership Rate</SelectItem>
-                        <SelectItem value="ltv">Average LTV</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <MonthOnMonthTrainerTable
-                    data={stagePerformanceData}
-                    months={availableMonths}
-                    trainers={availableStages}
-                    defaultMetric={stageMetric as TrainerMetricType}
-                  />
-                </CardContent>
-              </Card>
-              
-              <Card className="bg-white shadow-sm border border-gray-200">
-                <CardHeader className="border-b border-gray-100 space-y-4">
-                  <div className="flex items-center justify-between">
                     <CardTitle className="text-gray-800">Year-on-Year Associate Performance</CardTitle>
-                    <Select value={yoyMetric} onValueChange={(value: TrainerMetricType) => setYoyMetric(value)}>
-                      <SelectTrigger className="w-48">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="totalCustomers">Total Leads</SelectItem>
-                        <SelectItem value="totalSessions">Trials Completed</SelectItem>
-                        <SelectItem value="totalPaid">Total LTV</SelectItem>
-                        <SelectItem value="conversion">Lead to Trial Rate</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex gap-2 bg-white rounded-lg p-1 border border-gray-200">
+                      {[
+                        { value: 'totalCustomers', label: 'Total Leads' },
+                        { value: 'totalSessions', label: 'Trials' },
+                        { value: 'totalPaid', label: 'Total LTV' },
+                        { value: 'conversion', label: 'Conversion %' }
+                      ].map((metric) => (
+                        <Button
+                          key={metric.value}
+                          variant={yoyMetric === metric.value ? "default" : "ghost"}
+                          size="sm"
+                          onClick={() => setYoyMetric(metric.value as TrainerMetricType)}
+                          className={`transition-all ${
+                            yoyMetric === metric.value 
+                              ? 'bg-blue-600 text-white shadow-sm' 
+                              : 'text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          {metric.label}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent className="p-6">
@@ -763,20 +553,6 @@ export const LeadsSection: React.FC = () => {
                   />
                 </CardContent>
               </Card>
-              
-              <DataTable
-                title="Month-on-Month Performance Matrix"
-                data={tableData}
-                type="monthly"
-                filters={{
-                  dateRange: filters.dateRange,
-                  location: [],
-                  category: [],
-                  product: [],
-                  soldBy: [],
-                  paymentMethod: []
-                }}
-              />
             </div>
           </TabsContent>
         ))}

@@ -35,11 +35,14 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   const [includeTrainer, setIncludeTrainer] = useState(false);
 
   const processedData = useMemo(() => {
+    console.log('Processing data in SessionsTopBottomLists:', { dataLength: data?.length, type, variant, selectedMetric, includeTrainer });
+    
     if (!data || data.length === 0) {
+      console.log('No data available');
       return [];
     }
 
-    const grouped: Record<string, {
+    const groupedResults: Record<string, {
       name: string;
       displayName: string;
       totalAttendance: number;
@@ -55,27 +58,27 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     data.forEach(session => {
       if (!session) return;
       
-      let key = '';
+      let groupKey = '';
       let displayName = '';
       
       if (type === 'classes') {
         if (includeTrainer) {
-          key = `${session.cleanedClass || ''}-${session.trainerName || ''}`;
+          groupKey = `${session.cleanedClass || ''}-${session.trainerName || ''}`;
           displayName = `${session.cleanedClass || 'Unknown'} (${session.trainerName || 'Unknown'})`;
         } else {
-          key = session.cleanedClass || '';
+          groupKey = session.cleanedClass || '';
           displayName = session.cleanedClass || 'Unknown';
         }
       } else {
-        key = session.trainerName || '';
+        groupKey = session.trainerName || '';
         displayName = session.trainerName || 'Unknown';
       }
       
-      if (!key) return;
+      if (!groupKey) return;
 
-      if (!grouped[key]) {
-        grouped[key] = {
-          name: key,
+      if (!groupedResults[groupKey]) {
+        groupedResults[groupKey] = {
+          name: groupKey,
           displayName: displayName,
           totalAttendance: 0,
           avgFillRate: 0,
@@ -88,36 +91,37 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       }
 
       // Safely add numeric values
-      grouped[key].totalAttendance += Number(session.checkedInCount || 0);
-      grouped[key].totalRevenue += Number(session.totalPaid || 0);
-      grouped[key].lateCancellations += Number(session.lateCancelledCount || 0);
-      grouped[key].sessions += 1;
+      const currentGroup = groupedResults[groupKey];
+      currentGroup.totalAttendance += Number(session.checkedInCount || 0);
+      currentGroup.totalRevenue += Number(session.totalPaid || 0);
+      currentGroup.lateCancellations += Number(session.lateCancelledCount || 0);
+      currentGroup.sessions += 1;
     });
 
     // Calculate averages for each group
-    Object.values(grouped).forEach(item => {
-      const relevantSessions = data.filter(s => {
-        if (!s) return false;
+    Object.values(groupedResults).forEach(item => {
+      const relevantSessions = data.filter(sessionItem => {
+        if (!sessionItem) return false;
         
         if (type === 'classes') {
           if (includeTrainer) {
-            const sessionKey = `${s.cleanedClass || ''}-${s.trainerName || ''}`;
+            const sessionKey = `${sessionItem.cleanedClass || ''}-${sessionItem.trainerName || ''}`;
             return sessionKey === item.name;
           } else {
-            return s.cleanedClass === item.name;
+            return sessionItem.cleanedClass === item.name;
           }
         } else {
-          return s.trainerName === item.name;
+          return sessionItem.trainerName === item.name;
         }
       });
       
-      const totalCapacity = relevantSessions.reduce((sum, s) => sum + Number(s.capacity || 0), 0);
+      const totalCapacity = relevantSessions.reduce((sum, sessionItem) => sum + Number(sessionItem.capacity || 0), 0);
       item.avgFillRate = totalCapacity > 0 ? (item.totalAttendance / totalCapacity) * 100 : 0;
       item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     });
 
     // Sort the data
-    const sortedData = Object.values(grouped).sort((a, b) => {
+    const sortedData = Object.values(groupedResults).sort((a, b) => {
       let aValue = 0;
       let bValue = 0;
       
@@ -146,6 +150,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       return variant === 'top' ? bValue - aValue : aValue - bValue;
     });
 
+    console.log('Processed data result:', sortedData.slice(0, showCount));
     return sortedData.slice(0, showCount);
   }, [data, type, selectedMetric, variant, showCount, includeTrainer]);
 

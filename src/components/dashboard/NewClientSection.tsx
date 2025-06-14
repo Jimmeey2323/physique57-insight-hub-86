@@ -4,14 +4,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, TrendingUp, Target } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2, TrendingUp, Target, BarChart3, Users } from 'lucide-react';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { calculateNewClientMetrics, getTopBottomTrainers } from '@/utils/newClientMetrics';
 import { MetricCard } from './MetricCard';
 import { InteractiveChart } from './InteractiveChart';
 import { NewClientFilterSection } from './NewClientFilterSection';
+import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-import { NewClientFilterOptions, NewClientData } from '@/types/dashboard';
+import { NewClientFilterOptions, NewClientData, TrainerMetricType } from '@/types/dashboard';
 
 export const NewClientSection = () => {
   const { data, loading, error } = useNewClientData();
@@ -91,6 +93,53 @@ export const NewClientSection = () => {
     if (!metrics.length) return { top: [], bottom: [] };
     return getTopBottomTrainers(metrics, topBottomCriterion);
   }, [metrics, topBottomCriterion]);
+
+  // Prepare month-on-month data for tables
+  const monthOnMonthData = useMemo(() => {
+    if (!metrics.length) return { data: {}, months: [], trainers: [] };
+
+    const trainers = [...new Set(metrics.map(m => m.trainerName))];
+    const months = [...new Set(metrics.map(m => m.monthYear))].sort();
+    
+    const data: Record<string, Record<string, number>> = {};
+    
+    trainers.forEach(trainer => {
+      data[trainer] = {};
+      months.forEach(month => {
+        const metric = metrics.find(m => m.trainerName === trainer && m.monthYear === month);
+        data[trainer][month] = metric?.[activeMetric as keyof typeof metric] || 0;
+      });
+    });
+
+    return { data, months, trainers };
+  }, [metrics, activeMetric]);
+
+  // Retention vs Conversion comparison data
+  const retentionVsConversionData = useMemo(() => {
+    if (!metrics.length) return [];
+
+    const trainerSummary = metrics.reduce((acc, metric) => {
+      const trainer = metric.trainerName;
+      if (!acc[trainer]) {
+        acc[trainer] = {
+          trainerName: trainer,
+          totalMembers: 0,
+          totalRetained: 0,
+          totalConverted: 0,
+        };
+      }
+      acc[trainer].totalMembers += metric.totalMembers;
+      acc[trainer].totalRetained += metric.retainedMembers;
+      acc[trainer].totalConverted += metric.convertedMembers;
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(trainerSummary).map((trainer: any) => ({
+      ...trainer,
+      retentionRate: trainer.totalMembers > 0 ? (trainer.totalRetained / trainer.totalMembers) * 100 : 0,
+      conversionRate: trainer.totalMembers > 0 ? (trainer.totalConverted / trainer.totalMembers) * 100 : 0,
+    }));
+  }, [metrics]);
 
   if (loading) {
     return (
@@ -205,46 +254,150 @@ export const NewClientSection = () => {
         />
       </div>
 
-      {/* Trainer Performance Summary */}
+      {/* Month-on-Month and Year-on-Year Tables */}
       <Card>
         <CardHeader>
-          <CardTitle>Trainer Performance Summary</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="w-5 h-5" />
+            Performance Tables
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {metrics.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">Month</th>
-                    <th className="text-left p-2">Trainer</th>
-                    <th className="text-left p-2">New Members</th>
-                    <th className="text-left p-2">Retained</th>
-                    <th className="text-left p-2">Retention %</th>
-                    <th className="text-left p-2">Converted</th>
-                    <th className="text-left p-2">Conversion %</th>
-                    <th className="text-left p-2">Avg LTV</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {metrics.map((metric, index) => (
-                    <tr key={index} className="border-b hover:bg-slate-50">
-                      <td className="p-2">{metric.monthYear}</td>
-                      <td className="p-2">{metric.trainerName}</td>
-                      <td className="p-2">{metric.newMembers}</td>
-                      <td className="p-2">{metric.retainedMembers}</td>
-                      <td className="p-2">{metric.retentionPercentage.toFixed(1)}%</td>
-                      <td className="p-2">{metric.convertedMembers}</td>
-                      <td className="p-2">{metric.conversionPercentage.toFixed(1)}%</td>
-                      <td className="p-2">{formatCurrency(metric.averageLtv)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="space-y-4">
+            {/* Metric Selection */}
+            <div className="flex items-center gap-4">
+              <label className="text-sm font-medium">Metric:</label>
+              <Select value={activeMetric} onValueChange={setActiveMetric}>
+                <SelectTrigger className="w-48">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newMembers">New Members</SelectItem>
+                  <SelectItem value="retainedMembers">Retained Members</SelectItem>
+                  <SelectItem value="convertedMembers">Converted Members</SelectItem>
+                  <SelectItem value="retentionPercentage">Retention %</SelectItem>
+                  <SelectItem value="conversionPercentage">Conversion %</SelectItem>
+                  <SelectItem value="averageLtv">Average LTV</SelectItem>
+                  <SelectItem value="averageConversionSpan">Avg Conversion Span</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            <p className="text-slate-600">No trainer performance data available</p>
-          )}
+
+            <Tabs defaultValue="month-on-month" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="month-on-month">Month on Month</TabsTrigger>
+                <TabsTrigger value="year-on-year">Year on Year</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="month-on-month" className="space-y-4">
+                <MonthOnMonthTrainerTable
+                  data={monthOnMonthData.data}
+                  months={monthOnMonthData.months}
+                  trainers={monthOnMonthData.trainers}
+                  defaultMetric={activeMetric as TrainerMetricType}
+                />
+              </TabsContent>
+              
+              <TabsContent value="year-on-year" className="space-y-4">
+                <MonthOnMonthTrainerTable
+                  data={monthOnMonthData.data}
+                  months={monthOnMonthData.months}
+                  trainers={monthOnMonthData.trainers}
+                  defaultMetric={activeMetric as TrainerMetricType}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Retention vs Conversion Comparison */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-purple-600" />
+            Retention vs Conversion Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {retentionVsConversionData.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b bg-gradient-to-r from-purple-50 to-blue-50">
+                      <th className="text-left p-3 font-bold text-slate-700">Trainer</th>
+                      <th className="text-center p-3 font-bold text-slate-700">Total Members</th>
+                      <th className="text-center p-3 font-bold text-purple-700">Retention Rate</th>
+                      <th className="text-center p-3 font-bold text-blue-700">Conversion Rate</th>
+                      <th className="text-center p-3 font-bold text-slate-700">Performance Score</th>
+                      <th className="text-center p-3 font-bold text-slate-700">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {retentionVsConversionData
+                      .sort((a, b) => (b.retentionRate + b.conversionRate) - (a.retentionRate + a.conversionRate))
+                      .map((trainer, index) => {
+                        const performanceScore = (trainer.retentionRate + trainer.conversionRate) / 2;
+                        const isTopPerformer = performanceScore >= 70;
+                        const isGoodPerformer = performanceScore >= 50;
+                        
+                        return (
+                          <tr key={trainer.trainerName} className="border-b hover:bg-slate-50/50 transition-colors">
+                            <td className="p-3 font-medium text-slate-800">{trainer.trainerName}</td>
+                            <td className="p-3 text-center font-mono">{formatNumber(trainer.totalMembers)}</td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="font-bold text-purple-700">{trainer.retentionRate.toFixed(1)}%</span>
+                                <div className="w-16 h-2 bg-purple-100 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-purple-600 transition-all"
+                                    style={{ width: `${Math.min(trainer.retentionRate, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                <span className="font-bold text-blue-700">{trainer.conversionRate.toFixed(1)}%</span>
+                                <div className="w-16 h-2 bg-blue-100 rounded-full overflow-hidden">
+                                  <div 
+                                    className="h-full bg-blue-600 transition-all"
+                                    style={{ width: `${Math.min(trainer.conversionRate, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`font-bold ${
+                                isTopPerformer ? 'text-green-700' : 
+                                isGoodPerformer ? 'text-yellow-700' : 'text-red-700'
+                              }`}>
+                                {performanceScore.toFixed(1)}%
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <Badge
+                                variant={isTopPerformer ? "default" : isGoodPerformer ? "secondary" : "destructive"}
+                                className={
+                                  isTopPerformer ? 'bg-green-100 text-green-800 hover:bg-green-200' :
+                                  isGoodPerformer ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' :
+                                  'bg-red-100 text-red-800 hover:bg-red-200'
+                                }
+                              >
+                                {isTopPerformer ? 'Excellent' : isGoodPerformer ? 'Good' : 'Needs Improvement'}
+                              </Badge>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="text-slate-600 text-center py-8">No retention vs conversion data available</p>
+            )}
+          </div>
         </CardContent>
       </Card>
 

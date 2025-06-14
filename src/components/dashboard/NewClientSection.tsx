@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,8 @@ import { NewClientFilterSection } from './NewClientFilterSection';
 import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { NewClientFilterOptions, NewClientData, TrainerMetricType } from '@/types/dashboard';
+import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
+import { TrainerDrillDownModal } from './TrainerDrillDownModal';
 
 export const NewClientSection = () => {
   const { data, loading, error } = useNewClientData();
@@ -141,6 +142,15 @@ export const NewClientSection = () => {
     }));
   }, [metrics]);
 
+  const [selectedTrainerModal, setSelectedTrainerModal] = useState<{
+    trainer: string;
+    data: any;
+  } | null>(null);
+
+  const handleTrainerClick = (trainer: string, data: any) => {
+    setSelectedTrainerModal({ trainer, data });
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -254,7 +264,7 @@ export const NewClientSection = () => {
         />
       </div>
 
-      {/* Month-on-Month and Year-on-Year Tables */}
+      {/* Enhanced Month-on-Month and Year-on-Year Tables */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -299,11 +309,12 @@ export const NewClientSection = () => {
               </TabsContent>
               
               <TabsContent value="year-on-year" className="space-y-4">
-                <MonthOnMonthTrainerTable
+                <EnhancedYearOnYearTable
                   data={monthOnMonthData.data}
                   months={monthOnMonthData.months}
                   trainers={monthOnMonthData.trainers}
-                  defaultMetric={activeMetric as TrainerMetricType}
+                  activeMetric={activeMetric}
+                  onTrainerClick={handleTrainerClick}
                 />
               </TabsContent>
             </Tabs>
@@ -488,6 +499,16 @@ export const NewClientSection = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Trainer Drill-Down Modal */}
+      {selectedTrainerModal && (
+        <TrainerDrillDownModal
+          isOpen={!!selectedTrainerModal}
+          onClose={() => setSelectedTrainerModal(null)}
+          trainerName={selectedTrainerModal.trainer}
+          trainerData={selectedTrainerModal.data}
+        />
+      )}
     </div>
   );
 };

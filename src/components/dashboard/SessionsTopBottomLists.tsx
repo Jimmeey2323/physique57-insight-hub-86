@@ -3,7 +3,9 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Users, Target, DollarSign, Percent } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { TrendingUp, TrendingDown, Users, Target, DollarSign, Settings } from 'lucide-react';
 import { SessionData } from '@/hooks/useSessionsData';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import {
@@ -30,29 +32,51 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('attendance');
   const [showCount, setShowCount] = useState(5);
+  const [includeTrainer, setIncludeTrainer] = useState(false);
 
   const processedData = useMemo(() => {
     const grouped: Record<string, {
       name: string;
+      displayName: string;
       totalAttendance: number;
       avgFillRate: number;
       totalRevenue: number;
       lateCancellations: number;
       sessions: number;
+      avgAttendance: number;
+      trainerName?: string;
     }> = {};
 
     data.forEach(session => {
-      const key = type === 'classes' ? session.cleanedClass : session.trainerName;
+      let key: string;
+      let displayName: string;
+      
+      if (type === 'classes') {
+        if (includeTrainer) {
+          key = `${session.cleanedClass}-${session.trainerName}`;
+          displayName = `${session.cleanedClass} (${session.trainerName})`;
+        } else {
+          key = session.cleanedClass;
+          displayName = session.cleanedClass;
+        }
+      } else {
+        key = session.trainerName;
+        displayName = session.trainerName;
+      }
+      
       if (!key) return;
 
       if (!grouped[key]) {
         grouped[key] = {
           name: key,
+          displayName: displayName,
           totalAttendance: 0,
           avgFillRate: 0,
           totalRevenue: 0,
           lateCancellations: 0,
-          sessions: 0
+          sessions: 0,
+          avgAttendance: 0,
+          trainerName: session.trainerName
         };
       }
 
@@ -64,11 +88,21 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
 
     // Calculate averages
     Object.values(grouped).forEach(item => {
-      const totalCapacity = data
-        .filter(s => (type === 'classes' ? s.cleanedClass : s.trainerName) === item.name)
-        .reduce((sum, s) => sum + s.capacity, 0);
+      const relevantSessions = data.filter(s => {
+        if (type === 'classes') {
+          if (includeTrainer) {
+            return s.cleanedClass === item.name.split('-')[0] && s.trainerName === item.name.split('-')[1];
+          } else {
+            return s.cleanedClass === item.name;
+          }
+        } else {
+          return s.trainerName === item.name;
+        }
+      });
       
+      const totalCapacity = relevantSessions.reduce((sum, s) => sum + s.capacity, 0);
       item.avgFillRate = totalCapacity > 0 ? (item.totalAttendance / totalCapacity) * 100 : 0;
+      item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     });
 
     const sortedData = Object.values(grouped).sort((a, b) => {
@@ -76,8 +110,8 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       
       switch (selectedMetric) {
         case 'attendance':
-          aValue = a.totalAttendance;
-          bValue = b.totalAttendance;
+          aValue = a.avgAttendance;
+          bValue = b.avgAttendance;
           break;
         case 'fillRate':
           aValue = a.avgFillRate;
@@ -92,19 +126,19 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
           bValue = b.lateCancellations;
           return variant === 'top' ? bValue - aValue : aValue - bValue; // Reverse for late cancellations
         default:
-          aValue = a.totalAttendance;
-          bValue = b.totalAttendance;
+          aValue = a.avgAttendance;
+          bValue = b.avgAttendance;
       }
       
       return variant === 'top' ? bValue - aValue : aValue - bValue;
     });
 
     return sortedData.slice(0, showCount);
-  }, [data, type, selectedMetric, variant, showCount]);
+  }, [data, type, selectedMetric, variant, showCount, includeTrainer]);
 
   const metricOptions = [
-    { value: 'attendance', label: 'Total Attendance', icon: Users },
-    { value: 'fillRate', label: 'Fill Rate %', icon: Percent },
+    { value: 'attendance', label: 'Class Average', icon: Users },
+    { value: 'fillRate', label: 'Fill Rate %', icon: Target },
     { value: 'revenue', label: 'Revenue', icon: DollarSign },
     { value: 'lateCancellations', label: 'Late Cancellations', icon: TrendingDown }
   ];
@@ -112,7 +146,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   const getMetricValue = (item: typeof processedData[0]) => {
     switch (selectedMetric) {
       case 'attendance':
-        return formatNumber(item.totalAttendance);
+        return formatNumber(item.avgAttendance.toFixed(1));
       case 'fillRate':
         return `${item.avgFillRate.toFixed(1)}%`;
       case 'revenue':
@@ -120,14 +154,14 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       case 'lateCancellations':
         return formatNumber(item.lateCancellations);
       default:
-        return formatNumber(item.totalAttendance);
+        return formatNumber(item.avgAttendance.toFixed(1));
     }
   };
 
   const getMetricSubtext = (item: typeof processedData[0]) => {
     switch (selectedMetric) {
       case 'attendance':
-        return `${item.sessions} sessions`;
+        return `${item.sessions} sessions, ${formatNumber(item.totalAttendance)} total`;
       case 'fillRate':
         return `${formatNumber(item.totalAttendance)} attendees`;
       case 'revenue':
@@ -168,6 +202,20 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
             </DropdownMenu>
           </div>
         </div>
+        
+        {/* Trainer Toggle for Classes */}
+        {type === 'classes' && (
+          <div className="flex items-center space-x-2 pt-2">
+            <Switch
+              id="include-trainer"
+              checked={includeTrainer}
+              onCheckedChange={setIncludeTrainer}
+            />
+            <Label htmlFor="include-trainer" className="text-sm text-gray-600">
+              Include trainer in ranking
+            </Label>
+          </div>
+        )}
       </CardHeader>
       
       <CardContent className="p-0">
@@ -190,7 +238,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
                   {index + 1}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 truncate text-sm">{item.name}</p>
+                  <p className="font-medium text-gray-900 truncate text-sm">{item.displayName}</p>
                   <p className="text-xs text-gray-500">{getMetricSubtext(item)}</p>
                 </div>
               </div>

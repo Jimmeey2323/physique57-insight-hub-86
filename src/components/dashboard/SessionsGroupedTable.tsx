@@ -8,12 +8,17 @@ import {
   ChevronDown, 
   ChevronRight, 
   Filter,
-  SortAsc,
-  SortDesc,
+  ArrowUp,
+  ArrowDown,
   Users,
   Target,
   DollarSign,
-  Calendar
+  Calendar,
+  Clock,
+  MapPin,
+  ListChecks,
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import { SessionData } from '@/hooks/useSessionsData';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
@@ -23,18 +28,25 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface SessionsGroupedTableProps {
   data: SessionData[];
 }
 
-type ViewType = 'uniqueId' | 'trainer' | 'classType' | 'dayOfWeek' | 'timeSlot' | 'location' | 'date' | 'capacity';
+type ViewType = 'uniqueId' | 'trainer' | 'classType' | 'dayOfWeek' | 'timeSlot' | 'location' | 'date' | 'capacity' | 'class-day-time-location-trainer' | 'class-day-time-location' | 'class-day-time' | 'class-time' | 'class-day' | 'class-location' | 'day-time' | 'month' | 'none';
 type SortField = 'name' | 'occurrences' | 'totalAttendees' | 'avgFillRate' | 'totalRevenue' | 'avgRevenue';
 type SortDirection = 'asc' | 'desc';
 
 export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
-  const [currentView, setCurrentView] = useState<ViewType>('uniqueId');
+  const [currentView, setCurrentView] = useState<ViewType>('class-day-time-location');
   const [sortField, setSortField] = useState<SortField>('occurrences');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
@@ -45,6 +57,27 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
       let groupKey: string;
       
       switch (currentView) {
+        case 'class-day-time-location-trainer':
+          groupKey = `${session.cleanedClass}|${session.dayOfWeek}|${session.time}|${session.location}|${session.trainerName}`;
+          break;
+        case 'class-day-time-location':
+          groupKey = `${session.cleanedClass}|${session.dayOfWeek}|${session.time}|${session.location}`;
+          break;
+        case 'class-day-time':
+          groupKey = `${session.cleanedClass}|${session.dayOfWeek}|${session.time}`;
+          break;
+        case 'class-time':
+          groupKey = `${session.cleanedClass}|${session.time}`;
+          break;
+        case 'class-day':
+          groupKey = `${session.cleanedClass}|${session.dayOfWeek}`;
+          break;
+        case 'class-location':
+          groupKey = `${session.cleanedClass}|${session.location}`;
+          break;
+        case 'day-time':
+          groupKey = `${session.dayOfWeek}|${session.time}`;
+          break;
         case 'uniqueId':
           groupKey = session.uniqueId || 'Unknown';
           break;
@@ -69,8 +102,15 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
         case 'capacity':
           groupKey = `${session.capacity} seats`;
           break;
+        case 'month': {
+          const date = session.date;
+          const month = date ? new Date(date).toLocaleString('default', { month: 'long', year: 'numeric' }) : "Unknown";
+          groupKey = month;
+          break;
+        }
+        case 'none':
         default:
-          groupKey = session.uniqueId || 'Unknown';
+          groupKey = `row-${data.indexOf(session)}`;
       }
       
       if (!groups[groupKey]) {
@@ -90,14 +130,24 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
       const avgFillRate = totalCapacity > 0 ? (totalAttendees / totalCapacity) * 100 : 0;
       const avgRevenue = sessions.length > 0 ? totalRevenue / sessions.length : 0;
 
+      // Extract display information from the first session
+      const firstSession = sessions[0];
+      
       return {
         name: groupName,
+        displayName: getDisplayName(groupName, firstSession, currentView),
         sessions,
         occurrences: sessions.length,
         totalAttendees,
         avgFillRate,
         totalRevenue,
-        avgRevenue
+        avgRevenue,
+        // Add key fields for display
+        cleanedClass: firstSession.cleanedClass,
+        dayOfWeek: firstSession.dayOfWeek,
+        time: firstSession.time,
+        location: firstSession.location,
+        trainerName: firstSession.trainerName
       };
     }).sort((a, b) => {
       const aVal = a[sortField];
@@ -113,7 +163,30 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
         ? (aVal as number) - (bVal as number)
         : (bVal as number) - (aVal as number);
     });
-  }, [groupedData, sortField, sortDirection]);
+  }, [groupedData, sortField, sortDirection, currentView]);
+
+  const getDisplayName = (groupKey: string, session: SessionData, viewType: ViewType): string => {
+    const parts = groupKey.split('|');
+    
+    switch (viewType) {
+      case 'class-day-time-location-trainer':
+        return `${parts[0]} - ${parts[1]} ${parts[2]} at ${parts[3]} (${parts[4]})`;
+      case 'class-day-time-location':
+        return `${parts[0]} - ${parts[1]} ${parts[2]} at ${parts[3]}`;
+      case 'class-day-time':
+        return `${parts[0]} - ${parts[1]} ${parts[2]}`;
+      case 'class-time':
+        return `${parts[0]} at ${parts[1]}`;
+      case 'class-day':
+        return `${parts[0]} on ${parts[1]}`;
+      case 'class-location':
+        return `${parts[0]} at ${parts[1]}`;
+      case 'day-time':
+        return `${parts[0]} at ${parts[1]}`;
+      default:
+        return groupKey;
+    }
+  };
 
   const toggleGroup = (groupName: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -135,14 +208,23 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
   };
 
   const viewOptions = [
-    { value: 'uniqueId', label: 'Unique Sessions', icon: Calendar },
+    { value: 'class-day-time-location-trainer', label: 'Class + Day + Time + Location + Trainer', icon: Users },
+    { value: 'class-day-time-location', label: 'Class + Day + Time + Location', icon: Target },
+    { value: 'class-day-time', label: 'Class + Day + Time', icon: Calendar },
+    { value: 'class-time', label: 'Class + Time', icon: Clock },
+    { value: 'class-day', label: 'Class + Day', icon: Calendar },
+    { value: 'class-location', label: 'Class + Location', icon: MapPin },
+    { value: 'day-time', label: 'Day + Time', icon: Clock },
+    { value: 'uniqueId', label: 'Unique Sessions', icon: ListChecks },
     { value: 'trainer', label: 'By Trainer', icon: Users },
     { value: 'classType', label: 'By Class Type', icon: Target },
     { value: 'dayOfWeek', label: 'By Day of Week', icon: Calendar },
-    { value: 'timeSlot', label: 'By Time Slot', icon: Calendar },
-    { value: 'location', label: 'By Location', icon: Calendar },
+    { value: 'timeSlot', label: 'By Time Slot', icon: Clock },
+    { value: 'location', label: 'By Location', icon: MapPin },
     { value: 'date', label: 'By Date', icon: Calendar },
-    { value: 'capacity', label: 'By Capacity', icon: Users }
+    { value: 'capacity', label: 'By Capacity', icon: Users },
+    { value: 'month', label: 'By Month', icon: Calendar },
+    { value: 'none', label: 'No Grouping', icon: BarChart3 }
   ];
 
   return (
@@ -153,25 +235,21 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
             <Filter className="w-5 h-5 text-blue-600" />
             Session Analysis Table
           </CardTitle>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                {viewOptions.find(opt => opt.value === currentView)?.label}
-                <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
+          <Select value={currentView} onValueChange={(value) => setCurrentView(value as ViewType)}>
+            <SelectTrigger className="w-[280px]">
+              <SelectValue placeholder="Select grouping option" />
+            </SelectTrigger>
+            <SelectContent className="max-h-[300px]">
               {viewOptions.map(option => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onClick={() => setCurrentView(option.value as ViewType)}
-                >
-                  <option.icon className="w-4 h-4 mr-2" />
-                  {option.label}
-                </DropdownMenuItem>
+                <SelectItem key={option.value} value={option.value}>
+                  <div className="flex items-center gap-2">
+                    <option.icon className="w-4 h-4" />
+                    {option.label}
+                  </div>
+                </SelectItem>
               ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </SelectContent>
+          </Select>
         </div>
       </CardHeader>
       
@@ -187,12 +265,44 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                     onClick={() => handleSort('name')}
                     className="h-6 p-0 font-semibold"
                   >
-                    {currentView === 'uniqueId' ? 'Session' : 'Group'}
+                    Group Details
                     {sortField === 'name' && (
-                      sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
+                      sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
                     )}
                   </Button>
                 </TableHead>
+                
+                {/* Show key fields based on grouping */}
+                {(currentView.includes('class') || currentView === 'classType') && (
+                  <TableHead className="text-center min-w-32">
+                    <span className="font-semibold">Class Type</span>
+                  </TableHead>
+                )}
+                
+                {(currentView.includes('day') || currentView === 'dayOfWeek') && (
+                  <TableHead className="text-center min-w-24">
+                    <span className="font-semibold">Day</span>
+                  </TableHead>
+                )}
+                
+                {(currentView.includes('time') || currentView === 'timeSlot') && (
+                  <TableHead className="text-center min-w-24">
+                    <span className="font-semibold">Time</span>
+                  </TableHead>
+                )}
+                
+                {(currentView.includes('location') || currentView === 'location') && (
+                  <TableHead className="text-center min-w-32">
+                    <span className="font-semibold">Location</span>
+                  </TableHead>
+                )}
+                
+                {(currentView.includes('trainer') || currentView === 'trainer') && (
+                  <TableHead className="text-center min-w-32">
+                    <span className="font-semibold">Trainer</span>
+                  </TableHead>
+                )}
+                
                 <TableHead className="text-center min-w-24">
                   <Button
                     variant="ghost"
@@ -202,7 +312,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                   >
                     Occurrences
                     {sortField === 'occurrences' && (
-                      sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
+                      sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
                     )}
                   </Button>
                 </TableHead>
@@ -215,7 +325,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                   >
                     Total Attendees
                     {sortField === 'totalAttendees' && (
-                      sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
+                      sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
                     )}
                   </Button>
                 </TableHead>
@@ -228,7 +338,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                   >
                     Avg Fill %
                     {sortField === 'avgFillRate' && (
-                      sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
+                      sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
                     )}
                   </Button>
                 </TableHead>
@@ -241,7 +351,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                   >
                     Total Revenue
                     {sortField === 'totalRevenue' && (
-                      sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
+                      sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
                     )}
                   </Button>
                 </TableHead>
@@ -254,7 +364,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                   >
                     Avg Revenue
                     {sortField === 'avgRevenue' && (
-                      sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
+                      sortDirection === 'asc' ? <ArrowUp className="ml-1 h-3 w-3" /> : <ArrowDown className="ml-1 h-3 w-3" />
                     )}
                   </Button>
                 </TableHead>
@@ -273,9 +383,41 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                           <ChevronDown className="h-4 w-4 text-gray-500" /> : 
                           <ChevronRight className="h-4 w-4 text-gray-500" />
                         }
-                        <span className="font-medium text-sm truncate">{group.name}</span>
+                        <span className="font-medium text-sm truncate">{group.displayName}</span>
                       </div>
                     </TableCell>
+                    
+                    {/* Dynamic columns based on grouping */}
+                    {(currentView.includes('class') || currentView === 'classType') && (
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {group.cleanedClass}
+                      </TableCell>
+                    )}
+                    
+                    {(currentView.includes('day') || currentView === 'dayOfWeek') && (
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {group.dayOfWeek}
+                      </TableCell>
+                    )}
+                    
+                    {(currentView.includes('time') || currentView === 'timeSlot') && (
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {group.time}
+                      </TableCell>
+                    )}
+                    
+                    {(currentView.includes('location') || currentView === 'location') && (
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {group.location}
+                      </TableCell>
+                    )}
+                    
+                    {(currentView.includes('trainer') || currentView === 'trainer') && (
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {group.trainerName}
+                      </TableCell>
+                    )}
+                    
                     <TableCell className="text-center h-6 py-1">
                       <Badge variant="secondary" className="text-xs">
                         {group.occurrences}
@@ -302,6 +444,38 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                           {session.sessionName} - {session.date}
                         </span>
                       </TableCell>
+                      
+                      {/* Show same columns for child rows */}
+                      {(currentView.includes('class') || currentView === 'classType') && (
+                        <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
+                          {session.cleanedClass}
+                        </TableCell>
+                      )}
+                      
+                      {(currentView.includes('day') || currentView === 'dayOfWeek') && (
+                        <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
+                          {session.dayOfWeek}
+                        </TableCell>
+                      )}
+                      
+                      {(currentView.includes('time') || currentView === 'timeSlot') && (
+                        <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
+                          {session.time}
+                        </TableCell>
+                      )}
+                      
+                      {(currentView.includes('location') || currentView === 'location') && (
+                        <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
+                          {session.location}
+                        </TableCell>
+                      )}
+                      
+                      {(currentView.includes('trainer') || currentView === 'trainer') && (
+                        <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
+                          {session.trainerName}
+                        </TableCell>
+                      )}
+                      
                       <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
                         1
                       </TableCell>

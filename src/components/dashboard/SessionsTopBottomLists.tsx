@@ -42,21 +42,13 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       return [];
     }
 
-    const groupedResults: Record<string, {
-      name: string;
-      displayName: string;
-      totalAttendance: number;
-      avgFillRate: number;
-      totalRevenue: number;
-      lateCancellations: number;
-      sessions: number;
-      avgAttendance: number;
-      trainerName?: string;
-    }> = {};
+    // Create a results object to store grouped data
+    const groupedResults = {};
 
-    // Process each session
-    data.forEach(session => {
-      if (!session) return;
+    // Process each session and group the data
+    for (let i = 0; i < data.length; i++) {
+      const session = data[i];
+      if (!session) continue;
       
       let groupKey = '';
       let displayName = '';
@@ -74,7 +66,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
         displayName = session.trainerName || 'Unknown';
       }
       
-      if (!groupKey) return;
+      if (!groupKey) continue;
 
       if (!groupedResults[groupKey]) {
         groupedResults[groupKey] = {
@@ -96,10 +88,12 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       currentGroup.totalRevenue += Number(session.totalPaid || 0);
       currentGroup.lateCancellations += Number(session.lateCancelledCount || 0);
       currentGroup.sessions += 1;
-    });
+    }
 
     // Calculate averages for each group
-    Object.values(groupedResults).forEach(item => {
+    const groupedItems = Object.values(groupedResults);
+    for (let j = 0; j < groupedItems.length; j++) {
+      const item = groupedItems[j];
       const relevantSessions = data.filter(sessionItem => {
         if (!sessionItem) return false;
         
@@ -118,33 +112,29 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       const totalCapacity = relevantSessions.reduce((sum, sessionItem) => sum + Number(sessionItem.capacity || 0), 0);
       item.avgFillRate = totalCapacity > 0 ? (item.totalAttendance / totalCapacity) * 100 : 0;
       item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
-    });
+    }
 
-    // Sort the data
-    const sortedData = Object.values(groupedResults).sort((a, b) => {
+    // Sort the data based on selected metric and variant
+    const sortedData = groupedItems.sort((a, b) => {
       let aValue = 0;
       let bValue = 0;
       
-      switch (selectedMetric) {
-        case 'attendance':
-          aValue = a.avgAttendance;
-          bValue = b.avgAttendance;
-          break;
-        case 'fillRate':
-          aValue = a.avgFillRate;
-          bValue = b.avgFillRate;
-          break;
-        case 'revenue':
-          aValue = a.totalRevenue;
-          bValue = b.totalRevenue;
-          break;
-        case 'lateCancellations':
-          aValue = a.lateCancellations;
-          bValue = b.lateCancellations;
-          return variant === 'top' ? bValue - aValue : aValue - bValue; // Reverse for late cancellations
-        default:
-          aValue = a.avgAttendance;
-          bValue = b.avgAttendance;
+      if (selectedMetric === 'attendance') {
+        aValue = a.avgAttendance;
+        bValue = b.avgAttendance;
+      } else if (selectedMetric === 'fillRate') {
+        aValue = a.avgFillRate;
+        bValue = b.avgFillRate;
+      } else if (selectedMetric === 'revenue') {
+        aValue = a.totalRevenue;
+        bValue = b.totalRevenue;
+      } else if (selectedMetric === 'lateCancellations') {
+        aValue = a.lateCancellations;
+        bValue = b.lateCancellations;
+        return variant === 'top' ? bValue - aValue : aValue - bValue; // Reverse for late cancellations
+      } else {
+        aValue = a.avgAttendance;
+        bValue = b.avgAttendance;
       }
       
       return variant === 'top' ? bValue - aValue : aValue - bValue;
@@ -161,39 +151,37 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     { value: 'lateCancellations', label: 'Late Cancellations', icon: TrendingDown }
   ];
 
-  const getMetricValue = (item: typeof processedData[0]) => {
+  const getMetricValue = (item) => {
     if (!item) return '';
     
-    switch (selectedMetric) {
-      case 'attendance':
-        return formatNumber(Number(item.avgAttendance.toFixed(1)));
-      case 'fillRate':
-        return `${item.avgFillRate.toFixed(1)}%`;
-      case 'revenue':
-        return formatCurrency(item.totalRevenue);
-      case 'lateCancellations':
-        return formatNumber(item.lateCancellations);
-      default:
-        return formatNumber(Number(item.avgAttendance.toFixed(1)));
+    if (selectedMetric === 'attendance') {
+      return formatNumber(Number(item.avgAttendance.toFixed(1)));
+    } else if (selectedMetric === 'fillRate') {
+      return `${item.avgFillRate.toFixed(1)}%`;
+    } else if (selectedMetric === 'revenue') {
+      return formatCurrency(item.totalRevenue);
+    } else if (selectedMetric === 'lateCancellations') {
+      return formatNumber(item.lateCancellations);
+    } else {
+      return formatNumber(Number(item.avgAttendance.toFixed(1)));
     }
   };
 
-  const getMetricSubtext = (item: typeof processedData[0]) => {
+  const getMetricSubtext = (item) => {
     if (!item) return '';
     
-    switch (selectedMetric) {
-      case 'attendance':
-        return `${item.sessions} sessions, ${formatNumber(item.totalAttendance)} total`;
-      case 'fillRate':
-        return `${formatNumber(item.totalAttendance)} attendees`;
-      case 'revenue':
-        const avgRevenue = item.totalRevenue / Math.max(item.sessions, 1);
-        return `Avg: ${formatCurrency(avgRevenue)}`;
-      case 'lateCancellations':
-        const cancellationRate = (item.lateCancellations / Math.max(item.sessions, 1)) * 100;
-        return `${cancellationRate.toFixed(1)}% rate`;
-      default:
-        return `${item.sessions} sessions`;
+    if (selectedMetric === 'attendance') {
+      return `${item.sessions} sessions, ${formatNumber(item.totalAttendance)} total`;
+    } else if (selectedMetric === 'fillRate') {
+      return `${formatNumber(item.totalAttendance)} attendees`;
+    } else if (selectedMetric === 'revenue') {
+      const avgRevenue = item.totalRevenue / Math.max(item.sessions, 1);
+      return `Avg: ${formatCurrency(avgRevenue)}`;
+    } else if (selectedMetric === 'lateCancellations') {
+      const cancellationRate = (item.lateCancellations / Math.max(item.sessions, 1)) * 100;
+      return `${cancellationRate.toFixed(1)}% rate`;
+    } else {
+      return `${item.sessions} sessions`;
     }
   };
 
@@ -216,7 +204,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
                 {metricOptions.map(option => (
                   <DropdownMenuItem
                     key={option.value}
-                    onClick={() => setSelectedMetric(option.value as MetricType)}
+                    onClick={() => setSelectedMetric(option.value)}
                   >
                     <option.icon className="w-4 h-4 mr-2" />
                     {option.label}

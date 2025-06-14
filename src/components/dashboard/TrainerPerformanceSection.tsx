@@ -181,7 +181,18 @@ export const TrainerPerformanceSection = () => {
     if (!filteredData.length) return { data: {}, months: [], trainers: [] };
 
     const data: Record<string, Record<string, number>> = {};
-    const months = Array.from(new Set(filteredData.map(item => item.monthYear))).sort().reverse();
+    const months = Array.from(new Set(filteredData.map(item => item.monthYear)))
+      .sort((a, b) => {
+        // Sort months in descending order (most recent first)
+        const parseMonth = (monthStr: string) => {
+          const [month, year] = monthStr.split('-');
+          const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                              'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(month);
+          return new Date(parseInt(year), monthIndex);
+        };
+        
+        return parseMonth(b).getTime() - parseMonth(a).getTime();
+      });
     const trainers = Array.from(new Set(filteredData.map(item => item.teacherName))).sort();
 
     trainers.forEach(trainer => {
@@ -202,7 +213,11 @@ export const TrainerPerformanceSection = () => {
             data[trainer][month] = trainerData?.totalPaid || 0;
             break;
           case 'classAverage':
+          case 'classAverageExclEmpty':
             data[trainer][month] = trainerData?.classAverageExclEmpty || 0;
+            break;
+          case 'classAverageInclEmpty':
+            data[trainer][month] = trainerData?.classAverageInclEmpty || 0;
             break;
           case 'retention':
             data[trainer][month] = parseFloat(trainerData?.retention.replace('%', '') || '0');
@@ -215,6 +230,18 @@ export const TrainerPerformanceSection = () => {
             break;
           case 'newMembers':
             data[trainer][month] = trainerData?.new || 0;
+            break;
+          case 'cycleSessions':
+            data[trainer][month] = trainerData?.cycleSessions || 0;
+            break;
+          case 'barreSessions':
+            data[trainer][month] = trainerData?.barreSessions || 0;
+            break;
+          case 'retainedMembers':
+            data[trainer][month] = trainerData?.retained || 0;
+            break;
+          case 'convertedMembers':
+            data[trainer][month] = trainerData?.converted || 0;
             break;
           default:
             data[trainer][month] = trainerData?.totalSessions || 0;
@@ -278,7 +305,16 @@ export const TrainerPerformanceSection = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeLocation} onValueChange={setActiveLocation}>
-            <TabsList className="grid w-full grid-cols-5 bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 p-2 rounded-2xl shadow-lg border border-slate-200/30">
+            <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-blue-50 via-purple-50 to-blue-50 p-2 rounded-2xl shadow-lg border border-slate-200/30">
+              <TabsTrigger 
+                value="all"
+                className="text-sm font-bold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg rounded-xl"
+              >
+                <div className="text-center">
+                  <div className="font-bold">All Locations</div>
+                  <div className="text-xs opacity-80">Combined</div>
+                </div>
+              </TabsTrigger>
               {LOCATION_MAPPING.map((location) => (
                 <TabsTrigger 
                   key={location.id} 
@@ -287,7 +323,7 @@ export const TrainerPerformanceSection = () => {
                 >
                   <div className="text-center">
                     <div className="font-bold">{location.name}</div>
-                    <div className="text-xs opacity-80">{location.subName}</div>
+                    <div className="text-xs opacity-80">Studio</div>
                   </div>
                 </TabsTrigger>
               ))}
@@ -349,6 +385,34 @@ export const TrainerPerformanceSection = () => {
                         "hover:bg-white/60",
                         `data-[state=active]:${metric.color}`
                       )}
+                    >
+                      <IconComponent className="w-3 h-3 mr-1" />
+                      {metric.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </div>
+          <div className="mt-4">
+            <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as TrainerMetricType)}>
+              <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg flex flex-wrap gap-1">
+                {[
+                  { key: 'conversion' as const, label: 'Conversion', icon: Target },
+                  { key: 'emptySessions' as const, label: 'Empty Classes', icon: Calendar },
+                  { key: 'newMembers' as const, label: 'New Members', icon: Users },
+                  { key: 'classAverageExclEmpty' as const, label: 'Class Avg', icon: BarChart3 },
+                  { key: 'cycleSessions' as const, label: 'Cycle Sessions', icon: Activity },
+                  { key: 'barreSessions' as const, label: 'Barre Sessions', icon: Activity },
+                  { key: 'retainedMembers' as const, label: 'Retained', icon: Award },
+                  { key: 'convertedMembers' as const, label: 'Converted', icon: Target }
+                ].map((metric) => {
+                  const IconComponent = metric.icon;
+                  return (
+                    <TabsTrigger 
+                      key={metric.key} 
+                      value={metric.key} 
+                      className="rounded-lg px-2 py-1 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-white/60"
                     >
                       <IconComponent className="w-3 h-3 mr-1" />
                       {metric.label}

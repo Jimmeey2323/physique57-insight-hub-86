@@ -34,6 +34,8 @@ export const YearOnYearTrainerTable = ({
       case 'conversion':
         return `${value.toFixed(1)}%`;
       case 'classAverage':
+      case 'classAverageInclEmpty':
+      case 'classAverageExclEmpty':
         return value.toFixed(1);
       default:
         return formatNumber(value);
@@ -54,7 +56,10 @@ export const YearOnYearTrainerTable = ({
       case 'totalPaid':
         return 'Total Revenue';
       case 'classAverage':
-        return 'Class Average';
+      case 'classAverageExclEmpty':
+        return 'Class Average (Excl Empty)';
+      case 'classAverageInclEmpty':
+        return 'Class Average (Incl Empty)';
       case 'retention':
         return 'Retention Rate';
       case 'conversion':
@@ -80,34 +85,28 @@ export const YearOnYearTrainerTable = ({
 
   // Process months for year-on-year comparison
   const processMonthsForYoY = () => {
-    const monthsByYear: Record<string, string[]> = {};
+    const monthsByYear: Record<string, Record<string, string>> = {};
     
     months.forEach(month => {
-      const year = month.includes('-') ? month.split('-')[1] : month.split(' ')[1] || '2024';
-      const monthName = month.includes('-') ? month.split('-')[0] : month.split(' ')[0];
-      
+      const [monthName, year] = month.split('-');
       if (!monthsByYear[year]) {
-        monthsByYear[year] = [];
+        monthsByYear[year] = {};
       }
-      monthsByYear[year].push(month);
+      monthsByYear[year][monthName] = month;
     });
 
     const years = Object.keys(monthsByYear).sort().reverse(); // 2025, 2024, etc.
-    const uniqueMonths = Array.from(new Set(months.map(m => 
-      m.includes('-') ? m.split('-')[0] : m.split(' ')[0]
-    ))).sort().reverse(); // Jun, May, Apr, etc.
-
-    // Create alternating structure: Jun-2025, Jun-2024, May-2025, May-2024
-    const alternatingColumns: Array<{month: string, year: string, fullMonth: string}> = [];
+    const uniqueMonthNames = ['Jun', 'May', 'Apr', 'Mar', 'Feb', 'Jan', 'Dec', 'Nov', 'Oct', 'Sep', 'Aug', 'Jul'];
     
-    uniqueMonths.forEach(monthName => {
+    // Create alternating structure: Jun-2025, Jun-2024, May-2025, May-2024, etc.
+    const alternatingColumns: Array<{monthName: string, year: string, fullMonth: string}> = [];
+    
+    uniqueMonthNames.forEach(monthName => {
       years.forEach(year => {
-        const fullMonth = monthsByYear[year]?.find(m => 
-          (m.includes('-') ? m.split('-')[0] : m.split(' ')[0]) === monthName
-        );
+        const fullMonth = monthsByYear[year]?.[monthName];
         if (fullMonth) {
           alternatingColumns.push({
-            month: monthName,
+            monthName,
             year,
             fullMonth
           });
@@ -115,7 +114,7 @@ export const YearOnYearTrainerTable = ({
       });
     });
 
-    return { alternatingColumns, years, uniqueMonths };
+    return { alternatingColumns, years, uniqueMonthNames };
   };
 
   const { alternatingColumns, years } = processMonthsForYoY();
@@ -136,6 +135,9 @@ export const YearOnYearTrainerTable = ({
     acc[col.fullMonth] = trainers.reduce((sum, trainer) => sum + (data[trainer]?.[col.fullMonth] || 0), 0);
     return acc;
   }, {} as Record<string, number>);
+
+  // Calculate grand total
+  const grandTotal = Object.values(columnTotals).reduce((sum, val) => sum + val, 0);
 
   if (!trainers.length || years.length < 2) {
     return (
@@ -182,11 +184,11 @@ export const YearOnYearTrainerTable = ({
                   </Button>
                 </TableHead>
                 {alternatingColumns.map((col) => (
-                  <TableHead key={`${col.month}-${col.year}`} className="text-center font-bold text-slate-700 min-w-[120px]">
+                  <TableHead key={`${col.monthName}-${col.year}`} className="text-center font-bold text-slate-700 min-w-[120px]">
                     <div className="text-center">
-                      <div className="font-bold">{col.month}</div>
+                      <div className="font-bold">{col.monthName}</div>
                       <div className={cn(
-                        "text-xs",
+                        "text-xs font-medium",
                         col.year === '2025' ? 'text-blue-600' : 'text-purple-600'
                       )}>
                         {col.year}
@@ -195,23 +197,27 @@ export const YearOnYearTrainerTable = ({
                   </TableHead>
                 ))}
                 <TableHead className="text-center font-bold text-slate-700 min-w-[100px]">YoY Change</TableHead>
+                <TableHead className="text-center font-bold text-slate-700 min-w-[100px]">Total</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {/* Totals Row */}
               <TableRow className="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 font-bold">
-                <TableCell className="font-bold text-blue-800 sticky left-0 bg-gradient-to-r from-blue-50 to-purple-50 z-10">
+                <TableCell className="font-bold text-blue-800 sticky left-0 bg-gradient-to-r from-blue-50 to-purple-50 z-10 border-r">
                   TOTAL
                 </TableCell>
                 {alternatingColumns.map((col) => (
-                  <TableCell key={`total-${col.month}-${col.year}`} className="text-center font-bold text-blue-800">
+                  <TableCell key={`total-${col.monthName}-${col.year}`} className="text-center font-bold text-blue-800">
                     {formatValue(columnTotals[col.fullMonth] || 0, defaultMetric)}
                   </TableCell>
                 ))}
                 <TableCell className="text-center">
                   <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
-                    Total
+                    {years.length >= 2 ? 'Total YoY' : 'N/A'}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-center font-bold text-blue-800">
+                  {formatValue(grandTotal, defaultMetric)}
                 </TableCell>
               </TableRow>
 
@@ -225,16 +231,19 @@ export const YearOnYearTrainerTable = ({
                 const previousYearData = alternatingColumns.filter(col => col.year === years[1]);
                 
                 let yoyChange = 0;
+                let trainerTotal = 0;
+                
                 if (currentYearData.length > 0 && previousYearData.length > 0) {
                   const currentTotal = currentYearData.reduce((sum, col) => sum + (trainerData[col.fullMonth] || 0), 0);
                   const previousTotal = previousYearData.reduce((sum, col) => sum + (trainerData[col.fullMonth] || 0), 0);
                   yoyChange = getChangePercentage(currentTotal, previousTotal);
+                  trainerTotal = alternatingColumns.reduce((sum, col) => sum + (trainerData[col.fullMonth] || 0), 0);
                 }
                 
                 return (
                   <React.Fragment key={trainer}>
-                    <TableRow className="hover:bg-slate-50/50 transition-colors">
-                      <TableCell className="font-medium text-slate-800 sticky left-0 bg-white z-10">
+                    <TableRow className="hover:bg-slate-50/50 transition-colors border-b">
+                      <TableCell className="font-medium text-slate-800 sticky left-0 bg-white z-10 border-r">
                         <div className="flex items-center gap-2">
                           <Button
                             variant="ghost"
@@ -248,7 +257,7 @@ export const YearOnYearTrainerTable = ({
                         </div>
                       </TableCell>
                       {alternatingColumns.map((col) => (
-                        <TableCell key={`${trainer}-${col.month}-${col.year}`} className="text-center font-mono">
+                        <TableCell key={`${trainer}-${col.monthName}-${col.year}`} className="text-center font-mono">
                           {formatValue(trainerData[col.fullMonth] || 0, defaultMetric)}
                         </TableCell>
                       ))}
@@ -270,28 +279,59 @@ export const YearOnYearTrainerTable = ({
                           {Math.abs(yoyChange).toFixed(1)}%
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-center font-bold text-slate-700">
+                        {formatValue(trainerTotal, defaultMetric)}
+                      </TableCell>
                     </TableRow>
                     
                     {/* Expanded Row Details */}
                     {isExpanded && (
                       <TableRow className="bg-slate-50">
-                        <TableCell colSpan={alternatingColumns.length + 2} className="p-4">
+                        <TableCell colSpan={alternatingColumns.length + 3} className="p-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                             {years.map(year => {
                               const yearData = alternatingColumns.filter(col => col.year === year);
                               const yearTotal = yearData.reduce((sum, col) => sum + (trainerData[col.fullMonth] || 0), 0);
+                              const yearAverage = yearTotal / Math.max(yearData.length, 1);
+                              const yearBest = Math.max(...yearData.map(col => trainerData[col.fullMonth] || 0));
+                              
                               return (
-                                <div key={year} className="bg-white p-3 rounded-lg shadow-sm">
-                                  <p className="text-slate-600 text-xs">{year} Total</p>
+                                <div key={year} className="bg-white p-3 rounded-lg shadow-sm border">
+                                  <p className="text-slate-600 text-xs font-medium">{year} Performance</p>
                                   <p className={cn(
-                                    "font-bold",
+                                    "font-bold text-lg",
                                     year === years[0] ? "text-blue-600" : "text-purple-600"
                                   )}>
                                     {formatValue(yearTotal, defaultMetric)}
                                   </p>
+                                  <p className="text-xs text-slate-500">
+                                    Avg: {formatValue(yearAverage, defaultMetric)}
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    Best: {formatValue(yearBest, defaultMetric)}
+                                  </p>
                                 </div>
                               );
                             })}
+                            <div className="bg-white p-3 rounded-lg shadow-sm border">
+                              <p className="text-slate-600 text-xs font-medium">YoY Growth</p>
+                              <p className={cn(
+                                "font-bold text-lg",
+                                yoyChange >= 0 ? "text-green-600" : "text-red-600"
+                              )}>
+                                {yoyChange >= 0 ? '+' : ''}{yoyChange.toFixed(1)}%
+                              </p>
+                              <p className="text-xs text-slate-500">
+                                {years[0]} vs {years[1]}
+                              </p>
+                            </div>
+                            <div className="bg-white p-3 rounded-lg shadow-sm border">
+                              <p className="text-slate-600 text-xs font-medium">Overall Trend</p>
+                              <p className="font-bold text-slate-800 text-lg">
+                                {yoyChange >= 10 ? 'Excellent' : yoyChange >= 0 ? 'Growing' : yoyChange >= -10 ? 'Declining' : 'Concerning'}
+                              </p>
+                              <p className="text-xs text-slate-500">Performance Rating</p>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>

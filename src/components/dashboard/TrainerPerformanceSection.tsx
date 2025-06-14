@@ -15,12 +15,11 @@ import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
 const LOCATION_MAPPING = [
-  { id: 'all', name: 'All', subName: 'Locations', fullName: 'All Locations' },
-  { id: 'kwality', name: 'Kwality', subName: 'House', fullName: 'Kwality House, Kemps Corner' },
-  { id: 'bandra', name: 'Bandra', subName: 'West', fullName: 'Bandra West' },
-  { id: 'juhu', name: 'Juhu', subName: 'Beach', fullName: 'Juhu Beach' },
-  { id: 'powai', name: 'Powai', subName: 'Hills', fullName: 'Powai Hills' }
+ { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
+  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
+  { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
 ];
+
 
 export const TrainerPerformanceSection = () => {
   const { data: rawData, isLoading, error } = usePayrollData();

@@ -1,18 +1,15 @@
 
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Users, TrendingUp, Target, Clock, DollarSign, Filter } from 'lucide-react';
+import { Loader2, TrendingUp, Target } from 'lucide-react';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { calculateNewClientMetrics, getTopBottomTrainers } from '@/utils/newClientMetrics';
 import { MetricCard } from './MetricCard';
 import { InteractiveChart } from './InteractiveChart';
-import { DataTable } from './DataTable';
-import { DrillDownModal } from './DrillDownModal';
-import { AutoCloseFilterSection } from './AutoCloseFilterSection';
+import { NewClientFilterSection } from './NewClientFilterSection';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { NewClientFilterOptions, NewClientData } from '@/types/dashboard';
 
@@ -20,8 +17,6 @@ export const NewClientSection = () => {
   const { data, loading, error } = useNewClientData();
   const [activeMetric, setActiveMetric] = useState('newMembers');
   const [selectedTrainer, setSelectedTrainer] = useState<string | null>(null);
-  const [drillDownData, setDrillDownData] = useState<any[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [topBottomCriterion, setTopBottomCriterion] = useState('newMembers');
   const [filters, setFilters] = useState<NewClientFilterOptions>({
     dateRange: { start: '', end: '' },
@@ -43,13 +38,13 @@ export const NewClientSection = () => {
     
     return data.filter(client => {
       // Apply filters
-      if (filters.location.length > 0 && !filters.location.includes(client.firstVisitLocation)) return false;
-      if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(client.homeLocation)) return false;
-      if (filters.trainer.length > 0 && !filters.trainer.includes(client.trainerName)) return false;
-      if (filters.paymentMethod.length > 0 && !filters.paymentMethod.includes(client.paymentMethod)) return false;
-      if (filters.retentionStatus.length > 0 && !filters.retentionStatus.includes(client.retentionStatus)) return false;
-      if (filters.conversionStatus.length > 0 && !filters.conversionStatus.includes(client.conversionStatus)) return false;
-      if (filters.isNew.length > 0 && !filters.isNew.some(status => client.isNew.includes(status))) return false;
+      if (filters.location.length > 0 && !filters.location.includes(String(client.firstVisitLocation))) return false;
+      if (filters.homeLocation.length > 0 && !filters.homeLocation.includes(String(client.homeLocation))) return false;
+      if (filters.trainer.length > 0 && !filters.trainer.includes(String(client.trainerName))) return false;
+      if (filters.paymentMethod.length > 0 && !filters.paymentMethod.includes(String(client.paymentMethod))) return false;
+      if (filters.retentionStatus.length > 0 && !filters.retentionStatus.includes(String(client.retentionStatus))) return false;
+      if (filters.conversionStatus.length > 0 && !filters.conversionStatus.includes(String(client.conversionStatus))) return false;
+      if (filters.isNew.length > 0 && !filters.isNew.some(status => String(client.isNew).includes(status))) return false;
       if (filters.minLTV !== undefined && client.ltv < filters.minLTV) return false;
       if (filters.maxLTV !== undefined && client.ltv > filters.maxLTV) return false;
       
@@ -97,31 +92,6 @@ export const NewClientSection = () => {
     return getTopBottomTrainers(metrics, topBottomCriterion);
   }, [metrics, topBottomCriterion]);
 
-  const handleMetricCardClick = (metric: string) => {
-    const relatedData = filteredData.filter(client => {
-      switch (metric) {
-        case 'newMembers':
-          return client.isNew.includes('New');
-        case 'retainedMembers':
-          return client.retentionStatus === 'Retained';
-        case 'convertedMembers':
-          return client.conversionStatus === 'Converted';
-        default:
-          return true;
-      }
-    });
-
-    setDrillDownData(relatedData);
-    setIsModalOpen(true);
-  };
-
-  const handleTrainerDrillDown = (trainerName: string) => {
-    const trainerData = filteredData.filter(client => client.trainerName === trainerName);
-    setDrillDownData(trainerData);
-    setSelectedTrainer(trainerName);
-    setIsModalOpen(true);
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -150,10 +120,6 @@ export const NewClientSection = () => {
       </div>
     );
   }
-
-  const getUniqueValues = (field: keyof NewClientData) => {
-    return [...new Set(data.map(item => item[field]).filter(Boolean))].sort();
-  };
 
   const metricCards = [
     {
@@ -208,81 +174,11 @@ export const NewClientSection = () => {
       </div>
 
       {/* Filter Section */}
-      <AutoCloseFilterSection title="New Client Filters">
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Visit Location</label>
-            <Select 
-              value={filters.location[0] || ''} 
-              onValueChange={(value) => setFilters(prev => ({ ...prev, location: value ? [value] : [] }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All locations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All locations</SelectItem>
-                {getUniqueValues('firstVisitLocation').map(location => (
-                  <SelectItem key={location} value={location}>{location}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Trainer</label>
-            <Select 
-              value={filters.trainer[0] || ''} 
-              onValueChange={(value) => setFilters(prev => ({ ...prev, trainer: value ? [value] : [] }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All trainers" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All trainers</SelectItem>
-                {getUniqueValues('trainerName').map(trainer => (
-                  <SelectItem key={trainer} value={trainer}>{trainer}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Retention Status</label>
-            <Select 
-              value={filters.retentionStatus[0] || ''} 
-              onValueChange={(value) => setFilters(prev => ({ ...prev, retentionStatus: value ? [value] : [] }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
-                {getUniqueValues('retentionStatus').map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Conversion Status</label>
-            <Select 
-              value={filters.conversionStatus[0] || ''} 
-              onValueChange={(value) => setFilters(prev => ({ ...prev, conversionStatus: value ? [value] : [] }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All statuses" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
-                {getUniqueValues('conversionStatus').map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </AutoCloseFilterSection>
+      <NewClientFilterSection 
+        filters={filters}
+        onFiltersChange={setFilters}
+        data={data}
+      />
 
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -291,7 +187,6 @@ export const NewClientSection = () => {
             key={card.title}
             data={card}
             delay={index * 150}
-            onClick={() => handleMetricCardClick(card.title.toLowerCase().replace(/\s+/g, ''))}
           />
         ))}
       </div>
@@ -310,45 +205,46 @@ export const NewClientSection = () => {
         />
       </div>
 
-      {/* Trainer Performance Table */}
+      {/* Trainer Performance Summary */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Trainer Performance Summary</CardTitle>
-            <div className="flex gap-2">
-              <Select value={activeMetric} onValueChange={setActiveMetric}>
-                <SelectTrigger className="w-48">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="newMembers">New Members</SelectItem>
-                  <SelectItem value="retentionRate">Retention Rate</SelectItem>
-                  <SelectItem value="conversionRate">Conversion Rate</SelectItem>
-                  <SelectItem value="averageLtv">Average LTV</SelectItem>
-                  <SelectItem value="averageConversionSpan">Avg Conversion Span</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+          <CardTitle>Trainer Performance Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <DataTable
-            data={metrics}
-            columns={[
-              { key: 'monthYear', title: 'Month' },
-              { key: 'trainerName', title: 'Trainer' },
-              { key: 'newMembers', title: 'New Members' },
-              { key: 'retainedMembers', title: 'Retained' },
-              { key: 'retentionPercentage', title: 'Retention %', format: (val) => `${val.toFixed(1)}%` },
-              { key: 'convertedMembers', title: 'Converted' },
-              { key: 'conversionPercentage', title: 'Conversion %', format: (val) => `${val.toFixed(1)}%` },
-              { key: 'averageLtv', title: 'Avg LTV', format: formatCurrency },
-              { key: 'averageConversionSpan', title: 'Avg Conv. Span', format: (val) => `${val.toFixed(0)} days` },
-            ]}
-            onRowClick={(row) => handleTrainerDrillDown(row.trainerName)}
-            sortable
-            showTotals
-          />
+          {metrics.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-2">Month</th>
+                    <th className="text-left p-2">Trainer</th>
+                    <th className="text-left p-2">New Members</th>
+                    <th className="text-left p-2">Retained</th>
+                    <th className="text-left p-2">Retention %</th>
+                    <th className="text-left p-2">Converted</th>
+                    <th className="text-left p-2">Conversion %</th>
+                    <th className="text-left p-2">Avg LTV</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {metrics.map((metric, index) => (
+                    <tr key={index} className="border-b hover:bg-slate-50">
+                      <td className="p-2">{metric.monthYear}</td>
+                      <td className="p-2">{metric.trainerName}</td>
+                      <td className="p-2">{metric.newMembers}</td>
+                      <td className="p-2">{metric.retainedMembers}</td>
+                      <td className="p-2">{metric.retentionPercentage.toFixed(1)}%</td>
+                      <td className="p-2">{metric.convertedMembers}</td>
+                      <td className="p-2">{metric.conversionPercentage.toFixed(1)}%</td>
+                      <td className="p-2">{formatCurrency(metric.averageLtv)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-slate-600">No trainer performance data available</p>
+          )}
         </CardContent>
       </Card>
 
@@ -379,8 +275,7 @@ export const NewClientSection = () => {
               {topBottomTrainers.top.map((trainer, index) => (
                 <div
                   key={trainer.trainerName}
-                  className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 cursor-pointer hover:shadow-md transition-all"
-                  onClick={() => handleTrainerDrillDown(trainer.trainerName)}
+                  className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full bg-green-600 text-white text-xs flex items-center justify-center font-bold">
@@ -416,8 +311,7 @@ export const NewClientSection = () => {
               {topBottomTrainers.bottom.map((trainer, index) => (
                 <div
                   key={trainer.trainerName}
-                  className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 cursor-pointer hover:shadow-md transition-all"
-                  onClick={() => handleTrainerDrillDown(trainer.trainerName)}
+                  className="flex items-center justify-between p-3 rounded-lg bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-6 h-6 rounded-full bg-orange-600 text-white text-xs flex items-center justify-center font-bold">
@@ -441,29 +335,6 @@ export const NewClientSection = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Drill Down Modal */}
-      <DrillDownModal
-        isOpen={isModalOpen}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedTrainer(null);
-        }}
-        title={selectedTrainer ? `${selectedTrainer} - Client Details` : 'Client Details'}
-        data={drillDownData}
-        columns={[
-          { key: 'firstName', title: 'First Name' },
-          { key: 'lastName', title: 'Last Name' },
-          { key: 'email', title: 'Email' },
-          { key: 'firstVisitDate', title: 'First Visit' },
-          { key: 'firstVisitLocation', title: 'Location' },
-          { key: 'trainerName', title: 'Trainer' },
-          { key: 'retentionStatus', title: 'Retention' },
-          { key: 'conversionStatus', title: 'Conversion' },
-          { key: 'ltv', title: 'LTV', format: formatCurrency },
-          { key: 'conversionSpan', title: 'Conv. Span', format: (val) => `${val} days` },
-        ]}
-      />
     </div>
   );
 };

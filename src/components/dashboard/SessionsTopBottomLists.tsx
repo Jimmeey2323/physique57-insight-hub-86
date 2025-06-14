@@ -99,14 +99,13 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       currentGroup.sessions += 1;
     }
 
-    // Calculate averages for each group
     const groupedItems: GroupedItem[] = Object.values(groupedResults);
 
-    for (let j = 0; j < groupedItems.length; j++) {
-      const item = groupedItems[j];
-      const relevantSessions = data.filter((sessionItem: SessionData) => {
+    // Precompute relevantSessions map to avoid accidental out-of-scope issues in sort
+    const relevantSessionsMap: Record<string, SessionData[]> = {};
+    groupedItems.forEach(item => {
+      relevantSessionsMap[item.name] = data.filter((sessionItem: SessionData) => {
         if (!sessionItem) return false;
-
         if (type === 'classes') {
           if (includeTrainer) {
             const sessionKey = `${sessionItem.cleanedClass || ''}-${sessionItem.trainerName || ''}`;
@@ -118,7 +117,11 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
           return sessionItem.trainerName === item.name;
         }
       });
+    });
 
+    for (let j = 0; j < groupedItems.length; j++) {
+      const item = groupedItems[j];
+      const relevantSessions = relevantSessionsMap[item.name];
       const totalCapacity = relevantSessions.reduce(
         (sum, sessionItem) => sum + Number(sessionItem.capacity || 0),
         0
@@ -127,7 +130,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     }
 
-    // Always sort using a new array to avoid mutation
+    // Sort using only the data directly, not referencing the outer scope
     const sortedData: GroupedItem[] = [...groupedItems].sort((a, b) => {
       let aValue = 0;
       let bValue = 0;
@@ -149,7 +152,6 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
         aValue = a.avgAttendance;
         bValue = b.avgAttendance;
       }
-
       return variant === 'top' ? bValue - aValue : aValue - bValue;
     });
 

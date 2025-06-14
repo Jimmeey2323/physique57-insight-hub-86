@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,7 +45,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   const [showCount, setShowCount] = useState(5);
   const [includeTrainer, setIncludeTrainer] = useState(false);
 
-  const processedData = useMemo(() => {
+  const processedData = useMemo((): GroupedItem[] => {
     console.log('Processing data in SessionsTopBottomLists:', { dataLength: data?.length, type, variant, selectedMetric, includeTrainer });
     
     if (!data || data.length === 0) {
@@ -103,10 +102,10 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     }
 
     // Calculate averages for each group
-    const groupedItems: GroupedItem[] = Object.values(groupedResults);
+    const groupedItems = Object.values(groupedResults) as GroupedItem[];
     for (let j = 0; j < groupedItems.length; j++) {
       const item = groupedItems[j];
-      const relevantSessions = data.filter(sessionItem => {
+      const relevantSessions = data.filter((sessionItem: SessionData) => {
         if (!sessionItem) return false;
         
         if (type === 'classes') {
@@ -143,7 +142,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       } else if (selectedMetric === 'lateCancellations') {
         aValue = a.lateCancellations;
         bValue = b.lateCancellations;
-        return variant === 'top' ? bValue - aValue : aValue - bValue; // Reverse for late cancellations
+        return variant === 'top' ? bValue - aValue : aValue - bValue;
       } else {
         aValue = a.avgAttendance;
         bValue = b.avgAttendance;

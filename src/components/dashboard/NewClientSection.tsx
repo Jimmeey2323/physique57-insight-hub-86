@@ -14,9 +14,7 @@ export const NewClientSection = () => {
   const { data: rawData, isLoading, error } = useNewClientData();
   const [activeLocation, setActiveLocation] = useState<string>('all');
   const [selectedTrainer, setSelectedTrainer] = useState<string>('');
-
-  console.log('NewClientSection - Data length:', rawData?.length || 0);
-  console.log('NewClientSection - First 3 items:', rawData?.slice(0, 3));
+  const [activeMetric, setActiveMetric] = useState<'new' | 'converted' | 'retained' | 'ltv'>('new');
 
   // Parse date helper function
   const parseDate = (dateString: string): Date | null => {
@@ -30,8 +28,17 @@ export const NewClientSection = () => {
       
       if (!day || !month || !year) return null;
       
-      // Create date in YYYY-MM-DD format to avoid parsing issues
-      const parsedDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+      // Convert strings to numbers and validate
+      const dayNum = parseInt(day, 10);
+      const monthNum = parseInt(month, 10);
+      const yearNum = parseInt(year, 10);
+      
+      if (isNaN(dayNum) || isNaN(monthNum) || isNaN(yearNum)) return null;
+      if (monthNum < 1 || monthNum > 12) return null;
+      if (dayNum < 1 || dayNum > 31) return null;
+      
+      // Create date (month is 0-indexed in Date constructor)
+      const parsedDate = new Date(yearNum, monthNum - 1, dayNum);
       
       // Validate the date
       if (isNaN(parsedDate.getTime())) {
@@ -47,11 +54,8 @@ export const NewClientSection = () => {
   // Apply filters with memoization
   const filteredData = useMemo(() => {
     if (!rawData || rawData.length === 0) {
-      console.log('ApplyFilters - No raw data available');
       return [];
     }
-
-    console.log('ApplyFilters - Raw data length:', rawData.length);
 
     let filtered = rawData;
 
@@ -70,16 +74,10 @@ export const NewClientSection = () => {
         }
         return itemLocation.includes(locationMap[activeLocation]?.toLowerCase() || '');
       });
-
-      console.log('ApplyFilters - Location filtered data length:', filtered.length);
-      console.log('ApplyFilters - Active location:', activeLocation);
     }
 
-    console.log('ApplyFilters - Final filtered data length:', filtered.length);
     return filtered;
   }, [rawData, activeLocation]);
-
-  console.log('Filtered data memoized result:', filteredData?.length || 0, 'items');
 
   // Calculate metrics with stable memoization
   const metrics = useMemo(() => {
@@ -92,22 +90,17 @@ export const NewClientSection = () => {
       };
     }
 
-    console.log('Calculating metrics for', filteredData.length, 'items');
-
     const uniqueMembers = new Set(filteredData.map(item => item.memberId)).size;
     const convertedMembers = filteredData.filter(item => item.conversionStatus === 'Converted').length;
     const retainedMembers = filteredData.filter(item => item.retentionStatus === 'Retained').length;
     const totalLTV = filteredData.reduce((sum, item) => sum + (item.ltv || 0), 0);
 
-    const calculatedMetrics = {
+    return {
       uniqueMembers,
       conversionRate: uniqueMembers > 0 ? (convertedMembers / uniqueMembers) * 100 : 0,
       avgLTV: uniqueMembers > 0 ? totalLTV / uniqueMembers : 0,
       retentionRate: uniqueMembers > 0 ? (retainedMembers / uniqueMembers) * 100 : 0
     };
-
-    console.log('Metrics calculated:', calculatedMetrics);
-    return calculatedMetrics;
   }, [filteredData]);
 
   // Monthly analysis with stable date parsing
@@ -120,11 +113,10 @@ export const NewClientSection = () => {
         trainers: [],
         trainerTotals: {},
         topTrainers: [],
-        bottomTrainers: []
+        bottomTrainers: [],
+        trainerDataForTable: {}
       };
     }
-
-    console.log('Calculating monthly analysis for', filteredData.length, 'items');
 
     const monthlyData: Record<string, { new: number; converted: number; retained: number; ltv: number }> = {};
     const trainerData: Record<string, Record<string, { new: number; converted: number; retained: number; ltv: number }>> = {};
@@ -172,12 +164,18 @@ export const NewClientSection = () => {
       trainerData[trainer][monthKey].ltv += item.ltv || 0;
     });
 
+    // Helper function to get month number
+    const getMonthNumber = (monthStr: string): number => {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return months.indexOf(monthStr);
+    };
+
     // Sort months chronologically
     const months = Object.keys(monthlyData).sort((a, b) => {
       const [monthA, yearA] = a.split('-');
       const [monthB, yearB] = b.split('-');
-      const dateA = new Date(`20${yearA}`, getMonthNumber(monthA));
-      const dateB = new Date(`20${yearB}`, getMonthNumber(monthB));
+      const dateA = new Date(2000 + parseInt(yearA), getMonthNumber(monthA));
+      const dateB = new Date(2000 + parseInt(yearB), getMonthNumber(monthB));
       return dateA.getTime() - dateB.getTime();
     });
 
@@ -202,6 +200,16 @@ export const NewClientSection = () => {
     const topTrainers = sortedTrainers.slice(0, 5);
     const bottomTrainers = sortedTrainers.slice(-5).reverse();
 
+    // Convert trainer data to the format expected by MonthOnMonthTrainerTable
+    const trainerDataForTable: Record<string, Record<string, number>> = {};
+    trainers.forEach(trainer => {
+      trainerDataForTable[trainer] = {};
+      months.forEach(month => {
+        const data = trainerData[trainer][month] || { new: 0, converted: 0, retained: 0, ltv: 0 };
+        trainerDataForTable[trainer][month] = data[activeMetric];
+      });
+    });
+
     return {
       monthlyData,
       months,
@@ -209,15 +217,10 @@ export const NewClientSection = () => {
       trainers,
       trainerTotals,
       topTrainers,
-      bottomTrainers
+      bottomTrainers,
+      trainerDataForTable
     };
-  }, [filteredData]);
-
-  // Helper function to get month number
-  const getMonthNumber = (monthStr: string): number => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    return months.indexOf(monthStr);
-  };
+  }, [filteredData, activeMetric]);
 
   if (isLoading) {
     return (
@@ -348,13 +351,40 @@ export const NewClientSection = () => {
         </Card>
       </div>
 
+      {/* Metric Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Select Metric for Table View</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            {[
+              { key: 'new' as const, label: 'New Members' },
+              { key: 'converted' as const, label: 'Converted Members' },
+              { key: 'retained' as const, label: 'Retained Members' },
+              { key: 'ltv' as const, label: 'LTV' }
+            ].map(metric => (
+              <Button
+                key={metric.key}
+                variant={activeMetric === metric.key ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setActiveMetric(metric.key)}
+                className="transition-all duration-200"
+              >
+                {metric.label}
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Monthly Trainer Performance Table */}
       <MonthOnMonthTrainerTable
-        data={monthlyAnalysis.trainerData}
+        data={monthlyAnalysis.trainerDataForTable}
         months={monthlyAnalysis.months}
         trainers={monthlyAnalysis.trainers}
         onRowClick={(trainer) => setSelectedTrainer(trainer)}
-        defaultMetric="new"
+        defaultMetric={activeMetric}
       />
 
       {/* Top/Bottom Trainers */}

@@ -1,125 +1,133 @@
 
-import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
-
-type MetricType = 'new' | 'converted' | 'retained' | 'ltv' | 'conversionRate' | 'retentionRate' | 'conversionSpan';
+import { Badge } from '@/components/ui/badge';
+import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { TrainerMetricType } from '@/types/dashboard';
+import { formatCurrency, formatNumber } from '@/utils/formatters';
 
 interface MonthOnMonthTrainerTableProps {
   data: Record<string, Record<string, number>>;
   months: string[];
   trainers: string[];
-  onRowClick?: (row: string) => void;
-  defaultMetric?: MetricType;
+  defaultMetric: TrainerMetricType;
 }
 
-const METRICS: { type: MetricType; label: string }[] = [
-  { type: 'new', label: 'New Members' },
-  { type: 'converted', label: 'Converted Members' },
-  { type: 'retained', label: 'Retained Members' },
-  { type: 'ltv', label: 'LTV' },
-  { type: 'conversionRate', label: 'Conversion %' },
-  { type: 'retentionRate', label: 'Retention %' },
-  { type: 'conversionSpan', label: 'Conversion Span (Days)' },
-];
+export const MonthOnMonthTrainerTable = ({ 
+  data, 
+  months, 
+  trainers, 
+  defaultMetric 
+}: MonthOnMonthTrainerTableProps) => {
+  const formatValue = (value: number, metric: TrainerMetricType) => {
+    switch (metric) {
+      case 'totalPaid':
+        return formatCurrency(value);
+      case 'retention':
+      case 'conversion':
+        return `${value.toFixed(1)}%`;
+      case 'classAverage':
+        return value.toFixed(1);
+      default:
+        return formatNumber(value);
+    }
+  };
 
-export const MonthOnMonthTrainerTable: React.FC<MonthOnMonthTrainerTableProps> = ({
-  data,
-  months,
-  trainers,
-  defaultMetric = 'new',
-  onRowClick,
-}) => {
-  const [activeMetric, setActiveMetric] = useState<MetricType>(defaultMetric);
+  const getChangePercentage = (current: number, previous: number) => {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  };
 
-  // Helper for column grouping into Year/Q
-  const years = Array.from(
-    new Set(months.map((m) => m.split('-')[1])) // e.g. 'Jan-25' => '25'
-  );
+  const getMetricTitle = (metric: TrainerMetricType) => {
+    switch (metric) {
+      case 'totalSessions':
+        return 'Total Sessions';
+      case 'totalCustomers':
+        return 'Total Students';
+      case 'totalPaid':
+        return 'Total Revenue';
+      case 'classAverage':
+        return 'Class Average';
+      case 'retention':
+        return 'Retention Rate';
+      case 'conversion':
+        return 'Conversion Rate';
+      default:
+        return 'Metric';
+    }
+  };
 
-  // Compute totals per month and overall
-  const totals: Record<string, number> = {};
-  months.forEach((month) => {
-    totals[month] = trainers.reduce((acc, trainer) => acc + (data?.[trainer]?.[month] ?? 0), 0);
-  });
-  const rowTotal = (trainer: string) =>
-    months.reduce((acc, month) => acc + (data?.[trainer]?.[month] ?? 0), 0);
-  const overallTotal = months.reduce((acc, m) => acc + (totals[m] ?? 0), 0);
+  if (!trainers.length || !months.length) {
+    return (
+      <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+        <CardContent className="p-6">
+          <p className="text-center text-slate-600">No data available for month-on-month comparison</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="overflow-x-auto">
-      <CardHeader className="flex flex-row items-center justify-between pb-1">
-        <CardTitle className="text-lg">Month-on-Month by Trainer</CardTitle>
-        <Tabs value={activeMetric} onValueChange={(val: MetricType) => setActiveMetric(val)}>
-          <TabsList className="bg-slate-50 rounded px-2 h-9 gap-2">
-            {METRICS.map((m) => (
-              <TabsTrigger key={m.type} value={m.type} className="h-8 px-3 text-xs">
-                {m.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
+    <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+          <Calendar className="w-5 h-5 text-blue-600" />
+          Month-on-Month {getMetricTitle(defaultMetric)} Comparison
+        </CardTitle>
       </CardHeader>
-      <CardContent className="overflow-x-auto">
-        <div className="max-w-full" style={{ overflowX: 'auto' }}>
-          <Table className="min-w-[900px] border rounded-xl shadow" style={{ borderCollapse: 'separate' }}>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead
-                  className="sticky left-0 z-10 bg-gray-100 font-bold text-xs w-48"
-                  style={{ minWidth: 175 }}
-                >
-                  Trainer
-                </TableHead>
+              <TableRow>
+                <TableHead className="font-bold text-slate-700">Trainer</TableHead>
                 {months.map((month) => (
-                  <TableHead key={month} className="font-bold text-xs text-right">
+                  <TableHead key={month} className="text-center font-bold text-slate-700">
                     {month}
                   </TableHead>
                 ))}
-                <TableHead className="font-bold text-right text-xs bg-gray-100 pr-3">
-                  Total
-                </TableHead>
+                <TableHead className="text-center font-bold text-slate-700">Change</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {trainers.map((trainer) => (
-                <TableRow
-                  key={trainer}
-                  className="hover:bg-blue-50 cursor-pointer"
-                  style={{ height: 25 }}
-                  onClick={() => onRowClick?.(trainer)}
-                >
-                  <TableCell className="sticky left-0 bg-gray-100 font-medium text-sm"
-                    style={{ minWidth: 175, height: 25 }}
-                  >
-                    {trainer}
-                  </TableCell>
-                  {months.map((month) => (
-                    <TableCell key={month} className="text-right font-mono" style={{ height: 25 }}>
-                      {data?.[trainer]?.[month] ?? 0}
+              {trainers.map((trainer) => {
+                const trainerData = data[trainer] || {};
+                const values = months.map(month => trainerData[month] || 0);
+                const lastValue = values[values.length - 1];
+                const secondLastValue = values[values.length - 2] || 0;
+                const change = getChangePercentage(lastValue, secondLastValue);
+                
+                return (
+                  <TableRow key={trainer}>
+                    <TableCell className="font-medium text-slate-800">
+                      {trainer}
                     </TableCell>
-                  ))}
-                  <TableCell className="font-bold text-right pr-3" style={{ height: 25 }}>
-                    {rowTotal(trainer)}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {/* Totals Row */}
-              <TableRow className="bg-slate-100 border-t-2 border-slate-300" style={{ height: 25 }}>
-                <TableCell className="sticky left-0 bg-slate-200 font-bold" style={{ height: 25 }}>
-                  Totals
-                </TableCell>
-                {months.map((month) => (
-                  <TableCell key={month} className="font-bold text-right" style={{ height: 25 }}>
-                    {totals[month] ?? 0}
-                  </TableCell>
-                ))}
-                <TableCell className="font-bold text-right pr-3" style={{ height: 25 }}>
-                  {overallTotal}
-                </TableCell>
-              </TableRow>
+                    {months.map((month) => (
+                      <TableCell key={month} className="text-center">
+                        {formatValue(trainerData[month] || 0, defaultMetric)}
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center">
+                      <Badge
+                        variant={change >= 0 ? "default" : "destructive"}
+                        className={`flex items-center gap-1 ${
+                          change >= 0 
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        {change >= 0 ? (
+                          <TrendingUp className="w-3 h-3" />
+                        ) : (
+                          <TrendingDown className="w-3 h-3" />
+                        )}
+                        {Math.abs(change).toFixed(1)}%
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

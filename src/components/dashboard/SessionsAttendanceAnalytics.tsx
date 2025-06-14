@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
@@ -20,7 +19,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
         className.toLowerCase().includes(keyword.toLowerCase())
       );
       
-      return !hasExcludedKeyword && session.sessionCount >= 2;
+      return !hasExcludedKeyword && (session.sessions || session.occurrences || 1) >= 2;
     });
   }, [data]);
 
@@ -113,7 +112,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
 
   const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#84CC16'];
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const customTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
         <div className="bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-xl border border-gray-200/50">
@@ -168,7 +167,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
                 axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
                 tickLine={{ stroke: '#D1D5DB' }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<customTooltip />} />
               <Area 
                 type="monotone" 
                 dataKey="attendance" 
@@ -215,7 +214,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<customTooltip />} />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
@@ -257,7 +256,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
                 axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
                 tickLine={{ stroke: '#D1D5DB' }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<customTooltip />} />
               <Bar 
                 dataKey="attendance" 
                 fill="url(#barGradient)" 
@@ -313,7 +312,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
                 axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
                 tickLine={{ stroke: '#D1D5DB' }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<customTooltip />} />
               <Bar 
                 dataKey="sessions" 
                 fill="url(#fillRateGradient)" 

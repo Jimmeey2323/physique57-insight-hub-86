@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard } from 'lucide-react';
+import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard, MapPin, Building2 } from 'lucide-react';
 import { useLeadsData } from '@/hooks/useLeadsData';
 import { FilterPanel } from './LeadsFilterSection';
 import { LeadsFunnelVisualization } from './LeadsFunnelVisualization';
@@ -23,10 +23,34 @@ import { LeadDetailedFilterSection } from './LeadDetailedFilterSection';
 import { LeadPivotTable } from './LeadPivotTable';
 
 const locations = [
-  { id: 'all', name: 'All Locations', fullName: 'All Locations' },
-  { id: 'Kwality House, Kemps Corner', name: 'Kwality House', fullName: 'Kwality House, Kemps Corner' },
-  { id: 'Supreme HQ, Bandra', name: 'Supreme HQ', fullName: 'Supreme HQ, Bandra' },
-  { id: 'Kenkere House', name: 'Kenkere House', fullName: 'Kenkere House' }
+  { 
+    id: 'all', 
+    name: 'All Locations', 
+    fullName: 'All Locations',
+    icon: <Building2 className="w-4 h-4" />,
+    gradient: 'from-blue-500 to-indigo-600'
+  },
+  { 
+    id: 'Kwality House, Kemps Corner', 
+    name: 'Kwality House', 
+    fullName: 'Kwality House, Kemps Corner',
+    icon: <MapPin className="w-4 h-4" />,
+    gradient: 'from-emerald-500 to-teal-600'
+  },
+  { 
+    id: 'Supreme HQ, Bandra', 
+    name: 'Supreme HQ', 
+    fullName: 'Supreme HQ, Bandra',
+    icon: <MapPin className="w-4 h-4" />,
+    gradient: 'from-purple-500 to-violet-600'
+  },
+  { 
+    id: 'Kenkere House', 
+    name: 'Kenkere House', 
+    fullName: 'Kenkere House',
+    icon: <MapPin className="w-4 h-4" />,
+    gradient: 'from-orange-500 to-red-600'
+  }
 ];
 
 const LeadsSectionContent: React.FC = () => {
@@ -390,110 +414,184 @@ const LeadsSectionContent: React.FC = () => {
         onModeChange={setIsDarkMode}
       />
 
-      <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-white p-1 rounded-lg shadow-sm border">
-          {locations.map((location) => (
-            <TabsTrigger
-              key={location.id}
-              value={location.id}
-              className="relative overflow-hidden rounded-md px-6 py-3 font-medium text-sm transition-all duration-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm hover:bg-gray-50"
-            >
-              <span className="relative z-10 block text-center">
-                <div className="font-semibold">{location.name.split(',')[0]}</div>
-                {location.name.includes(',') && (
-                  <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
-                )}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {locations.map((location) => (
-          <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-            <LeadDetailedFilterSection />
-
-            <Card className="bg-white shadow-sm border border-gray-200">
-              <CardHeader className="border-b border-gray-100">
-                <CardTitle className="text-gray-800 text-xl">Lead Conversion Funnel</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <LeadsFunnelVisualization
-                  data={{
-                    totalLeads: filteredData.length,
-                    trialScheduled: filteredData.filter(item => item.trialStatus !== 'Not Tried').length,
-                    trialCompleted: filteredData.filter(item => item.stage === 'Trial Completed').length,
-                    membershipsSold: filteredData.filter(item => item.conversionStatus === 'Converted').length,
-                  }}
-                />
-              </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {metrics.map((metric, index) => (
-                <MetricCard
-                  key={metric.title}
-                  data={metric}
-                  delay={index * 100}
-                />
-              ))}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
+        {/* Modern Header Section */}
+        <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white">
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="60" cy="60" r="30"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')]" />
+          
+          <div className="relative px-8 py-12">
+            <div className="max-w-7xl mx-auto">
+              <div className="text-center space-y-4">
+                <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 border border-white/20">
+                  <Users className="w-5 h-5" />
+                  <span className="font-medium">Lead Performance Analytics</span>
+                </div>
+                
+                <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+                  Lead Conversion Hub
+                </h1>
+                
+                <p className="text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
+                  Transform prospects into customers with advanced analytics and conversion tracking
+                </p>
+                
+                <div className="flex items-center justify-center gap-6 mt-8">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white">{formatNumber(data?.length || 0)}</div>
+                    <div className="text-sm text-blue-200">Total Leads</div>
+                  </div>
+                  <div className="w-px h-12 bg-white/30" />
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white">
+                      {data ? formatNumber(data.filter(item => item.conversionStatus === 'Converted').length) : '0'}
+                    </div>
+                    <div className="text-sm text-blue-200">Conversions</div>
+                  </div>
+                  <div className="w-px h-12 bg-white/30" />
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white">
+                      {data && data.length > 0 ? 
+                        `${((data.filter(item => item.conversionStatus === 'Converted').length / data.length) * 100).toFixed(1)}%` : 
+                        '0%'
+                      }
+                    </div>
+                    <div className="text-sm text-blue-200">Conversion Rate</div>
+                  </div>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
 
-            <LeadInteractiveChart
-              data={filteredData}
-              title="Lead Performance Trends"
-              activeMetric={activeMetric}
-            />
+        <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+          {/* Enhanced Location Tabs */}
+          <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden">
+            <CardContent className="p-2">
+              <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
+                <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl h-auto gap-2">
+                  {locations.map((location) => (
+                    <TabsTrigger
+                      key={location.id}
+                      value={location.id}
+                      className={`
+                        relative group overflow-hidden rounded-xl px-6 py-4 font-semibold text-sm 
+                        transition-all duration-300 ease-out hover:scale-105
+                        data-[state=active]:bg-gradient-to-r data-[state=active]:${location.gradient}
+                        data-[state=active]:text-white data-[state=active]:shadow-lg
+                        data-[state=active]:border-0 hover:bg-white/80
+                      `}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative z-10">
+                          {location.icon}
+                        </div>
+                        <div className="relative z-10 text-left">
+                          <div className="font-bold">{location.name.split(',')[0]}</div>
+                          {location.name.includes(',') && (
+                            <div className="text-xs opacity-75">{location.name.split(',')[1]?.trim()}</div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Animated background */}
+                      <div className="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-20 transition-opacity duration-300" 
+                           style={{ background: `linear-gradient(135deg, ${location.gradient.split(' ')[1]}, ${location.gradient.split(' ')[3]})` }} />
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <LeadTopBottomLists
-                title="Lead Source Performance"
-                items={topSources}
-                variant="top"
-                type="source"
-              />
-              
-              <LeadTopBottomLists
-                title="Associate Performance"
-                items={topAssociates}
-                variant="top"
-                type="associate"
-              />
-            </div>
+                {/* Tab Content */}
+                {locations.map((location) => (
+                  <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
+                    <LeadDetailedFilterSection />
 
-            <div className="space-y-8">
-              <LeadPivotTable data={filteredData} />
-              
-              <LeadDataTable
-                title="Lead Performance Analysis"
-                data={filteredData}
-              />
-              
-              <LeadMonthOnMonthTable
-                data={stagePerformanceData}
-                months={availableMonths}
-                stages={availableStages}
-                activeMetric={stageMetric}
-                onMetricChange={setStageMetric}
-              />
+                    <Card className="bg-white shadow-sm border border-gray-200">
+                      <CardHeader className="border-b border-gray-100">
+                        <CardTitle className="text-gray-800 text-xl">Lead Conversion Funnel</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <LeadsFunnelVisualization
+                          data={{
+                            totalLeads: filteredData.length,
+                            trialScheduled: filteredData.filter(item => item.trialStatus !== 'Not Tried').length,
+                            trialCompleted: filteredData.filter(item => item.stage === 'Trial Completed').length,
+                            membershipsSold: filteredData.filter(item => item.conversionStatus === 'Converted').length,
+                          }}
+                        />
+                      </CardContent>
+                    </Card>
 
-              <LeadSourceMonthOnMonthTable
-                data={sourcePerformanceData}
-                months={availableMonths}
-                sources={availableSources}
-                activeMetric={sourceMetric}
-                onMetricChange={setSourceMetric}
-              />
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                      {metrics.map((metric, index) => (
+                        <MetricCard
+                          key={metric.title}
+                          data={metric}
+                          delay={index * 100}
+                        />
+                      ))}
+                    </div>
 
-              <YearOnYearTrainerTable
-                data={sourcePerformanceData}
-                months={availableMonths}
-                trainers={availableAssociates}
-                defaultMetric="totalCustomers"
-              />
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+                    <LeadInteractiveChart
+                      data={filteredData}
+                      title="Lead Performance Trends"
+                      activeMetric={activeMetric}
+                    />
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <LeadTopBottomLists
+                        title="Lead Source Performance"
+                        items={topSources}
+                        variant="top"
+                        type="source"
+                      />
+                      
+                      <LeadTopBottomLists
+                        title="Associate Performance"
+                        items={topAssociates}
+                        variant="top"
+                        type="associate"
+                      />
+                    </div>
+
+                    <div className="space-y-8">
+                      <LeadPivotTable data={filteredData} />
+                      
+                      <LeadDataTable
+                        title="Lead Performance Analysis"
+                        data={filteredData}
+                      />
+                      
+                      <LeadMonthOnMonthTable
+                        data={stagePerformanceData}
+                        months={availableMonths}
+                        stages={availableStages}
+                        activeMetric={stageMetric}
+                        onMetricChange={setStageMetric}
+                      />
+
+                      <LeadSourceMonthOnMonthTable
+                        data={sourcePerformanceData}
+                        months={availableMonths}
+                        sources={availableSources}
+                        activeMetric={sourceMetric}
+                        onMetricChange={setSourceMetric}
+                      />
+
+                      <YearOnYearTrainerTable
+                        data={sourcePerformanceData}
+                        months={availableMonths}
+                        trainers={availableAssociates}
+                        defaultMetric="totalCustomers"
+                      />
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

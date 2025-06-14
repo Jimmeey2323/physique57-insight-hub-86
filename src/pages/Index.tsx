@@ -8,13 +8,18 @@ import { TrainerPerformanceSection } from '@/components/dashboard/TrainerPerform
 import { DiscountsSection } from '@/components/dashboard/DiscountsSection';
 import { LeadsSection } from '@/components/dashboard/LeadsSection';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
+import { useDiscountsData } from '@/hooks/useDiscountsData';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('sales');
+  const { data: salesData, loading, error } = useDiscountsData();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardNavigation />
+      <DashboardNavigation 
+        activeSection={activeTab}
+        onSectionChange={setActiveTab}
+      />
       
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -28,7 +33,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="sales">
-            <SalesAnalyticsSection />
+            <SalesAnalyticsSection data={salesData || []} />
           </TabsContent>
 
           <TabsContent value="new-clients">

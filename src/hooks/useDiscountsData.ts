@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from 'react';
 import { useGoogleSheets } from './useGoogleSheets';
 import { SalesData } from '@/types/dashboard';
 
 export const useDiscountsData = () => {
-  const { data: rawData, loading, error, refetch } = useGoogleSheets('◉ Sales');
+  const { data: rawData, loading, error, refetch } = useGoogleSheets();
   const [data, setData] = useState<SalesData[]>([]);
 
   useEffect(() => {

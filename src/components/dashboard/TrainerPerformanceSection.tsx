@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,7 +19,6 @@ const LOCATION_MAPPING = [
   { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
 ];
 
-
 export const TrainerPerformanceSection = () => {
   const { data: rawData, isLoading, error } = usePayrollData();
   const [activeLocation, setActiveLocation] = useState<string>('all');
@@ -32,63 +30,94 @@ export const TrainerPerformanceSection = () => {
     month: ''
   });
 
+  // Add debugging
+  console.log('TrainerPerformanceSection - Raw data:', rawData);
+  console.log('TrainerPerformanceSection - Raw data length:', rawData?.length);
+  console.log('TrainerPerformanceSection - Is loading:', isLoading);
+  console.log('TrainerPerformanceSection - Error:', error);
+
   const filteredData = useMemo(() => {
-    if (!rawData) return [];
+    if (!rawData || rawData.length === 0) {
+      console.log('No raw data available');
+      return [];
+    }
     
     let filtered = rawData;
+    console.log('Starting with data:', filtered.length);
     
     // Apply location filter
     if (activeLocation !== 'all') {
       const activeLocationName = LOCATION_MAPPING.find(loc => loc.id === activeLocation)?.fullName;
       if (activeLocationName) {
         filtered = filtered.filter(item => item.location === activeLocationName);
+        console.log('After location filter:', filtered.length);
       }
     }
     
     // Apply additional filters
     if (filters.location) {
       filtered = filtered.filter(item => item.location === filters.location);
+      console.log('After additional location filter:', filtered.length);
     }
     if (filters.trainer) {
       filtered = filtered.filter(item => item.teacherName === filters.trainer);
+      console.log('After trainer filter:', filtered.length);
     }
     if (filters.month) {
       filtered = filtered.filter(item => item.monthYear === filters.month);
+      console.log('After month filter:', filtered.length);
     }
     
+    console.log('Final filtered data:', filtered);
     return filtered;
   }, [rawData, activeLocation, filters]);
 
   const processedData = useMemo(() => {
-    if (!filteredData.length) return null;
+    if (!filteredData || filteredData.length === 0) {
+      console.log('No filtered data to process');
+      return null;
+    }
 
-    const totalSessions = filteredData.reduce((sum, item) => sum + item.totalSessions, 0);
-    const totalCustomers = filteredData.reduce((sum, item) => sum + item.totalCustomers, 0);
-    const totalRevenue = filteredData.reduce((sum, item) => sum + item.totalPaid, 0);
-    const totalEmptySessions = filteredData.reduce((sum, item) => sum + item.totalEmptySessions, 0);
-    const totalNonEmptySessions = filteredData.reduce((sum, item) => sum + item.totalNonEmptySessions, 0);
+    console.log('Processing data with items:', filteredData.length);
+
+    const totalSessions = filteredData.reduce((sum, item) => sum + (item.totalSessions || 0), 0);
+    const totalCustomers = filteredData.reduce((sum, item) => sum + (item.totalCustomers || 0), 0);
+    const totalRevenue = filteredData.reduce((sum, item) => sum + (item.totalPaid || 0), 0);
+    const totalEmptySessions = filteredData.reduce((sum, item) => sum + (item.totalEmptySessions || 0), 0);
+    const totalNonEmptySessions = filteredData.reduce((sum, item) => sum + (item.totalNonEmptySessions || 0), 0);
     const avgClassSize = totalNonEmptySessions > 0 ? totalCustomers / totalNonEmptySessions : 0;
     
     const avgRetention = filteredData.length > 0 ? 
-      filteredData.reduce((sum, item) => sum + parseFloat(item.retention.replace('%', '') || '0'), 0) / filteredData.length : 0;
+      filteredData.reduce((sum, item) => {
+        const retentionValue = typeof item.retention === 'string' 
+          ? parseFloat(item.retention.replace('%', '') || '0') 
+          : (item.retention || 0);
+        return sum + retentionValue;
+      }, 0) / filteredData.length : 0;
+      
     const avgConversion = filteredData.length > 0 ? 
-      filteredData.reduce((sum, item) => sum + parseFloat(item.conversion.replace('%', '') || '0'), 0) / filteredData.length : 0;
+      filteredData.reduce((sum, item) => {
+        const conversionValue = typeof item.conversion === 'string' 
+          ? parseFloat(item.conversion.replace('%', '') || '0') 
+          : (item.conversion || 0);
+        return sum + conversionValue;
+      }, 0) / filteredData.length : 0;
 
-    const totalNewMembers = filteredData.reduce((sum, item) => sum + item.new, 0);
-    const totalRetained = filteredData.reduce((sum, item) => sum + item.retained, 0);
-    const totalConverted = filteredData.reduce((sum, item) => sum + item.converted, 0);
+    const totalNewMembers = filteredData.reduce((sum, item) => sum + (item.new || 0), 0);
+    const totalRetained = filteredData.reduce((sum, item) => sum + (item.retained || 0), 0);
+    const totalConverted = filteredData.reduce((sum, item) => sum + (item.converted || 0), 0);
 
     // Top performer by revenue
     const topPerformer = filteredData.reduce((max, item) => 
-      item.totalPaid > max.totalPaid ? item : max, filteredData[0]
+      (item.totalPaid || 0) > (max.totalPaid || 0) ? item : max, filteredData[0]
     );
 
     // Most popular trainer by customers
     const mostPopular = filteredData.reduce((max, item) => 
-      item.totalCustomers > max.totalCustomers ? item : max, filteredData[0]
+      (item.totalCustomers || 0) > (max.totalCustomers || 0) ? item : max, filteredData[0]
     );
 
-    return {
+    const result = {
       totalSessions,
       totalCustomers,
       totalRevenue,
@@ -104,10 +133,16 @@ export const TrainerPerformanceSection = () => {
       mostPopular,
       trainerCount: new Set(filteredData.map(item => item.teacherName)).size
     };
+
+    console.log('Processed data result:', result);
+    return result;
   }, [filteredData]);
 
   const getMetricCards = () => {
-    if (!processedData) return [];
+    if (!processedData) {
+      console.log('No processed data for metric cards');
+      return [];
+    }
 
     return [
       {
@@ -220,10 +255,16 @@ export const TrainerPerformanceSection = () => {
             data[trainer][month] = trainerData?.classAverageInclEmpty || 0;
             break;
           case 'retention':
-            data[trainer][month] = parseFloat(trainerData?.retention.replace('%', '') || '0');
+            const retentionValue = typeof trainerData?.retention === 'string' 
+              ? parseFloat(trainerData.retention.replace('%', '') || '0') 
+              : (trainerData?.retention || 0);
+            data[trainer][month] = retentionValue;
             break;
           case 'conversion':
-            data[trainer][month] = parseFloat(trainerData?.conversion.replace('%', '') || '0');
+            const conversionValue = typeof trainerData?.conversion === 'string' 
+              ? parseFloat(trainerData.conversion.replace('%', '') || '0') 
+              : (trainerData?.conversion || 0);
+            data[trainer][month] = conversionValue;
             break;
           case 'emptySessions':
             data[trainer][month] = trainerData?.totalEmptySessions || 0;
@@ -257,14 +298,14 @@ export const TrainerPerformanceSection = () => {
 
     return filteredData.map(trainer => ({
       name: trainer.teacherName,
-      totalValue: trainer.totalPaid,
-      unitsSold: trainer.totalSessions,
-      transactions: trainer.totalSessions,
-      uniqueMembers: trainer.totalCustomers,
-      atv: trainer.totalPaid / Math.max(trainer.totalSessions, 1),
-      auv: trainer.totalPaid / Math.max(trainer.totalSessions, 1),
-      asv: trainer.totalPaid / Math.max(trainer.totalCustomers, 1),
-      upt: trainer.totalSessions
+      totalValue: trainer.totalPaid || 0,
+      unitsSold: trainer.totalSessions || 0,
+      transactions: trainer.totalSessions || 0,
+      uniqueMembers: trainer.totalCustomers || 0,
+      atv: (trainer.totalPaid || 0) / Math.max(trainer.totalSessions || 1, 1),
+      auv: (trainer.totalPaid || 0) / Math.max(trainer.totalSessions || 1, 1),
+      asv: (trainer.totalPaid || 0) / Math.max(trainer.totalCustomers || 1, 1),
+      upt: trainer.totalSessions || 0
     }));
   };
 
@@ -283,7 +324,17 @@ export const TrainerPerformanceSection = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-red-600">Error loading trainer performance data</p>
+          <p className="text-red-600">Error loading trainer performance data: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!rawData || rawData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-slate-600">No trainer performance data available</p>
         </div>
       </div>
     );
@@ -292,6 +343,10 @@ export const TrainerPerformanceSection = () => {
   const metricCards = getMetricCards();
   const { data: monthOnMonthData, months, trainers } = getMonthOnMonthData();
   const topBottomData = getTopBottomTrainers();
+
+  console.log('Rendering with metric cards:', metricCards.length);
+  console.log('Month on month data:', monthOnMonthData);
+  console.log('Top bottom data:', topBottomData.length);
 
   return (
     <div className="space-y-8">
@@ -340,106 +395,126 @@ export const TrainerPerformanceSection = () => {
         onToggleCollapse={() => setIsFilterCollapsed(!isFilterCollapsed)}
       />
 
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {metricCards.map((card, index) => (
-          <MetricCard
-            key={card.title}
-            data={card}
-            delay={index * 200}
-          />
-        ))}
-      </div>
-
-      {/* Top/Bottom Performers */}
-      <TopBottomSellers
-        data={topBottomData}
-        type="trainers"
-        title="Trainer Performance"
-      />
-
-      {/* Month-on-Month Analysis */}
-      <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
-        <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent flex items-center gap-2">
-              <BarChart3 className="w-6 h-6 text-blue-600" />
-              Month-on-Month Performance Analysis
-            </CardTitle>
-            <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as TrainerMetricType)}>
-              <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg grid grid-cols-4 gap-1">
-                {[
-                  { key: 'totalSessions' as const, label: 'Sessions', icon: Calendar, color: 'from-blue-500 to-cyan-600' },
-                  { key: 'totalCustomers' as const, label: 'Students', icon: Users, color: 'from-green-500 to-emerald-600' },
-                  { key: 'totalPaid' as const, label: 'Revenue', icon: DollarSign, color: 'from-purple-500 to-violet-600' },
-                  { key: 'retention' as const, label: 'Retention', icon: Award, color: 'from-pink-500 to-rose-600' }
-                ].map((metric) => {
-                  const IconComponent = metric.icon;
-                  return (
-                    <TabsTrigger 
-                      key={metric.key} 
-                      value={metric.key} 
-                      className={cn(
-                        "rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300",
-                        "data-[state=active]:bg-gradient-to-r data-[state=active]:text-white data-[state=active]:shadow-lg",
-                        "hover:bg-white/60",
-                        `data-[state=active]:${metric.color}`
-                      )}
-                    >
-                      <IconComponent className="w-3 h-3 mr-1" />
-                      {metric.label}
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </Tabs>
-          </div>
-          <div className="mt-4">
-            <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as TrainerMetricType)}>
-              <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg flex flex-wrap gap-1">
-                {[
-                  { key: 'conversion' as const, label: 'Conversion', icon: Target },
-                  { key: 'emptySessions' as const, label: 'Empty Classes', icon: Calendar },
-                  { key: 'newMembers' as const, label: 'New Members', icon: Users },
-                  { key: 'classAverageExclEmpty' as const, label: 'Class Avg', icon: BarChart3 },
-                  { key: 'cycleSessions' as const, label: 'Cycle Sessions', icon: Activity },
-                  { key: 'barreSessions' as const, label: 'Barre Sessions', icon: Activity },
-                  { key: 'retainedMembers' as const, label: 'Retained', icon: Award },
-                  { key: 'convertedMembers' as const, label: 'Converted', icon: Target }
-                ].map((metric) => {
-                  const IconComponent = metric.icon;
-                  return (
-                    <TabsTrigger 
-                      key={metric.key} 
-                      value={metric.key} 
-                      className="rounded-lg px-2 py-1 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-white/60"
-                    >
-                      <IconComponent className="w-3 h-3 mr-1" />
-                      {metric.label}
-                    </TabsTrigger>
-                  );
-                })}
-              </TabsList>
-            </Tabs>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <MonthOnMonthTrainerTable
-            data={monthOnMonthData}
-            months={months}
-            trainers={trainers}
-            defaultMetric={activeMetric}
-          />
+      {/* Debug Info */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="p-4">
+          <p className="text-sm text-yellow-800">
+            Debug: Raw data: {rawData?.length || 0} records, 
+            Filtered data: {filteredData?.length || 0} records, 
+            Processed data: {processedData ? 'Available' : 'None'}, 
+            Metric cards: {metricCards.length}
+          </p>
         </CardContent>
       </Card>
 
+      {/* Metric Cards */}
+      {metricCards.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {metricCards.map((card, index) => (
+            <MetricCard
+              key={card.title}
+              data={card}
+              delay={index * 200}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Top/Bottom Performers */}
+      {topBottomData.length > 0 && (
+        <TopBottomSellers
+          data={topBottomData}
+          type="trainers"
+          title="Trainer Performance"
+        />
+      )}
+
+      {/* Month-on-Month Analysis */}
+      {months.length > 0 && trainers.length > 0 && (
+        <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent flex items-center gap-2">
+                <BarChart3 className="w-6 h-6 text-blue-600" />
+                Month-on-Month Performance Analysis
+              </CardTitle>
+              <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as TrainerMetricType)}>
+                <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg grid grid-cols-4 gap-1">
+                  {[
+                    { key: 'totalSessions' as const, label: 'Sessions', icon: Calendar, color: 'from-blue-500 to-cyan-600' },
+                    { key: 'totalCustomers' as const, label: 'Students', icon: Users, color: 'from-green-500 to-emerald-600' },
+                    { key: 'totalPaid' as const, label: 'Revenue', icon: DollarSign, color: 'from-purple-500 to-violet-600' },
+                    { key: 'retention' as const, label: 'Retention', icon: Award, color: 'from-pink-500 to-rose-600' }
+                  ].map((metric) => {
+                    const IconComponent = metric.icon;
+                    return (
+                      <TabsTrigger 
+                        key={metric.key} 
+                        value={metric.key} 
+                        className={cn(
+                          "rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-300",
+                          "data-[state=active]:bg-gradient-to-r data-[state=active]:text-white data-[state=active]:shadow-lg",
+                          "hover:bg-white/60",
+                          `data-[state=active]:${metric.color}`
+                        )}
+                      >
+                        <IconComponent className="w-3 h-3 mr-1" />
+                        {metric.label}
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
+            </div>
+            <div className="mt-4">
+              <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as TrainerMetricType)}>
+                <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg flex flex-wrap gap-1">
+                  {[
+                    { key: 'conversion' as const, label: 'Conversion', icon: Target },
+                    { key: 'emptySessions' as const, label: 'Empty Classes', icon: Calendar },
+                    { key: 'newMembers' as const, label: 'New Members', icon: Users },
+                    { key: 'classAverageExclEmpty' as const, label: 'Class Avg', icon: BarChart3 },
+                    { key: 'cycleSessions' as const, label: 'Cycle Sessions', icon: Activity },
+                    { key: 'barreSessions' as const, label: 'Barre Sessions', icon: Activity },
+                    { key: 'retainedMembers' as const, label: 'Retained', icon: Award },
+                    { key: 'convertedMembers' as const, label: 'Converted', icon: Target }
+                  ].map((metric) => {
+                    const IconComponent = metric.icon;
+                    return (
+                      <TabsTrigger 
+                        key={metric.key} 
+                        value={metric.key} 
+                        className="rounded-lg px-2 py-1 text-xs font-semibold transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-orange-500 data-[state=active]:to-red-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-white/60"
+                      >
+                        <IconComponent className="w-3 h-3 mr-1" />
+                        {metric.label}
+                      </TabsTrigger>
+                    );
+                  })}
+                </TabsList>
+              </Tabs>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <MonthOnMonthTrainerTable
+              data={monthOnMonthData}
+              months={months}
+              trainers={trainers}
+              defaultMetric={activeMetric}
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {/* Year-on-Year Comparison */}
-      <YearOnYearTrainerTable
-        data={monthOnMonthData}
-        months={months}
-        trainers={trainers}
-        defaultMetric={activeMetric}
-      />
+      {months.length > 0 && trainers.length > 0 && (
+        <YearOnYearTrainerTable
+          data={monthOnMonthData}
+          months={months}
+          trainers={trainers}
+          defaultMetric={activeMetric}
+        />
+      )}
     </div>
   );
 };

@@ -1,275 +1,415 @@
 
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { 
+  Check, 
+  ChevronDown, 
+  Calendar as CalendarIcon, 
+  X,
+  Tag
+} from 'lucide-react';
+import { useLeads } from '@/contexts/LeadContext';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { CalendarIcon, FilterIcon, X } from 'lucide-react';
-import { LeadsFilterOptions } from '@/types/leads';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Card } from '@/components/ui/card';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
-interface LeadsFilterSectionProps {
-  filters: LeadsFilterOptions;
-  onFiltersChange: (filters: LeadsFilterOptions) => void;
-  availableOptions: {
-    locations: string[];
-    sources: string[];
-    stages: string[];
-    statuses: string[];
-    associates: string[];
-    channels: string[];
-    trialStatuses: string[];
-    conversionStatuses: string[];
-    retentionStatuses: string[];
-  };
-  isOpen: boolean;
-  onToggle: () => void;
-}
-
-export const LeadsFilterSection: React.FC<LeadsFilterSectionProps> = ({
-  filters,
-  onFiltersChange,
-  availableOptions,
-  isOpen,
-  onToggle
-}) => {
-  const updateFilters = (key: keyof LeadsFilterOptions, value: any) => {
-    onFiltersChange({ ...filters, [key]: value });
-  };
-
-  const updateArrayFilter = (key: keyof LeadsFilterOptions, value: string) => {
-    const currentArray = filters[key] as string[];
-    if (value === "all") {
-      updateFilters(key, []);
-    } else if (currentArray.includes(value)) {
-      updateFilters(key, currentArray.filter(item => item !== value));
+export function FilterPanel() {
+  const { 
+    filters, 
+    setFilters, 
+    clearFilters, 
+    sourceOptions, 
+    associateOptions, 
+    centerOptions, 
+    stageOptions, 
+    statusOptions 
+  } = useLeads();
+  
+  const [datePopoverOpen, setDatePopoverOpen] = useState(false);
+  const [sourceOpen, setSourceOpen] = useState(false);
+  const [associateOpen, setAssociateOpen] = useState(false);
+  const [centerOpen, setCenterOpen] = useState(false);
+  const [stageOpen, setStageOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  
+  const handleSourceChange = (value: string) => {
+    const currentValues = [...filters.source];
+    const index = currentValues.indexOf(value);
+    
+    if (index > -1) {
+      currentValues.splice(index, 1);
     } else {
-      updateFilters(key, [...currentArray, value]);
+      currentValues.push(value);
     }
+    
+    setFilters({ ...filters, source: currentValues });
   };
-
-  const clearFilters = () => {
-    onFiltersChange({
-      dateRange: { start: '', end: '' },
-      location: [],
-      source: [],
-      stage: [],
-      status: [],
-      associate: [],
-      channel: [],
-      trialStatus: [],
-      conversionStatus: [],
-      retentionStatus: [],
+  
+  const handleAssociateChange = (value: string) => {
+    const currentValues = [...filters.associate];
+    const index = currentValues.indexOf(value);
+    
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(value);
+    }
+    
+    setFilters({ ...filters, associate: currentValues });
+  };
+  
+  const handleCenterChange = (value: string) => {
+    const currentValues = [...filters.center];
+    const index = currentValues.indexOf(value);
+    
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(value);
+    }
+    
+    setFilters({ ...filters, center: currentValues });
+  };
+  
+  const handleStageChange = (value: string) => {
+    const currentValues = [...filters.stage];
+    const index = currentValues.indexOf(value);
+    
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(value);
+    }
+    
+    setFilters({ ...filters, stage: currentValues });
+  };
+  
+  const handleStatusChange = (value: string) => {
+    const currentValues = [...filters.status];
+    const index = currentValues.indexOf(value);
+    
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(value);
+    }
+    
+    setFilters({ ...filters, status: currentValues });
+  };
+  
+  const handleStartDateChange = (date: Date | null) => {
+    setFilters({
+      ...filters,
+      dateRange: {
+        ...filters.dateRange,
+        start: date
+      }
     });
   };
-
-  const getActiveFilterCount = () => {
-    let count = 0;
-    if (filters.dateRange.start || filters.dateRange.end) count++;
-    if (filters.location.length > 0) count++;
-    if (filters.source.length > 0) count++;
-    if (filters.stage.length > 0) count++;
-    if (filters.status.length > 0) count++;
-    if (filters.associate.length > 0) count++;
-    if (filters.channel.length > 0) count++;
-    if (filters.trialStatus.length > 0) count++;
-    if (filters.conversionStatus.length > 0) count++;
-    if (filters.retentionStatus.length > 0) count++;
-    if (filters.minLTV) count++;
-    if (filters.maxLTV) count++;
-    return count;
+  
+  const handleEndDateChange = (date: Date | null) => {
+    setFilters({
+      ...filters,
+      dateRange: {
+        ...filters.dateRange,
+        end: date
+      }
+    });
   };
-
-  if (!isOpen) {
+  
+  const handleClearDateRange = () => {
+    setFilters({
+      ...filters,
+      dateRange: {
+        start: null,
+        end: null
+      }
+    });
+    setDatePopoverOpen(false);
+  };
+  
+  // Count active filters
+  const activeFilterCount = 
+    filters.source.length + 
+    filters.associate.length + 
+    filters.center.length + 
+    filters.stage.length + 
+    filters.status.length + 
+    (filters.dateRange.start ? 1 : 0) + 
+    (filters.dateRange.end ? 1 : 0);
+  
+  const renderFilterBadge = (label: string, count: number) => {
+    if (count === 0) return null;
+    
     return (
-      <div className="flex items-center gap-4 mb-6">
-        <Button
-          variant="outline"
-          onClick={onToggle}
-          className="flex items-center gap-2"
-        >
-          <FilterIcon className="w-4 h-4" />
-          Filters
-          {getActiveFilterCount() > 0 && (
-            <Badge variant="secondary" className="ml-1">
-              {getActiveFilterCount()}
-            </Badge>
-          )}
-        </Button>
-      </div>
+      <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20 ml-2 gap-1">
+        {label}: {count} <X className="h-3 w-3 cursor-pointer" />
+      </Badge>
     );
-  }
-
+  };
+  
+  const MultiSelectFilter = ({ 
+    title, 
+    options, 
+    selectedValues, 
+    onValueChange, 
+    open, 
+    setOpen,
+    icon 
+  }: {
+    title: string;
+    options: string[];
+    selectedValues: string[];
+    onValueChange: (value: string) => void;
+    open: boolean;
+    setOpen: (open: boolean) => void;
+    icon?: React.ReactNode;
+  }) => (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm" className="flex items-center gap-2 h-9">
+          {icon}
+          {title}
+          {selectedValues.length > 0 && (
+            <Badge className="ml-1 bg-primary">{selectedValues.length}</Badge>
+          )}
+          <ChevronDown className="h-3 w-3 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-52 p-0" align="start">
+        <Command>
+          <CommandInput placeholder={`Search ${title.toLowerCase()}...`} />
+          <CommandList>
+            <CommandEmpty>No {title.toLowerCase()} found.</CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option}
+                  onSelect={() => onValueChange(option)}
+                  className="cursor-pointer"
+                >
+                  <div className="flex items-center space-x-2">
+                    <div className={cn(
+                      "flex h-4 w-4 items-center justify-center rounded-sm border border-primary",
+                      selectedValues.includes(option)
+                        ? "bg-primary text-primary-foreground"
+                        : "opacity-50 [&_svg]:invisible"
+                    )}>
+                      <Check className="h-3 w-3" />
+                    </div>
+                    <span>{option}</span>
+                  </div>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+  
   return (
-    <Card className="mb-6 border-blue-200 bg-blue-50/50">
-      <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <FilterIcon className="w-5 h-5" />
-            Leads Analytics Filters
-          </CardTitle>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              Clear All
-            </Button>
-            <Button variant="outline" size="sm" onClick={onToggle}>
-              <X className="w-4 h-4" />
-            </Button>
+    <Card className="p-4 shadow-md border-border/30 animate-fade-in">
+      <div className="flex flex-col space-y-4">
+        <div className="flex flex-wrap items-center gap-2 justify-between">
+          <div className="flex items-center">
+            <h3 className="font-medium text-base">Active Filters</h3>
+            {activeFilterCount > 0 ? (
+              <Badge className="ml-2 bg-primary">{activeFilterCount}</Badge>
+            ) : (
+              <span className="ml-2 text-sm text-muted-foreground">No active filters</span>
+            )}
           </div>
+          
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={clearFilters}
+            disabled={activeFilterCount === 0}
+            className="gap-2"
+          >
+            <X className="h-4 w-4" />
+            Clear All
+          </Button>
         </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {/* Date Range */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Date Range</Label>
-            <div className="flex gap-2">
-              <Input
-                type="date"
-                value={filters.dateRange.start}
-                onChange={(e) => updateFilters('dateRange', { ...filters.dateRange, start: e.target.value })}
-                className="text-xs"
-              />
-              <Input
-                type="date"
-                value={filters.dateRange.end}
-                onChange={(e) => updateFilters('dateRange', { ...filters.dateRange, end: e.target.value })}
-                className="text-xs"
-              />
-            </div>
-          </div>
-
-          {/* Location */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Location</Label>
-            <Select onValueChange={(value) => updateArrayFilter('location', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder={`${filters.location.length} selected`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                {availableOptions.locations.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Source */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Source</Label>
-            <Select onValueChange={(value) => updateArrayFilter('source', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder={`${filters.source.length} selected`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Sources</SelectItem>
-                {availableOptions.sources.map((source) => (
-                  <SelectItem key={source} value={source}>
-                    {source}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Stage */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Stage</Label>
-            <Select onValueChange={(value) => updateArrayFilter('stage', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder={`${filters.stage.length} selected`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stages</SelectItem>
-                {availableOptions.stages.map((stage) => (
-                  <SelectItem key={stage} value={stage}>
-                    {stage}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Status */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Status</Label>
-            <Select onValueChange={(value) => updateArrayFilter('status', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder={`${filters.status.length} selected`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                {availableOptions.statuses.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Associate */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Associate</Label>
-            <Select onValueChange={(value) => updateArrayFilter('associate', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder={`${filters.associate.length} selected`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Associates</SelectItem>
-                {availableOptions.associates.map((associate) => (
-                  <SelectItem key={associate} value={associate}>
-                    {associate}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* LTV Range */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">LTV Range</Label>
-            <div className="flex gap-2">
-              <Input
-                type="number"
-                placeholder="Min"
-                value={filters.minLTV || ''}
-                onChange={(e) => updateFilters('minLTV', e.target.value ? parseFloat(e.target.value) : undefined)}
-                className="text-xs"
-              />
-              <Input
-                type="number"
-                placeholder="Max"
-                value={filters.maxLTV || ''}
-                onChange={(e) => updateFilters('maxLTV', e.target.value ? parseFloat(e.target.value) : undefined)}
-                className="text-xs"
-              />
-            </div>
-          </div>
-
-          {/* Trial Status */}
-          <div className="space-y-2">
-            <Label className="text-sm font-medium">Trial Status</Label>
-            <Select onValueChange={(value) => updateArrayFilter('trialStatus', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder={`${filters.trialStatus.length} selected`} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Trial Statuses</SelectItem>
-                {availableOptions.trialStatuses.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        
+        <div className="flex flex-wrap items-center gap-2 pt-2">
+          {/* Source Filter */}
+          <MultiSelectFilter
+            title="Source"
+            options={sourceOptions}
+            selectedValues={filters.source}
+            onValueChange={handleSourceChange}
+            open={sourceOpen}
+            setOpen={setSourceOpen}
+            icon={<Tag className="h-4 w-4" />}
+          />
+          
+          {/* Associate Filter */}
+          <MultiSelectFilter
+            title="Associate"
+            options={associateOptions}
+            selectedValues={filters.associate}
+            onValueChange={handleAssociateChange}
+            open={associateOpen}
+            setOpen={setAssociateOpen}
+          />
+          
+          {/* Center Filter */}
+          <MultiSelectFilter
+            title="Center"
+            options={centerOptions}
+            selectedValues={filters.center}
+            onValueChange={handleCenterChange}
+            open={centerOpen}
+            setOpen={setCenterOpen}
+          />
+          
+          {/* Status Filter */}
+          <MultiSelectFilter
+            title="Status"
+            options={statusOptions}
+            selectedValues={filters.status}
+            onValueChange={handleStatusChange}
+            open={statusOpen}
+            setOpen={setStatusOpen}
+          />
+          
+          {/* Stage Filter */}
+          <MultiSelectFilter
+            title="Stage"
+            options={stageOptions}
+            selectedValues={filters.stage}
+            onValueChange={handleStageChange}
+            open={stageOpen}
+            setOpen={setStageOpen}
+          />
+          
+          {/* Date Range Filter */}
+          <Popover open={datePopoverOpen} onOpenChange={setDatePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                <CalendarIcon className="h-4 w-4" />
+                Date Range
+                {(filters.dateRange.start || filters.dateRange.end) && (
+                  <Badge className="ml-1 bg-primary">
+                    {filters.dateRange.start && filters.dateRange.end ? '2' : '1'}
+                  </Badge>
+                )}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <div className="flex flex-col space-y-2 p-2">
+                <div className="flex flex-col gap-2 pb-4">
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium">Start Date</label>
+                      {filters.dateRange.start && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleStartDateChange(null)}
+                        >
+                          <X className="h-3 w-3" />
+                          <span className="sr-only">Clear</span>
+                        </Button>
+                      )}
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateRange.start || undefined}
+                      onSelect={handleStartDateChange}
+                      initialFocus
+                      disabled={(date) => 
+                        filters.dateRange.end 
+                          ? date > filters.dateRange.end 
+                          : false
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium">End Date</label>
+                      {filters.dateRange.end && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleEndDateChange(null)}
+                        >
+                          <X className="h-3 w-3" />
+                          <span className="sr-only">Clear</span>
+                        </Button>
+                      )}
+                    </div>
+                    <Calendar
+                      mode="single"
+                      selected={filters.dateRange.end || undefined}
+                      onSelect={handleEndDateChange}
+                      initialFocus
+                      disabled={(date) => 
+                        filters.dateRange.start 
+                          ? date < filters.dateRange.start 
+                          : false
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleClearDateRange}
+                  >
+                    Clear Range
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => setDatePopoverOpen(false)}
+                  >
+                    Apply
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
-      </CardContent>
+        
+        {activeFilterCount > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-2 text-sm">
+            <span className="font-medium text-muted-foreground">Active:</span>
+            {filters.source.length > 0 && renderFilterBadge('Source', filters.source.length)}
+            {filters.associate.length > 0 && renderFilterBadge('Associate', filters.associate.length)}
+            {filters.center.length > 0 && renderFilterBadge('Center', filters.center.length)}
+            {filters.stage.length > 0 && renderFilterBadge('Stage', filters.stage.length)}
+            {filters.status.length > 0 && renderFilterBadge('Status', filters.status.length)}
+            {(filters.dateRange.start || filters.dateRange.end) && (
+              <Badge variant="outline" className="bg-primary/10 hover:bg-primary/20 gap-1">
+                Date: {filters.dateRange.start && format(filters.dateRange.start, 'MMM d')}
+                {filters.dateRange.start && filters.dateRange.end && ' to '}
+                {filters.dateRange.end && format(filters.dateRange.end, 'MMM d')}
+                <X className="h-3 w-3 cursor-pointer" onClick={handleClearDateRange} />
+              </Badge>
+            )}
+          </div>
+        )}
+      </div>
     </Card>
   );
-};
+}

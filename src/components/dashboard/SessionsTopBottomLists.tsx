@@ -3,9 +3,7 @@ import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { TrendingUp, TrendingDown, Users, Target, DollarSign, Settings } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, Target, DollarSign, Percent } from 'lucide-react';
 import { SessionData } from '@/hooks/useSessionsData';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import {
@@ -24,18 +22,6 @@ interface SessionsTopBottomListsProps {
 
 type MetricType = 'attendance' | 'fillRate' | 'revenue' | 'lateCancellations';
 
-interface GroupedItem {
-  name: string;
-  displayName: string;
-  totalAttendance: number;
-  avgFillRate: number;
-  totalRevenue: number;
-  lateCancellations: number;
-  sessions: number;
-  avgAttendance: number;
-  trainerName?: string;
-}
-
 export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   data,
   title,
@@ -44,164 +30,112 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('attendance');
   const [showCount, setShowCount] = useState(5);
-  const [includeTrainer, setIncludeTrainer] = useState(false);
 
-  // Helper: computes relevant sessions for each group
-  const computeRelevantSessions = (
-    sessionData: SessionData[],
-    groupName: string,
-    dataType: 'classes' | 'trainers',
-    withTrainer: boolean
-  ): SessionData[] => {
-    return sessionData.filter((sessionItem: SessionData) => {
-      if (!sessionItem) return false;
-      if (dataType === 'classes') {
-        if (withTrainer) {
-          const sessionKey = `${sessionItem.cleanedClass || ''}-${sessionItem.trainerName || ''}`;
-          return sessionKey === groupName;
-        } else {
-          return sessionItem.cleanedClass === groupName;
-        }
-      } else {
-        return sessionItem.trainerName === groupName;
-      }
-    });
-  };
+  const processedData = useMemo(() => {
+    const grouped: Record<string, {
+      name: string;
+      totalAttendance: number;
+      avgFillRate: number;
+      totalRevenue: number;
+      lateCancellations: number;
+      sessions: number;
+    }> = {};
 
-  const processedData = useMemo((): GroupedItem[] => {
-    if (!Array.isArray(data) || data.length === 0) {
-      return [];
-    }
+    data.forEach(session => {
+      const key = type === 'classes' ? session.cleanedClass : session.trainerName;
+      if (!key) return;
 
-    // 1. Group and aggregate
-    const groupedResults: Record<string, GroupedItem> = {};
-    for (let idx = 0; idx < data.length; idx++) {
-      const session = data[idx];
-      if (!session) continue;
-
-      let groupKey = '';
-      let displayName = '';
-
-      if (type === 'classes') {
-        if (includeTrainer) {
-          groupKey = `${session.cleanedClass || ''}-${session.trainerName || ''}`;
-          displayName = `${session.cleanedClass || 'Unknown'} (${session.trainerName || 'Unknown'})`;
-        } else {
-          groupKey = session.cleanedClass || '';
-          displayName = session.cleanedClass || 'Unknown';
-        }
-      } else {
-        groupKey = session.trainerName || '';
-        displayName = session.trainerName || 'Unknown';
-      }
-
-      if (!groupKey) continue;
-
-      if (!groupedResults[groupKey]) {
-        groupedResults[groupKey] = {
-          name: groupKey,
-          displayName: displayName,
+      if (!grouped[key]) {
+        grouped[key] = {
+          name: key,
           totalAttendance: 0,
           avgFillRate: 0,
           totalRevenue: 0,
           lateCancellations: 0,
-          sessions: 0,
-          avgAttendance: 0,
-          trainerName: session.trainerName,
+          sessions: 0
         };
       }
 
-      const currentGroup: GroupedItem = groupedResults[groupKey];
-      currentGroup.totalAttendance += Number(session.checkedInCount || 0);
-      currentGroup.totalRevenue += Number(session.totalPaid || 0);
-      currentGroup.lateCancellations += Number(session.lateCancelledCount || 0);
-      currentGroup.sessions += 1;
-    }
+      grouped[key].totalAttendance += session.checkedInCount;
+      grouped[key].totalRevenue += session.totalPaid;
+      grouped[key].lateCancellations += session.lateCancelledCount;
+      grouped[key].sessions += 1;
+    });
 
-    const groupedItems: GroupedItem[] = Object.values(groupedResults);
-
-    // 2. Compute averages/fill rates/attendance, using helper (no possible "m" shadowing)
-    for (let gIdx = 0; gIdx < groupedItems.length; gIdx++) {
-      const item = groupedItems[gIdx];
-      const relevantSessions = computeRelevantSessions(data, item.name, type, includeTrainer);
-      const totalCapacity = relevantSessions.reduce(
-        (sum, sessionItem) => sum + Number(sessionItem.capacity || 0),
-        0
-      );
+    // Calculate averages
+    Object.values(grouped).forEach(item => {
+      const totalCapacity = data
+        .filter(s => (type === 'classes' ? s.cleanedClass : s.trainerName) === item.name)
+        .reduce((sum, s) => sum + s.capacity, 0);
+      
       item.avgFillRate = totalCapacity > 0 ? (item.totalAttendance / totalCapacity) * 100 : 0;
-      item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
-    }
+    });
 
-    // 3. Sort with explicit variable names to prevent shadowing and initialization issues
-    const sortedData: GroupedItem[] = [...groupedItems].sort((aItem, bItem) => {
-      let aValue = 0;
-      let bValue = 0;
-
+    const sortedData = Object.values(grouped).sort((a, b) => {
+      let aValue: number, bValue: number;
+      
       switch (selectedMetric) {
         case 'attendance':
-          aValue = aItem.avgAttendance;
-          bValue = bItem.avgAttendance;
+          aValue = a.totalAttendance;
+          bValue = b.totalAttendance;
           break;
         case 'fillRate':
-          aValue = aItem.avgFillRate;
-          bValue = bItem.avgFillRate;
+          aValue = a.avgFillRate;
+          bValue = b.avgFillRate;
           break;
         case 'revenue':
-          aValue = aItem.totalRevenue;
-          bValue = bItem.totalRevenue;
+          aValue = a.totalRevenue;
+          bValue = b.totalRevenue;
           break;
         case 'lateCancellations':
-          aValue = aItem.lateCancellations;
-          bValue = bItem.lateCancellations;
-          return variant === 'top' ? bValue - aValue : aValue - bValue;
+          aValue = a.lateCancellations;
+          bValue = b.lateCancellations;
+          return variant === 'top' ? bValue - aValue : aValue - bValue; // Reverse for late cancellations
         default:
-          aValue = aItem.avgAttendance;
-          bValue = bItem.avgAttendance;
+          aValue = a.totalAttendance;
+          bValue = b.totalAttendance;
       }
+      
       return variant === 'top' ? bValue - aValue : aValue - bValue;
     });
 
     return sortedData.slice(0, showCount);
-  }, [data, type, selectedMetric, variant, showCount, includeTrainer]);
+  }, [data, type, selectedMetric, variant, showCount]);
 
   const metricOptions = [
-    { value: 'attendance' as MetricType, label: 'Class Average', icon: Users },
-    { value: 'fillRate' as MetricType, label: 'Fill Rate %', icon: Target },
-    { value: 'revenue' as MetricType, label: 'Revenue', icon: DollarSign },
-    { value: 'lateCancellations' as MetricType, label: 'Late Cancellations', icon: TrendingDown }
+    { value: 'attendance', label: 'Total Attendance', icon: Users },
+    { value: 'fillRate', label: 'Fill Rate %', icon: Percent },
+    { value: 'revenue', label: 'Revenue', icon: DollarSign },
+    { value: 'lateCancellations', label: 'Late Cancellations', icon: TrendingDown }
   ];
 
-  const getMetricValue = (item: GroupedItem) => {
-    if (!item) return '';
-    
-    if (selectedMetric === 'attendance') {
-      return formatNumber(Number(item.avgAttendance.toFixed(1)));
-    } else if (selectedMetric === 'fillRate') {
-      return `${item.avgFillRate.toFixed(1)}%`;
-    } else if (selectedMetric === 'revenue') {
-      return formatCurrency(item.totalRevenue);
-    } else if (selectedMetric === 'lateCancellations') {
-      return formatNumber(item.lateCancellations);
-    } else {
-      return formatNumber(Number(item.avgAttendance.toFixed(1)));
+  const getMetricValue = (item: typeof processedData[0]) => {
+    switch (selectedMetric) {
+      case 'attendance':
+        return formatNumber(item.totalAttendance);
+      case 'fillRate':
+        return `${item.avgFillRate.toFixed(1)}%`;
+      case 'revenue':
+        return formatCurrency(item.totalRevenue);
+      case 'lateCancellations':
+        return formatNumber(item.lateCancellations);
+      default:
+        return formatNumber(item.totalAttendance);
     }
   };
 
-  const getMetricSubtext = (item: GroupedItem) => {
-    if (!item) return '';
-    
-    if (selectedMetric === 'attendance') {
-      return `${item.sessions} sessions, ${formatNumber(item.totalAttendance)} total`;
-    } else if (selectedMetric === 'fillRate') {
-      return `${formatNumber(item.totalAttendance)} attendees`;
-    } else if (selectedMetric === 'revenue') {
-      const avgRevenue = item.totalRevenue / Math.max(item.sessions, 1);
-      return `Avg: ${formatCurrency(avgRevenue)}`;
-    } else if (selectedMetric === 'lateCancellations') {
-      const cancellationRate = (item.lateCancellations / Math.max(item.sessions, 1)) * 100;
-      return `${cancellationRate.toFixed(1)}% rate`;
-    } else {
-      return `${item.sessions} sessions`;
+  const getMetricSubtext = (item: typeof processedData[0]) => {
+    switch (selectedMetric) {
+      case 'attendance':
+        return `${item.sessions} sessions`;
+      case 'fillRate':
+        return `${formatNumber(item.totalAttendance)} attendees`;
+      case 'revenue':
+        return `Avg: ${formatCurrency(item.totalRevenue / item.sessions)}`;
+      case 'lateCancellations':
+        return `${((item.lateCancellations / item.sessions) * 100).toFixed(1)}% rate`;
+      default:
+        return `${item.sessions} sessions`;
     }
   };
 
@@ -224,7 +158,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
                 {metricOptions.map(option => (
                   <DropdownMenuItem
                     key={option.value}
-                    onClick={() => setSelectedMetric(option.value)}
+                    onClick={() => setSelectedMetric(option.value as MetricType)}
                   >
                     <option.icon className="w-4 h-4 mr-2" />
                     {option.label}
@@ -234,20 +168,6 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
             </DropdownMenu>
           </div>
         </div>
-        
-        {/* Trainer Toggle for Classes */}
-        {type === 'classes' && (
-          <div className="flex items-center space-x-2 pt-2">
-            <Switch
-              id="include-trainer"
-              checked={includeTrainer}
-              onCheckedChange={setIncludeTrainer}
-            />
-            <Label htmlFor="include-trainer" className="text-sm text-gray-600">
-              Include trainer in ranking
-            </Label>
-          </div>
-        )}
       </CardHeader>
       
       <CardContent className="p-0">
@@ -270,7 +190,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
                   {index + 1}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="font-medium text-gray-900 truncate text-sm">{item.displayName}</p>
+                  <p className="font-medium text-gray-900 truncate text-sm">{item.name}</p>
                   <p className="text-xs text-gray-500">{getMetricSubtext(item)}</p>
                 </div>
               </div>

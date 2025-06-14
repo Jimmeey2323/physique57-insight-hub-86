@@ -6,6 +6,7 @@ import { NewClientSection } from '@/components/dashboard/NewClientSection';
 import { TrainerPerformanceSection } from '@/components/dashboard/TrainerPerformanceSection';
 import { LeadsSection } from '@/components/dashboard/LeadsSection';
 import { ClassAttendanceSection } from '@/components/dashboard/ClassAttendanceSection';
+import { DiscountsSection } from '@/components/dashboard/DiscountsSection';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
@@ -64,14 +65,7 @@ const Index = () => {
       case 'class-attendance':
         return <ClassAttendanceSection />;
       case 'discounts-promotions':
-        return (
-          <Card className="p-8">
-            <CardContent className="text-center">
-              <h3 className="text-2xl font-semibold mb-4">Discounts & Promotions</h3>
-              <p className="text-slate-600">Coming soon - Promotional campaign effectiveness</p>
-            </CardContent>
-          </Card>
-        );
+        return <DiscountsSection />;
       case 'executive-summary':
         return (
           <Card className="p-8">

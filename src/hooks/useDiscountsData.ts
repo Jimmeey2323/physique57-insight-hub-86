@@ -97,7 +97,7 @@ export const useDiscountsData = () => {
         netDiscountPercent: parseFloat(row[28]?.replace('%', '')) || 0,
       }));
 
-      console.log('Sales data loaded:', salesData.length, 'records');
+      console.log('Sales data loaded for discounts:', salesData.length, 'records');
       setData(salesData);
       setError(null);
     } catch (err) {

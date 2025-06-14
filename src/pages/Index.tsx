@@ -3,6 +3,7 @@ import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation'
 import { SalesAnalyticsSection } from '@/components/dashboard/SalesAnalyticsSection';
 import { NewClientSection } from '@/components/dashboard/NewClientSection';
 import { TrainerPerformanceSection } from '@/components/dashboard/TrainerPerformanceSection';
+import { LeadsSection } from '@/components/dashboard/LeadsSection';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
@@ -55,14 +56,7 @@ const Index = () => {
       case 'client-retention':
         return <NewClientSection />;
       case 'funnel-leads':
-        return (
-          <Card className="p-8">
-            <CardContent className="text-center">
-              <h3 className="text-2xl font-semibold mb-4">Funnel & Lead Performance</h3>
-              <p className="text-slate-600">Coming soon - Lead conversion metrics and funnel analysis</p>
-            </CardContent>
-          </Card>
-        );
+        return <LeadsSection />;
       case 'trainer-performance':
         return <TrainerPerformanceSection />;
       case 'class-attendance':

@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 
-type MetricType = 'new' | 'converted' | 'retained' | 'ltv';
+type MetricType = 'new' | 'converted' | 'retained' | 'ltv' | 'conversionRate' | 'retentionRate' | 'conversionSpan';
 
 interface MonthOnMonthTrainerTableProps {
   data: Record<string, Record<string, number>>;
@@ -20,6 +20,9 @@ const METRICS: { type: MetricType; label: string }[] = [
   { type: 'converted', label: 'Converted Members' },
   { type: 'retained', label: 'Retained Members' },
   { type: 'ltv', label: 'LTV' },
+  { type: 'conversionRate', label: 'Conversion %' },
+  { type: 'retentionRate', label: 'Retention %' },
+  { type: 'conversionSpan', label: 'Conversion Span (Days)' },
 ];
 
 export const MonthOnMonthTrainerTable: React.FC<MonthOnMonthTrainerTableProps> = ({

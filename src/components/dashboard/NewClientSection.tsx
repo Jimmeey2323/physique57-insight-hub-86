@@ -4,18 +4,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, TrendingUp, DollarSign, UserCheck, Calendar, Eye, Filter, X, Award, AlertTriangle, BarChart3, Clock } from 'lucide-react';
+import { Users, TrendingUp, DollarSign, UserCheck, Calendar, Eye, Filter, X, Award, AlertTriangle, BarChart3, Clock, Target, Activity } from 'lucide-react';
 import { useNewClientData, NewClientData } from '@/hooks/useNewClientData';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
+import { YearOnYearTrainerTable } from './YearOnYearTrainerTable';
+import { InteractiveChart } from './InteractiveChart';
 import { AutoCloseFilterSection } from './AutoCloseFilterSection';
 import { FilterOptions } from '@/types/dashboard';
 
 const locations = [
-  { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
-  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
-  { id: 'other', name: 'Other Locations', fullName: 'Other Locations' }
+  { id: 'kwality', name: 'Kwality House', subName: 'Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
+  { id: 'supreme', name: 'Supreme HQ', subName: 'Bandra', fullName: 'Supreme HQ, Bandra' },
+  { id: 'other', name: 'Other', subName: 'Locations', fullName: 'Other Locations' }
 ];
 
 export const NewClientSection = () => {
@@ -253,10 +255,13 @@ export const NewClientSection = () => {
         };
       }, { new: 0, converted: 0, retained: 0, ltv: 0, conversionRate: 0, retentionRate: 0, conversionSpan: 0 });
       
-      // Calculate final rates
-      trainerTotals[trainer].conversionRate = trainerTotals[trainer].new > 0 ? (trainerTotals[trainer].converted / trainerTotals[trainer].new) * 100 : 0;
-      trainerTotals[trainer].retentionRate = trainerTotals[trainer].new > 0 ? (trainerTotals[trainer].retained / trainerTotals[trainer].new) * 100 : 0;
-      trainerTotals[trainer].conversionSpan = trainerTotals[trainer].new > 0 ? trainerTotals[trainer].conversionSpan / trainerTotals[trainer].new : 0;
+      // Calculate final rates with 1 decimal precision
+      trainerTotals[trainer].conversionRate = trainerTotals[trainer].new > 0 ? 
+        parseFloat(((trainerTotals[trainer].converted / trainerTotals[trainer].new) * 100).toFixed(1)) : 0;
+      trainerTotals[trainer].retentionRate = trainerTotals[trainer].new > 0 ? 
+        parseFloat(((trainerTotals[trainer].retained / trainerTotals[trainer].new) * 100).toFixed(1)) : 0;
+      trainerTotals[trainer].conversionSpan = trainerTotals[trainer].new > 0 ? 
+        parseFloat((trainerTotals[trainer].conversionSpan / trainerTotals[trainer].new).toFixed(1)) : 0;
     });
 
     // Get top and bottom trainers based on new members
@@ -285,13 +290,13 @@ export const NewClientSection = () => {
             value = data.ltv;
             break;
           case 'conversionRate':
-            value = data.conversionRate;
+            value = parseFloat(data.conversionRate.toFixed(1));
             break;
           case 'retentionRate':
-            value = data.retentionRate;
+            value = parseFloat(data.retentionRate.toFixed(1));
             break;
           case 'conversionSpan':
-            value = data.conversionSpan;
+            value = parseFloat(data.conversionSpan.toFixed(1));
             break;
         }
         trainerDataForTable[trainer][month] = value;
@@ -379,13 +384,13 @@ export const NewClientSection = () => {
                       {formatNumber(trainer.new)} new
                     </Badge>
                     <Badge variant="outline" className="text-xs border-purple-200 text-purple-700">
-                      Conv: {formatPercentage(trainer.conversionRate)}
+                      Conv: {trainer.conversionRate.toFixed(1)}%
                     </Badge>
                     <Badge variant="outline" className="text-xs border-green-200 text-green-700">
                       LTV: {formatCurrency(trainer.ltv)}
                     </Badge>
                     <Badge variant="outline" className="text-xs border-orange-200 text-orange-700">
-                      Ret: {formatPercentage(trainer.retentionRate)}
+                      Ret: {trainer.retentionRate.toFixed(1)}%
                     </Badge>
                   </div>
                 </div>
@@ -410,9 +415,9 @@ export const NewClientSection = () => {
             </h4>
             <ul className="text-sm text-slate-600 space-y-1">
               <li>• Average new members: {formatNumber(trainers.reduce((sum, t) => sum + t.new, 0) / trainers.length)}</li>
-              <li>• Average conversion rate: {formatPercentage(trainers.reduce((sum, t) => sum + t.conversionRate, 0) / trainers.length)}</li>
+              <li>• Average conversion rate: {(trainers.reduce((sum, t) => sum + t.conversionRate, 0) / trainers.length).toFixed(1)}%</li>
               <li>• Average LTV: {formatCurrency(trainers.reduce((sum, t) => sum + t.ltv, 0) / trainers.length)}</li>
-              <li>• Average retention: {formatPercentage(trainers.reduce((sum, t) => sum + t.retentionRate, 0) / trainers.length)}</li>
+              <li>• Average retention: {(trainers.reduce((sum, t) => sum + t.retentionRate, 0) / trainers.length).toFixed(1)}%</li>
             </ul>
           </div>
         </CardContent>
@@ -475,8 +480,8 @@ export const NewClientSection = () => {
               )}
             >
               <span className="relative z-10 block text-center">
-                <div className="font-bold">{location.name.split(',')[0]}</div>
-                <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
+                <div className="font-bold">{location.name}</div>
+                <div className="text-xs opacity-80">{location.subName}</div>
               </span>
               {activeLocation === location.id && (
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse" />
@@ -515,7 +520,7 @@ export const NewClientSection = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-green-600 text-sm font-medium">Conversion Rate</p>
-                      <p className="text-3xl font-bold text-green-900">{formatPercentage(metrics.conversionRate)}</p>
+                      <p className="text-3xl font-bold text-green-900">{metrics.conversionRate.toFixed(1)}%</p>
                     </div>
                     <TrendingUp className="w-8 h-8 text-green-600" />
                   </div>
@@ -545,7 +550,7 @@ export const NewClientSection = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-orange-600 text-sm font-medium">Retention Rate</p>
-                      <p className="text-3xl font-bold text-orange-900">{formatPercentage(metrics.retentionRate)}</p>
+                      <p className="text-3xl font-bold text-orange-900">{metrics.retentionRate.toFixed(1)}%</p>
                     </div>
                     <UserCheck className="w-8 h-8 text-orange-600" />
                   </div>
@@ -571,52 +576,55 @@ export const NewClientSection = () => {
               </Card>
             </div>
 
-            {/* Metric Selector */}
+            {/* Enhanced Metric Selector */}
             <Card className="bg-gradient-to-br from-white via-slate-50/20 to-white border-0 shadow-xl">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 bg-clip-text text-transparent">
-                  Select Metric for Analysis
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-700 via-slate-800 to-slate-900 bg-clip-text text-transparent flex items-center gap-3">
+                  <Target className="w-7 h-7 text-blue-600" />
+                  Advanced Metric Analysis
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { key: 'new' as const, label: 'New Members', icon: Users },
-                    { key: 'converted' as const, label: 'Converted Members', icon: TrendingUp },
-                    { key: 'retained' as const, label: 'Retained Members', icon: UserCheck },
-                    { key: 'ltv' as const, label: 'LTV', icon: DollarSign },
-                    { key: 'conversionRate' as const, label: 'Conversion %', icon: BarChart3 },
-                    { key: 'retentionRate' as const, label: 'Retention %', icon: UserCheck },
-                    { key: 'conversionSpan' as const, label: 'Conversion Span (Days)', icon: Clock }
-                  ].map(metric => {
-                    const IconComponent = metric.icon;
-                    return (
-                      <Button
-                        key={metric.key}
-                        variant={activeMetric === metric.key ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setActiveMetric(metric.key)}
-                        className="transition-all duration-200 gap-2"
-                      >
-                        <IconComponent className="w-4 h-4" />
-                        {metric.label}
-                      </Button>
-                    );
-                  })}
-                </div>
+                <Tabs value={activeMetric} onValueChange={setActiveMetric}>
+                  <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg grid grid-cols-7 gap-1">
+                    {[
+                      { key: 'new' as const, label: 'New Members', icon: Users, color: 'from-blue-500 to-cyan-600' },
+                      { key: 'converted' as const, label: 'Converted', icon: TrendingUp, color: 'from-green-500 to-emerald-600' },
+                      { key: 'retained' as const, label: 'Retained', icon: UserCheck, color: 'from-purple-500 to-violet-600' },
+                      { key: 'ltv' as const, label: 'LTV', icon: DollarSign, color: 'from-yellow-500 to-orange-600' },
+                      { key: 'conversionRate' as const, label: 'Conversion %', icon: BarChart3, color: 'from-pink-500 to-rose-600' },
+                      { key: 'retentionRate' as const, label: 'Retention %', icon: Activity, color: 'from-indigo-500 to-blue-600' },
+                      { key: 'conversionSpan' as const, label: 'Conv. Days', icon: Clock, color: 'from-slate-500 to-gray-600' }
+                    ].map(metric => {
+                      const IconComponent = metric.icon;
+                      return (
+                        <TabsTrigger
+                          key={metric.key}
+                          value={metric.key}
+                          className={cn(
+                            "relative overflow-hidden rounded-xl px-3 py-3 font-semibold text-xs transition-all duration-500",
+                            "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105",
+                            "hover:scale-102 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                          )}
+                          style={{
+                            background: activeMetric === metric.key 
+                              ? `linear-gradient(135deg, ${metric.color.split(' ')[0].replace('from-', 'var(--')}-500), ${metric.color.split(' ')[1].replace('to-', 'var(--')}-600))`
+                              : 'white'
+                          }}
+                        >
+                          <div className="flex flex-col items-center gap-1">
+                            <IconComponent className="w-4 h-4" />
+                            <span className="leading-tight">{metric.label}</span>
+                          </div>
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+                </Tabs>
               </CardContent>
             </Card>
 
-            {/* Monthly Trainer Performance Table */}
-            <MonthOnMonthTrainerTable
-              data={monthlyAnalysis.trainerDataForTable}
-              months={monthlyAnalysis.months}
-              trainers={monthlyAnalysis.trainers}
-              onRowClick={(trainer) => setSelectedTrainer(trainer)}
-              defaultMetric={activeMetric}
-            />
-
-            {/* Top/Bottom Trainers */}
+            {/* Top/Bottom Trainers (moved before tables) */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {renderSellerCard(
                 monthlyAnalysis.topTrainers.map(trainer => ({
@@ -635,6 +643,48 @@ export const NewClientSection = () => {
                 'Trainers'
               )}
             </div>
+
+            {/* Interactive Charts */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <InteractiveChart
+                title="New Client Trends"
+                data={filteredData}
+                type="conversion"
+              />
+              <InteractiveChart
+                title="Retention Analysis"
+                data={filteredData}
+                type="retention"
+              />
+            </div>
+
+            {/* Enhanced Monthly Trainer Performance Table */}
+            <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+              <CardHeader className="pb-4">
+                <CardTitle className="text-2xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent flex items-center gap-3">
+                  <BarChart3 className="w-7 h-7 text-blue-600" />
+                  Monthly Performance by Trainer
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MonthOnMonthTrainerTable
+                  data={monthlyAnalysis.trainerDataForTable}
+                  months={monthlyAnalysis.months}
+                  trainers={monthlyAnalysis.trainers}
+                  onRowClick={(trainer) => setSelectedTrainer(trainer)}
+                  defaultMetric={activeMetric}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Year-on-Year Comparison Table */}
+            <YearOnYearTrainerTable
+              data={monthlyAnalysis.trainerDataForTable}
+              months={monthlyAnalysis.months}
+              trainers={monthlyAnalysis.trainers}
+              onRowClick={(trainer) => setSelectedTrainer(trainer)}
+              defaultMetric={activeMetric}
+            />
           </TabsContent>
         ))}
       </Tabs>

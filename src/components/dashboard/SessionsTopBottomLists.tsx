@@ -45,17 +45,37 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   const [showCount, setShowCount] = useState(5);
   const [includeTrainer, setIncludeTrainer] = useState(false);
 
+  // Helper: computes relevant sessions for each group, avoid inline function reference issues
+  const computeRelevantSessions = (
+    data: SessionData[],
+    itemName: string,
+    type: 'classes' | 'trainers',
+    includeTrainer: boolean
+  ): SessionData[] => {
+    return data.filter((sessionItem: SessionData) => {
+      if (!sessionItem) return false;
+      if (type === 'classes') {
+        if (includeTrainer) {
+          const sessionKey = `${sessionItem.cleanedClass || ''}-${sessionItem.trainerName || ''}`;
+          return sessionKey === itemName;
+        } else {
+          return sessionItem.cleanedClass === itemName;
+        }
+      } else {
+        return sessionItem.trainerName === itemName;
+      }
+    });
+  };
+
   const processedData = useMemo((): GroupedItem[] => {
-    console.log('Processing data in SessionsTopBottomLists:', { dataLength: data?.length, type, variant, selectedMetric, includeTrainer });
+    // --- Defensive: always declare variables BEFORE use (fixing "before initialization" bugs) ---
 
     if (!Array.isArray(data) || data.length === 0) {
-      console.log('No data available');
       return [];
     }
 
-    // Create a results object to store grouped data
+    // 1. Group and aggregate
     const groupedResults: Record<string, GroupedItem> = {};
-
     for (let i = 0; i < data.length; i++) {
       const session = data[i];
       if (!session) continue;
@@ -101,27 +121,10 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
 
     const groupedItems: GroupedItem[] = Object.values(groupedResults);
 
-    // Precompute relevantSessions map to avoid accidental out-of-scope issues in sort
-    const relevantSessionsMap: Record<string, SessionData[]> = {};
-    groupedItems.forEach(item => {
-      relevantSessionsMap[item.name] = data.filter((sessionItem: SessionData) => {
-        if (!sessionItem) return false;
-        if (type === 'classes') {
-          if (includeTrainer) {
-            const sessionKey = `${sessionItem.cleanedClass || ''}-${sessionItem.trainerName || ''}`;
-            return sessionKey === item.name;
-          } else {
-            return sessionItem.cleanedClass === item.name;
-          }
-        } else {
-          return sessionItem.trainerName === item.name;
-        }
-      });
-    });
-
+    // 2. Compute averages/fill rates/attendance, ensuring no out-of-scope refs
     for (let j = 0; j < groupedItems.length; j++) {
       const item = groupedItems[j];
-      const relevantSessions = relevantSessionsMap[item.name];
+      const relevantSessions = computeRelevantSessions(data, item.name, type, includeTrainer);
       const totalCapacity = relevantSessions.reduce(
         (sum, sessionItem) => sum + Number(sessionItem.capacity || 0),
         0
@@ -130,7 +133,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     }
 
-    // Sort using only the data directly, not referencing the outer scope
+    // 3. Sort the array (no referential or closure dependents)
     const sortedData: GroupedItem[] = [...groupedItems].sort((a, b) => {
       let aValue = 0;
       let bValue = 0;
@@ -155,8 +158,8 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       return variant === 'top' ? bValue - aValue : aValue - bValue;
     });
 
-    console.log('Processed data result:', sortedData.slice(0, showCount));
     return sortedData.slice(0, showCount);
+  // Never reference values/functions below this line inside this hook!
   }, [data, type, selectedMetric, variant, showCount, includeTrainer]);
 
   const metricOptions = [

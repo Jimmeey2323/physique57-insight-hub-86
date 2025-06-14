@@ -1,11 +1,13 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, TrendingDown, Calendar } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, TrendingDown, Calendar, ChevronDown, ChevronRight } from 'lucide-react';
 import { TrainerMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
+import { cn } from '@/lib/utils';
 
 interface YearOnYearTrainerTableProps {
   data: Record<string, Record<string, number>>;
@@ -20,6 +22,10 @@ export const YearOnYearTrainerTable = ({
   trainers, 
   defaultMetric 
 }: YearOnYearTrainerTableProps) => {
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const [sortBy, setSortBy] = useState<string>('name');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   const formatValue = (value: number, metric: TrainerMetricType) => {
     switch (metric) {
       case 'totalPaid':
@@ -53,20 +59,83 @@ export const YearOnYearTrainerTable = ({
         return 'Retention Rate';
       case 'conversion':
         return 'Conversion Rate';
+      case 'emptySessions':
+        return 'Empty Sessions';
+      case 'newMembers':
+        return 'New Members';
       default:
         return 'Metric';
     }
   };
 
-  // Group months by year
-  const yearlyData = months.reduce((acc, month) => {
-    const year = month.split('-')[0] || month.split(' ')[1] || '2024';
-    if (!acc[year]) acc[year] = [];
-    acc[year].push(month);
-    return acc;
-  }, {} as Record<string, string[]>);
+  const toggleRowExpansion = (trainer: string) => {
+    const newExpanded = new Set(expandedRows);
+    if (newExpanded.has(trainer)) {
+      newExpanded.delete(trainer);
+    } else {
+      newExpanded.add(trainer);
+    }
+    setExpandedRows(newExpanded);
+  };
 
-  const years = Object.keys(yearlyData).sort();
+  // Process months for year-on-year comparison
+  const processMonthsForYoY = () => {
+    const monthsByYear: Record<string, string[]> = {};
+    
+    months.forEach(month => {
+      const year = month.includes('-') ? month.split('-')[1] : month.split(' ')[1] || '2024';
+      const monthName = month.includes('-') ? month.split('-')[0] : month.split(' ')[0];
+      
+      if (!monthsByYear[year]) {
+        monthsByYear[year] = [];
+      }
+      monthsByYear[year].push(month);
+    });
+
+    const years = Object.keys(monthsByYear).sort().reverse(); // 2025, 2024, etc.
+    const uniqueMonths = Array.from(new Set(months.map(m => 
+      m.includes('-') ? m.split('-')[0] : m.split(' ')[0]
+    ))).sort().reverse(); // Jun, May, Apr, etc.
+
+    // Create alternating structure: Jun-2025, Jun-2024, May-2025, May-2024
+    const alternatingColumns: Array<{month: string, year: string, fullMonth: string}> = [];
+    
+    uniqueMonths.forEach(monthName => {
+      years.forEach(year => {
+        const fullMonth = monthsByYear[year]?.find(m => 
+          (m.includes('-') ? m.split('-')[0] : m.split(' ')[0]) === monthName
+        );
+        if (fullMonth) {
+          alternatingColumns.push({
+            month: monthName,
+            year,
+            fullMonth
+          });
+        }
+      });
+    });
+
+    return { alternatingColumns, years, uniqueMonths };
+  };
+
+  const { alternatingColumns, years } = processMonthsForYoY();
+
+  const sortedTrainers = [...trainers].sort((a, b) => {
+    if (sortBy === 'name') {
+      return sortOrder === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
+    }
+    // Sort by latest month value
+    const latestColumn = alternatingColumns[0];
+    const aValue = data[a]?.[latestColumn?.fullMonth] || 0;
+    const bValue = data[b]?.[latestColumn?.fullMonth] || 0;
+    return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+  });
+
+  // Calculate totals for each column
+  const columnTotals = alternatingColumns.reduce((acc, col) => {
+    acc[col.fullMonth] = trainers.reduce((sum, trainer) => sum + (data[trainer]?.[col.fullMonth] || 0), 0);
+    return acc;
+  }, {} as Record<string, number>);
 
   if (!trainers.length || years.length < 2) {
     return (
@@ -96,58 +165,138 @@ export const YearOnYearTrainerTable = ({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="font-bold text-slate-700">Trainer</TableHead>
-                {years.map((year) => (
-                  <TableHead key={year} className="text-center font-bold text-slate-700">
-                    {year}
+              <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2">
+                <TableHead className="font-bold text-slate-700 sticky left-0 bg-gradient-to-r from-slate-50 to-slate-100 z-10 min-w-[200px]">
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setSortBy('name');
+                      setSortOrder(sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
+                    }}
+                    className="font-bold text-slate-700 p-0 h-auto"
+                  >
+                    Trainer
+                    {sortBy === 'name' && (
+                      sortOrder === 'asc' ? <TrendingUp className="w-3 h-3 ml-1" /> : <TrendingDown className="w-3 h-3 ml-1" />
+                    )}
+                  </Button>
+                </TableHead>
+                {alternatingColumns.map((col) => (
+                  <TableHead key={`${col.month}-${col.year}`} className="text-center font-bold text-slate-700 min-w-[120px]">
+                    <div className="text-center">
+                      <div className="font-bold">{col.month}</div>
+                      <div className={cn(
+                        "text-xs",
+                        col.year === '2025' ? 'text-blue-600' : 'text-purple-600'
+                      )}>
+                        {col.year}
+                      </div>
+                    </div>
                   </TableHead>
                 ))}
-                <TableHead className="text-center font-bold text-slate-700">YoY Change</TableHead>
+                <TableHead className="text-center font-bold text-slate-700 min-w-[100px]">YoY Change</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {trainers.map((trainer) => {
+              {/* Totals Row */}
+              <TableRow className="bg-gradient-to-r from-blue-50 to-purple-50 border-b-2 font-bold">
+                <TableCell className="font-bold text-blue-800 sticky left-0 bg-gradient-to-r from-blue-50 to-purple-50 z-10">
+                  TOTAL
+                </TableCell>
+                {alternatingColumns.map((col) => (
+                  <TableCell key={`total-${col.month}-${col.year}`} className="text-center font-bold text-blue-800">
+                    {formatValue(columnTotals[col.fullMonth] || 0, defaultMetric)}
+                  </TableCell>
+                ))}
+                <TableCell className="text-center">
+                  <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200">
+                    Total
+                  </Badge>
+                </TableCell>
+              </TableRow>
+
+              {/* Trainer Rows */}
+              {sortedTrainers.map((trainer) => {
                 const trainerData = data[trainer] || {};
+                const isExpanded = expandedRows.has(trainer);
                 
-                // Calculate yearly totals
-                const yearlyTotals = years.map(year => {
-                  const yearMonths = yearlyData[year];
-                  return yearMonths.reduce((sum, month) => sum + (trainerData[month] || 0), 0);
-                });
+                // Calculate YoY change (comparing same months across years)
+                const currentYearData = alternatingColumns.filter(col => col.year === years[0]);
+                const previousYearData = alternatingColumns.filter(col => col.year === years[1]);
                 
-                const currentYear = yearlyTotals[yearlyTotals.length - 1];
-                const previousYear = yearlyTotals[yearlyTotals.length - 2] || 0;
-                const yoyChange = getChangePercentage(currentYear, previousYear);
+                let yoyChange = 0;
+                if (currentYearData.length > 0 && previousYearData.length > 0) {
+                  const currentTotal = currentYearData.reduce((sum, col) => sum + (trainerData[col.fullMonth] || 0), 0);
+                  const previousTotal = previousYearData.reduce((sum, col) => sum + (trainerData[col.fullMonth] || 0), 0);
+                  yoyChange = getChangePercentage(currentTotal, previousTotal);
+                }
                 
                 return (
-                  <TableRow key={trainer}>
-                    <TableCell className="font-medium text-slate-800">
-                      {trainer}
-                    </TableCell>
-                    {yearlyTotals.map((total, index) => (
-                      <TableCell key={years[index]} className="text-center">
-                        {formatValue(total, defaultMetric)}
+                  <React.Fragment key={trainer}>
+                    <TableRow className="hover:bg-slate-50/50 transition-colors">
+                      <TableCell className="font-medium text-slate-800 sticky left-0 bg-white z-10">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleRowExpansion(trainer)}
+                            className="p-1 h-6 w-6"
+                          >
+                            {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                          </Button>
+                          {trainer}
+                        </div>
                       </TableCell>
-                    ))}
-                    <TableCell className="text-center">
-                      <Badge
-                        variant={yoyChange >= 0 ? "default" : "destructive"}
-                        className={`flex items-center gap-1 ${
-                          yoyChange >= 0 
-                            ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                            : 'bg-red-100 text-red-800 hover:bg-red-200'
-                        }`}
-                      >
-                        {yoyChange >= 0 ? (
-                          <TrendingUp className="w-3 h-3" />
-                        ) : (
-                          <TrendingDown className="w-3 h-3" />
-                        )}
-                        {Math.abs(yoyChange).toFixed(1)}%
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
+                      {alternatingColumns.map((col) => (
+                        <TableCell key={`${trainer}-${col.month}-${col.year}`} className="text-center font-mono">
+                          {formatValue(trainerData[col.fullMonth] || 0, defaultMetric)}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-center">
+                        <Badge
+                          variant={yoyChange >= 0 ? "default" : "destructive"}
+                          className={cn(
+                            "flex items-center gap-1 w-fit mx-auto",
+                            yoyChange >= 0 
+                              ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                              : 'bg-red-100 text-red-800 hover:bg-red-200'
+                          )}
+                        >
+                          {yoyChange >= 0 ? (
+                            <TrendingUp className="w-3 h-3" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3" />
+                          )}
+                          {Math.abs(yoyChange).toFixed(1)}%
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                    
+                    {/* Expanded Row Details */}
+                    {isExpanded && (
+                      <TableRow className="bg-slate-50">
+                        <TableCell colSpan={alternatingColumns.length + 2} className="p-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                            {years.map(year => {
+                              const yearData = alternatingColumns.filter(col => col.year === year);
+                              const yearTotal = yearData.reduce((sum, col) => sum + (trainerData[col.fullMonth] || 0), 0);
+                              return (
+                                <div key={year} className="bg-white p-3 rounded-lg shadow-sm">
+                                  <p className="text-slate-600 text-xs">{year} Total</p>
+                                  <p className={cn(
+                                    "font-bold",
+                                    year === years[0] ? "text-blue-600" : "text-purple-600"
+                                  )}>
+                                    {formatValue(yearTotal, defaultMetric)}
+                                  </p>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </TableBody>

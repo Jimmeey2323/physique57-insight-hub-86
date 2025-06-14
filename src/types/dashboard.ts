@@ -140,4 +140,4 @@ export type TableData = Record<string, any>;
 export type MetricType = 'revenue' | 'transactions' | 'members' | 'atv' | 'auv' | 'asv' | 'upt';
 
 // Trainer-specific metric types
-export type TrainerMetricType = 'totalSessions' | 'totalCustomers' | 'totalPaid' | 'classAverage' | 'retention' | 'conversion';
+export type TrainerMetricType = 'totalSessions' | 'totalCustomers' | 'totalPaid' | 'classAverage' | 'retention' | 'conversion' | 'emptySessions' | 'newMembers';

@@ -5,56 +5,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Users, TrendingUp, BarChart3, Calendar, Target, Award, DollarSign, Activity } from 'lucide-react';
 import { MetricCard } from './MetricCard';
-import { FilterSection } from './FilterSection';
+import { TrainerFilterSection } from './TrainerFilterSection';
 import { TopBottomSellers } from './TopBottomSellers';
 import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
 import { YearOnYearTrainerTable } from './YearOnYearTrainerTable';
-import { InteractiveChart } from './InteractiveChart';
 import { usePayrollData, PayrollData } from '@/hooks/usePayrollData';
-import { TrainerFilterOptions, TrainerMetricType } from '@/types/dashboard';
+import { TrainerMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
 const LOCATION_MAPPING = [
+  { id: 'all', name: 'All', subName: 'Locations', fullName: 'All Locations' },
   { id: 'kwality', name: 'Kwality', subName: 'House', fullName: 'Kwality House, Kemps Corner' },
   { id: 'bandra', name: 'Bandra', subName: 'West', fullName: 'Bandra West' },
   { id: 'juhu', name: 'Juhu', subName: 'Beach', fullName: 'Juhu Beach' },
-  { id: 'powai', name: 'Powai', subName: 'Hills', fullName: 'Powai Hills' },
-  { id: 'other', name: 'Other', subName: 'Locations', fullName: 'Other Locations' }
+  { id: 'powai', name: 'Powai', subName: 'Hills', fullName: 'Powai Hills' }
 ];
-
-// Trainer-specific filter section component
-const TrainerFilterSection = ({ 
-  data, 
-  onFiltersChange, 
-  activeLocation 
-}: { 
-  data: PayrollData[]; 
-  onFiltersChange: (filters: TrainerFilterOptions) => void; 
-  activeLocation: string;
-}) => {
-  return (
-    <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-lg font-bold text-slate-800">Filter Options</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-slate-600">Filter options for trainer performance data will be implemented here.</p>
-      </CardContent>
-    </Card>
-  );
-};
 
 export const TrainerPerformanceSection = () => {
   const { data: rawData, isLoading, error } = usePayrollData();
-  const [activeLocation, setActiveLocation] = useState<string>('kwality');
-  const [selectedTrainer, setSelectedTrainer] = useState<string>('');
+  const [activeLocation, setActiveLocation] = useState<string>('all');
   const [activeMetric, setActiveMetric] = useState<TrainerMetricType>('totalSessions');
-  const [filters, setFilters] = useState<TrainerFilterOptions>({
-    dateRange: { start: '2025-01-01', end: '2025-06-30' },
-    location: [],
-    trainer: [],
-    sessionType: []
+  const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
+  const [filters, setFilters] = useState({
+    location: '',
+    trainer: '',
+    month: ''
   });
 
   const filteredData = useMemo(() => {
@@ -63,14 +39,22 @@ export const TrainerPerformanceSection = () => {
     let filtered = rawData;
     
     // Apply location filter
-    const activeLocationName = LOCATION_MAPPING.find(loc => loc.id === activeLocation)?.fullName;
-    if (activeLocationName) {
-      filtered = filtered.filter(item => item.location === activeLocationName);
+    if (activeLocation !== 'all') {
+      const activeLocationName = LOCATION_MAPPING.find(loc => loc.id === activeLocation)?.fullName;
+      if (activeLocationName) {
+        filtered = filtered.filter(item => item.location === activeLocationName);
+      }
     }
     
-    // Apply other filters
-    if (filters.trainer.length > 0) {
-      filtered = filtered.filter(item => filters.trainer.includes(item.teacherName));
+    // Apply additional filters
+    if (filters.location) {
+      filtered = filtered.filter(item => item.location === filters.location);
+    }
+    if (filters.trainer) {
+      filtered = filtered.filter(item => item.teacherName === filters.trainer);
+    }
+    if (filters.month) {
+      filtered = filtered.filter(item => item.monthYear === filters.month);
     }
     
     return filtered;
@@ -82,10 +66,18 @@ export const TrainerPerformanceSection = () => {
     const totalSessions = filteredData.reduce((sum, item) => sum + item.totalSessions, 0);
     const totalCustomers = filteredData.reduce((sum, item) => sum + item.totalCustomers, 0);
     const totalRevenue = filteredData.reduce((sum, item) => sum + item.totalPaid, 0);
+    const totalEmptySessions = filteredData.reduce((sum, item) => sum + item.totalEmptySessions, 0);
     const totalNonEmptySessions = filteredData.reduce((sum, item) => sum + item.totalNonEmptySessions, 0);
     const avgClassSize = totalNonEmptySessions > 0 ? totalCustomers / totalNonEmptySessions : 0;
-    const avgRetention = filteredData.reduce((sum, item) => sum + parseFloat(item.retention.replace('%', '')), 0) / filteredData.length;
-    const avgConversion = filteredData.reduce((sum, item) => sum + parseFloat(item.conversion.replace('%', '')), 0) / filteredData.length;
+    
+    const avgRetention = filteredData.length > 0 ? 
+      filteredData.reduce((sum, item) => sum + parseFloat(item.retention.replace('%', '') || '0'), 0) / filteredData.length : 0;
+    const avgConversion = filteredData.length > 0 ? 
+      filteredData.reduce((sum, item) => sum + parseFloat(item.conversion.replace('%', '') || '0'), 0) / filteredData.length : 0;
+
+    const totalNewMembers = filteredData.reduce((sum, item) => sum + item.new, 0);
+    const totalRetained = filteredData.reduce((sum, item) => sum + item.retained, 0);
+    const totalConverted = filteredData.reduce((sum, item) => sum + item.converted, 0);
 
     // Top performer by revenue
     const topPerformer = filteredData.reduce((max, item) => 
@@ -101,12 +93,17 @@ export const TrainerPerformanceSection = () => {
       totalSessions,
       totalCustomers,
       totalRevenue,
+      totalEmptySessions,
+      totalNonEmptySessions,
       avgClassSize,
       avgRetention,
       avgConversion,
+      totalNewMembers,
+      totalRetained,
+      totalConverted,
       topPerformer,
       mostPopular,
-      trainerCount: filteredData.length
+      trainerCount: new Set(filteredData.map(item => item.teacherName)).size
     };
   }, [filteredData]);
 
@@ -139,12 +136,28 @@ export const TrainerPerformanceSection = () => {
         calculation: 'Sum of all cycle and barre payments'
       },
       {
+        title: 'Empty Sessions',
+        value: formatNumber(processedData.totalEmptySessions),
+        change: -5.2,
+        icon: 'sessions' as const,
+        description: 'Total classes with no attendees',
+        calculation: 'Sum of all empty sessions'
+      },
+      {
         title: 'Avg Class Size',
         value: processedData.avgClassSize.toFixed(1),
         change: -2.1,
         icon: 'members' as const,
         description: 'Average number of students per non-empty class',
         calculation: 'Total customers / Total non-empty sessions'
+      },
+      {
+        title: 'New Members',
+        value: formatNumber(processedData.totalNewMembers),
+        change: 18.3,
+        icon: 'members' as const,
+        description: 'Total new members acquired',
+        calculation: 'Sum of new members across trainers'
       },
       {
         title: 'Avg Retention',
@@ -169,7 +182,7 @@ export const TrainerPerformanceSection = () => {
     if (!filteredData.length) return { data: {}, months: [], trainers: [] };
 
     const data: Record<string, Record<string, number>> = {};
-    const months = Array.from(new Set(filteredData.map(item => item.monthYear))).sort();
+    const months = Array.from(new Set(filteredData.map(item => item.monthYear))).sort().reverse();
     const trainers = Array.from(new Set(filteredData.map(item => item.teacherName))).sort();
 
     trainers.forEach(trainer => {
@@ -197,6 +210,12 @@ export const TrainerPerformanceSection = () => {
             break;
           case 'conversion':
             data[trainer][month] = parseFloat(trainerData?.conversion.replace('%', '') || '0');
+            break;
+          case 'emptySessions':
+            data[trainer][month] = trainerData?.totalEmptySessions || 0;
+            break;
+          case 'newMembers':
+            data[trainer][month] = trainerData?.new || 0;
             break;
           default:
             data[trainer][month] = trainerData?.totalSessions || 0;
@@ -282,11 +301,12 @@ export const TrainerPerformanceSection = () => {
       <TrainerFilterSection
         data={filteredData}
         onFiltersChange={setFilters}
-        activeLocation={activeLocation}
+        isCollapsed={isFilterCollapsed}
+        onToggleCollapse={() => setIsFilterCollapsed(!isFilterCollapsed)}
       />
 
       {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {metricCards.map((card, index) => (
           <MetricCard
             key={card.title}
@@ -312,14 +332,12 @@ export const TrainerPerformanceSection = () => {
               Month-on-Month Performance Analysis
             </CardTitle>
             <Tabs value={activeMetric} onValueChange={(value) => setActiveMetric(value as TrainerMetricType)}>
-              <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg grid grid-cols-6 gap-1">
+              <TabsList className="bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl shadow-lg grid grid-cols-4 gap-1">
                 {[
                   { key: 'totalSessions' as const, label: 'Sessions', icon: Calendar, color: 'from-blue-500 to-cyan-600' },
                   { key: 'totalCustomers' as const, label: 'Students', icon: Users, color: 'from-green-500 to-emerald-600' },
                   { key: 'totalPaid' as const, label: 'Revenue', icon: DollarSign, color: 'from-purple-500 to-violet-600' },
-                  { key: 'classAverage' as const, label: 'Class Avg', icon: Target, color: 'from-orange-500 to-red-600' },
-                  { key: 'retention' as const, label: 'Retention', icon: Award, color: 'from-pink-500 to-rose-600' },
-                  { key: 'conversion' as const, label: 'Conversion', icon: TrendingUp, color: 'from-indigo-500 to-blue-600' }
+                  { key: 'retention' as const, label: 'Retention', icon: Award, color: 'from-pink-500 to-rose-600' }
                 ].map((metric) => {
                   const IconComponent = metric.icon;
                   return (
@@ -359,62 +377,6 @@ export const TrainerPerformanceSection = () => {
         trainers={trainers}
         defaultMetric={activeMetric}
       />
-
-      {/* Interactive Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold text-slate-800">Trainer Performance Trends</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600">Performance trend charts will be implemented here.</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-lg font-bold text-slate-800">Revenue Distribution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-slate-600">Revenue distribution charts will be implemented here.</p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Summary Statistics */}
-      {processedData && (
-        <Card className="bg-gradient-to-br from-slate-50 to-white border-0 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-slate-800 flex items-center gap-2">
-              <Activity className="w-6 h-6 text-blue-600" />
-              Performance Summary
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-slate-600 mb-1">Top Performer</p>
-                <p className="font-bold text-lg text-blue-600">{processedData.topPerformer?.teacherName}</p>
-                <p className="text-xs text-slate-500">{formatCurrency(processedData.topPerformer?.totalPaid || 0)}</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-slate-600 mb-1">Most Popular</p>
-                <p className="font-bold text-lg text-green-600">{processedData.mostPopular?.teacherName}</p>
-                <p className="text-xs text-slate-500">{formatNumber(processedData.mostPopular?.totalCustomers || 0)} students</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-slate-600 mb-1">Active Trainers</p>
-                <p className="font-bold text-lg text-purple-600">{processedData.trainerCount}</p>
-                <p className="text-xs text-slate-500">Currently teaching</p>
-              </div>
-              <div className="text-center p-4 bg-white rounded-lg shadow-sm">
-                <p className="text-sm text-slate-600 mb-1">Avg Class Size</p>
-                <p className="font-bold text-lg text-orange-600">{processedData.avgClassSize.toFixed(1)}</p>
-                <p className="text-xs text-slate-500">Students per class</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 };

@@ -179,6 +179,23 @@ export const LeadsSection: React.FC = () => {
       center: '',
       source: '',
       notes: '',
+      saleItemId: month,
+      paymentCategory: '',
+      paymentDate: month,
+      paymentValue: data[activeMetric] || data.totalLeads,
+      memberName: month,
+      trainerTeam: '',
+      studiosLocation: '',
+      dateOfJoining: month,
+      subscriptionStartDate: month,
+      subscriptionEndDate: month,
+      subscriptionCycle: '',
+      totalSessions: 0,
+      sessionsCompleted: 0,
+      sessionsRemaining: 0,
+      avgSessionsPerWeek: 0,
+      conversionRate: 0,
+      retentionRate: 0
     })).sort((a, b) => a.transactionDate.localeCompare(b.transactionDate));
   }, [filteredData, activeMetric]);
 
@@ -253,152 +270,258 @@ export const LeadsSection: React.FC = () => {
       center: item.center,
       source: item.source,
       notes: item.remarks,
+      saleItemId: item.id,
+      paymentCategory: item.source,
+      paymentDate: item.createdAt,
+      paymentValue: item.ltv,
+      memberName: item.fullName,
+      trainerTeam: item.associate,
+      studiosLocation: item.center,
+      dateOfJoining: item.createdAt,
+      subscriptionStartDate: item.createdAt,
+      subscriptionEndDate: item.convertedToCustomerAt,
+      subscriptionCycle: '',
+      totalSessions: item.visits,
+      sessionsCompleted: item.visits,
+      sessionsRemaining: 0,
+      avgSessionsPerWeek: 0,
+      conversionRate: 0,
+      retentionRate: 0
     }));
   }, [filteredData]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin" />
-        <span className="ml-2">Loading leads data...</span>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <Card className="p-8 bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl">
+          <CardContent className="flex items-center gap-4">
+            <Loader2 className="w-8 h-8 animate-spin text-white" />
+            <div>
+              <p className="text-lg font-semibold text-white">Loading Leads Data</p>
+              <p className="text-sm text-white/70">Fetching lead performance metrics...</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Card className="p-8">
-        <CardContent className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
-          <Button onClick={refetch} className="gap-2">
-            <RefreshCw className="w-4 h-4" />
-            Retry
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="min-h-screen bg-gradient-to-br from-red-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
+        <Card className="p-8 bg-white/10 backdrop-blur-xl border border-red-500/30 shadow-2xl max-w-md">
+          <CardContent className="text-center space-y-4">
+            <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
+              <RefreshCw className="w-6 h-6 text-red-400" />
+            </div>
+            <div>
+              <p className="text-lg font-semibold text-white">Connection Error</p>
+              <p className="text-sm text-white/70 mt-2">{error}</p>
+            </div>
+            <Button 
+              onClick={refetch} 
+              className="gap-2 bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 border-0 shadow-lg"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry Connection
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Location Tabs */}
-      <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-        <TabsList className="grid w-full grid-cols-auto">
-          <TabsTrigger value="all">All Locations</TabsTrigger>
-          {availableOptions.locations.map((location) => (
-            <TabsTrigger key={location} value={location}>
-              {location}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-      </Tabs>
-
-      {/* Filters */}
-      <LeadsFilterSection
-        filters={filters}
-        onFiltersChange={setFilters}
-        availableOptions={availableOptions}
-        isOpen={filtersOpen}
-        onToggle={() => setFiltersOpen(!filtersOpen)}
-      />
-
-      {/* Funnel Visualization */}
-      <LeadsFunnelVisualization
-        data={{
-          totalLeads: metrics.totalLeads,
-          trialScheduled: metrics.trialScheduled,
-          trialCompleted: metrics.trialCompleted,
-          membershipsSold: metrics.membershipsSold,
-        }}
-      />
-
-      {/* Metric Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          data={{
-            title: "Total Leads",
-            value: formatNumber(metrics.totalLeads),
-            change: 0,
-            description: "Leads in funnel",
-            calculation: "Total lead count",
-            icon: "users"
-          }}
-        />
-        <MetricCard
-          data={{
-            title: "Lead to Trial Rate",
-            value: `${metrics.leadToTrialRate.toFixed(1)}%`,
-            change: 0,
-            description: "Trial conversion",
-            calculation: "Trials scheduled / Total leads",
-            icon: "target"
-          }}
-        />
-        <MetricCard
-          data={{
-            title: "Trial to Membership",
-            value: `${metrics.trialToMembershipRate.toFixed(1)}%`,
-            change: 0,
-            description: "Final conversion",
-            calculation: "Memberships sold / Trials completed",
-            icon: "credit-card"
-          }}
-        />
-        <MetricCard
-          data={{
-            title: "Average LTV",
-            value: formatCurrency(metrics.avgLTV),
-            change: 0,
-            description: "Customer lifetime value",
-            calculation: "Total LTV / Converted customers",
-            icon: "trending-up"
-          }}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-pink-500/10 to-indigo-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
-      {/* Top/Bottom Lists and Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <TopBottomTrainerList
-          title="Top Lead Sources"
-          trainers={topSources}
-          variant="top"
-        />
-        <TopBottomTrainerList
-          title="Top Associates"
-          trainers={topAssociates}
-          variant="top"
-        />
-        <div className="space-y-4">
-          <Select value={activeMetric} onValueChange={(value: LeadsMetricType) => setActiveMetric(value)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="totalLeads">Total Leads</SelectItem>
-              <SelectItem value="leadToTrialConversion">Lead to Trial</SelectItem>
-              <SelectItem value="trialToMembershipConversion">Trial to Membership</SelectItem>
-              <SelectItem value="ltv">Average LTV</SelectItem>
-            </SelectContent>
-          </Select>
-          <InteractiveChart
-            data={chartData}
-            title="Leads Trend"
-            type="revenue"
-          />
+      <div className="relative z-10 space-y-8 p-6">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent mb-4">
+            Lead Performance Analytics
+          </h1>
+          <p className="text-lg text-white/80">
+            Track and optimize your lead conversion funnel
+          </p>
         </div>
-      </div>
 
-      {/* Data Tables */}
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Leads Overview</CardTitle>
+        {/* Location Tabs */}
+        <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+          <CardContent className="p-6">
+            <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
+              <TabsList className="grid w-full grid-cols-auto bg-black/20 backdrop-blur-sm border border-white/10">
+                <TabsTrigger 
+                  value="all"
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-white/70"
+                >
+                  All Locations
+                </TabsTrigger>
+                {availableOptions.locations.map((location) => (
+                  <TabsTrigger 
+                    key={location} 
+                    value={location}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white text-white/70"
+                  >
+                    {location}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
+          </CardContent>
+        </Card>
+
+        {/* Filters */}
+        <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+          <LeadsFilterSection
+            filters={filters}
+            onFiltersChange={setFilters}
+            availableOptions={availableOptions}
+            isOpen={filtersOpen}
+            onToggle={() => setFiltersOpen(!filtersOpen)}
+          />
+        </Card>
+
+        {/* Funnel Visualization */}
+        <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
+          <CardHeader className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border-b border-white/10">
+            <CardTitle className="text-white text-xl">Lead Conversion Funnel</CardTitle>
           </CardHeader>
-          <CardContent>
-            <DataTable
-              data={tableData}
-              title="All Leads Data"
+          <CardContent className="p-6">
+            <LeadsFunnelVisualization
+              data={{
+                totalLeads: metrics.totalLeads,
+                trialScheduled: metrics.trialScheduled,
+                trialCompleted: metrics.trialCompleted,
+                membershipsSold: metrics.membershipsSold,
+              }}
             />
+          </CardContent>
+        </Card>
+
+        {/* Metric Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-xl border border-blue-400/30 shadow-2xl hover:shadow-blue-500/25 transition-all duration-300">
+            <MetricCard
+              data={{
+                title: "Total Leads",
+                value: formatNumber(metrics.totalLeads),
+                change: 0,
+                description: "Leads in funnel",
+                calculation: "Total lead count",
+                icon: "users"
+              }}
+            />
+          </Card>
+          <Card className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-xl border border-green-400/30 shadow-2xl hover:shadow-green-500/25 transition-all duration-300">
+            <MetricCard
+              data={{
+                title: "Lead to Trial Rate",
+                value: `${metrics.leadToTrialRate.toFixed(1)}%`,
+                change: 0,
+                description: "Trial conversion",
+                calculation: "Trials scheduled / Total leads",
+                icon: "target"
+              }}
+            />
+          </Card>
+          <Card className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-xl border border-purple-400/30 shadow-2xl hover:shadow-purple-500/25 transition-all duration-300">
+            <MetricCard
+              data={{
+                title: "Trial to Membership",
+                value: `${metrics.trialToMembershipRate.toFixed(1)}%`,
+                change: 0,
+                description: "Final conversion",
+                calculation: "Memberships sold / Trials completed",
+                icon: "credit-card"
+              }}
+            />
+          </Card>
+          <Card className="bg-gradient-to-br from-orange-500/20 to-orange-600/20 backdrop-blur-xl border border-orange-400/30 shadow-2xl hover:shadow-orange-500/25 transition-all duration-300">
+            <MetricCard
+              data={{
+                title: "Average LTV",
+                value: formatCurrency(metrics.avgLTV),
+                change: 0,
+                description: "Customer lifetime value",
+                calculation: "Total LTV / Converted customers",
+                icon: "trending-up"
+              }}
+            />
+          </Card>
+        </div>
+
+        {/* Top/Bottom Lists and Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border-b border-white/10">
+              <CardTitle className="text-white">Top Lead Sources</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <TopBottomTrainerList
+                title="Top Lead Sources"
+                trainers={topSources}
+                variant="top"
+              />
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-b border-white/10">
+              <CardTitle className="text-white">Top Associates</CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <TopBottomTrainerList
+                title="Top Associates"
+                trainers={topAssociates}
+                variant="top"
+              />
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+            <CardHeader className="bg-gradient-to-r from-indigo-500/20 to-cyan-500/20 border-b border-white/10">
+              <CardTitle className="text-white flex items-center justify-between">
+                Leads Trend
+                <Select value={activeMetric} onValueChange={(value: LeadsMetricType) => setActiveMetric(value)}>
+                  <SelectTrigger className="w-48 bg-black/20 border-white/20 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-slate-900 border-white/20">
+                    <SelectItem value="totalLeads">Total Leads</SelectItem>
+                    <SelectItem value="leadToTrialConversion">Lead to Trial</SelectItem>
+                    <SelectItem value="trialToMembershipConversion">Trial to Membership</SelectItem>
+                    <SelectItem value="ltv">Average LTV</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <InteractiveChart
+                data={chartData}
+                title="Leads Trend"
+                type="revenue"
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Data Tables */}
+        <Card className="bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl">
+          <CardHeader className="bg-gradient-to-r from-slate-500/20 to-gray-500/20 border-b border-white/10">
+            <CardTitle className="text-white text-xl">Leads Overview</CardTitle>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="bg-black/20 backdrop-blur-sm rounded-lg border border-white/10">
+              <DataTable
+                data={tableData}
+                title="All Leads Data"
+              />
+            </div>
           </CardContent>
         </Card>
       </div>

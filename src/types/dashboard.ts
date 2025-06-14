@@ -1,4 +1,3 @@
-
 export interface SalesData {
   memberId: string;
   customerName: string;
@@ -45,6 +44,10 @@ export interface NewClientData {
   ltv: number;
   retentionStatus: string;
   conversionStatus: string;
+  period: string;
+  unique: string;
+  firstPurchase: string;
+  conversionSpan: number;
 }
 
 export interface PayrollData {

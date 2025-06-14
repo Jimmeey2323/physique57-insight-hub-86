@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -59,7 +58,7 @@ export const SessionsSection: React.FC = () => {
         className.toLowerCase().includes(keyword.toLowerCase())
       );
       
-      return !hasExcludedKeyword && (session.sessionCount || session.checkedInCount || 1) >= 2;
+      return !hasExcludedKeyword && (session.checkedInCount || session.checkedIn || 1) >= 2;
     });
 
     if (activeLocation !== 'all') {
@@ -204,7 +203,7 @@ export const SessionsSection: React.FC = () => {
                     data={filteredData} 
                     title="Top Performing Classes"
                     type="classes"
-                    variant="success"
+                    variant="top"
                   />
                 </TabsContent>
               ))}

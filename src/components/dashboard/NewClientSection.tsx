@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,7 +9,7 @@ import { useNewClientData } from '@/hooks/useNewClientData';
 import { NewClientFilterSection } from './NewClientFilterSection';
 import { MetricCard } from './MetricCard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-import { getNewClientMetrics } from '@/utils/newClientMetrics';
+import { getNewClientMetrics, calculateNewClientMetrics, getUniqueTrainers, getUniqueLocations, getTopBottomTrainers } from '@/utils/newClientMetrics';
 import { NewClientFilterOptions } from '@/types/dashboard';
 
 const locations = [
@@ -46,10 +47,14 @@ export const NewClientSection: React.FC = () => {
   const { data, loading, error, refetch } = useNewClientData();
   const [activeLocation, setActiveLocation] = useState('all');
   const [filters, setFilters] = useState<NewClientFilterOptions>({
+    dateRange: { start: '', end: '' },
     location: [],
+    homeLocation: [],
     trainer: [],
+    paymentMethod: [],
     retentionStatus: [],
-    conversionStatus: []
+    conversionStatus: [],
+    isNew: []
   });
 
   const filteredData = useMemo(() => {
@@ -84,6 +89,14 @@ export const NewClientSection: React.FC = () => {
   const metrics = useMemo(() => {
     return getNewClientMetrics(filteredData);
   }, [filteredData]);
+
+  const calculatedMetrics = useMemo(() => {
+    return calculateNewClientMetrics(filteredData);
+  }, [filteredData]);
+
+  const topBottomTrainers = useMemo(() => {
+    return getTopBottomTrainers(calculatedMetrics, 'newMembers', 5);
+  }, [calculatedMetrics]);
 
   if (loading) {
     return (
@@ -240,6 +253,74 @@ export const NewClientSection: React.FC = () => {
                     ))}
                   </div>
 
+                  {/* Top/Bottom Trainers Performance */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <Card className="bg-white shadow-sm border border-gray-200">
+                      <CardHeader className="border-b border-gray-100">
+                        <CardTitle className="text-gray-800 text-xl flex items-center gap-2">
+                          <TrendingUp className="w-5 h-5 text-green-600" />
+                          Top Performing Trainers
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          {topBottomTrainers.top.slice(0, 5).map((trainer, index) => (
+                            <div key={trainer.trainerName} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-gray-800">{trainer.trainerName}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {trainer.totalNewMembers} new members • {trainer.averageConversionRate.toFixed(1)}% conversion
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold text-green-600">{formatCurrency(trainer.averageLtv)}</div>
+                                <div className="text-xs text-gray-500">Avg LTV</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-white shadow-sm border border-gray-200">
+                      <CardHeader className="border-b border-gray-100">
+                        <CardTitle className="text-gray-800 text-xl flex items-center gap-2">
+                          <Target className="w-5 h-5 text-orange-600" />
+                          Trainers Needing Support
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-6">
+                        <div className="space-y-4">
+                          {topBottomTrainers.bottom.slice(0, 5).map((trainer, index) => (
+                            <div key={trainer.trainerName} className="flex items-center justify-between p-3 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                  {index + 1}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-gray-800">{trainer.trainerName}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {trainer.totalNewMembers} new members • {trainer.averageConversionRate.toFixed(1)}% conversion
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-bold text-orange-600">{formatCurrency(trainer.averageLtv)}</div>
+                                <div className="text-xs text-gray-500">Avg LTV</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* New Client Data Summary */}
                   <Card className="bg-white shadow-sm border border-gray-200">
                     <CardHeader className="border-b border-gray-100">
                       <CardTitle className="text-gray-800 text-xl">New Client Data Summary</CardTitle>
@@ -268,6 +349,75 @@ export const NewClientSection: React.FC = () => {
                       </div>
                     </CardContent>
                   </Card>
+
+                  {/* Monthly Performance Table */}
+                  {calculatedMetrics.length > 0 && (
+                    <Card className="bg-white shadow-sm border border-gray-200">
+                      <CardHeader className="border-b border-gray-100">
+                        <CardTitle className="text-gray-800 text-xl">Monthly Performance by Trainer</CardTitle>
+                      </CardHeader>
+                      <CardContent className="p-0">
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trainer</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Month</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">New Members</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retained</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Converted</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg LTV</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Retention %</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Conversion %</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {calculatedMetrics.slice(0, 20).map((metric, index) => (
+                                <tr key={`${metric.trainerName}-${metric.monthYear}`} className="hover:bg-gray-50">
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                    {metric.trainerName}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {metric.monthYear}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {metric.newMembers}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {metric.retainedMembers}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {metric.convertedMembers}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {formatCurrency(metric.averageLtv)}
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                      metric.retentionPercentage >= 70 ? 'bg-green-100 text-green-800' :
+                                      metric.retentionPercentage >= 50 ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
+                                    }`}>
+                                      {metric.retentionPercentage.toFixed(1)}%
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                      metric.conversionPercentage >= 60 ? 'bg-green-100 text-green-800' :
+                                      metric.conversionPercentage >= 40 ? 'bg-yellow-100 text-yellow-800' :
+                                      'bg-red-100 text-red-800'
+                                    }`}>
+                                      {metric.conversionPercentage.toFixed(1)}%
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
                 </TabsContent>
               ))}
             </Tabs>

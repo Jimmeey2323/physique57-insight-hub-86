@@ -22,6 +22,24 @@ export interface SalesData {
   cleanedCategory: string;
 }
 
+export interface SessionData {
+  sessionId: string;
+  date: string;
+  time: string;
+  classType: string;
+  cleanedClass: string;
+  instructor: string;
+  location: string;
+  capacity: number;
+  booked: number;
+  checkedIn: number;
+  checkedInCount: number;
+  sessionCount: number;
+  fillPercentage: number;
+  waitlist: number;
+  noShows: number;
+}
+
 export interface NewClientData {
   memberId: string;
   firstName: string;

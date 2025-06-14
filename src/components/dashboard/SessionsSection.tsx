@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard, MapPin, Building2 } from 'lucide-react';
-import { useSessionsData } from '@/hooks/useSessionsData';
+import { useSessionsData, SessionData } from '@/hooks/useSessionsData';
 import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
 import { SessionsMetricCards } from './SessionsMetricCards';
 import { SessionsGroupedTable } from './SessionsGroupedTable';
@@ -58,7 +59,7 @@ export const SessionsSection: React.FC = () => {
         className.toLowerCase().includes(keyword.toLowerCase())
       );
       
-      return !hasExcludedKeyword && (session.checkedInCount || session.checkedIn || 1) >= 2;
+      return !hasExcludedKeyword && (session.checkedInCount >= 2);
     });
 
     if (activeLocation !== 'all') {

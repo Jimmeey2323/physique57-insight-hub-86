@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, Users, Target, TrendingUp, Calendar, Filter, BarChart3 } from 'lucide-react';
-import { useSessionsData } from '@/hooks/useSessionsData';
+import { useSessionsData, SessionData } from '@/hooks/useSessionsData';
 import { SessionsFilterSection } from './SessionsFilterSection';
 import { SessionsGroupedTable } from './SessionsGroupedTable';
 import { SessionsMetricCards } from './SessionsMetricCards';

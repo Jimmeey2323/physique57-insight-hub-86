@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
 import { TrendingUp, Calendar, Users, Target } from 'lucide-react';
-import { SessionData } from '@/types/dashboard';
+import { SessionData } from '@/hooks/useSessionsData';
 
 interface SessionsAttendanceAnalyticsProps {
   data: SessionData[];
@@ -15,7 +15,10 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
 
     // Group data by date and calculate daily metrics
     const dailyStats = data.reduce((acc, session) => {
-      const date = new Date(session.date).toLocaleDateString();
+      const sessionDate = new Date(session.date);
+      if (isNaN(sessionDate.getTime())) return acc; // Skip invalid dates
+      
+      const date = sessionDate.toLocaleDateString();
       
       if (!acc[date]) {
         acc[date] = {
@@ -29,8 +32,8 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
       }
 
       acc[date].totalSessions += 1;
-      acc[date].totalBooked += session.booked || 0;
-      acc[date].totalCheckedIn += session.checkedInCount || session.checkedIn || 0;
+      acc[date].totalBooked += session.bookedCount || 0;
+      acc[date].totalCheckedIn += session.checkedInCount || 0;
       acc[date].totalCapacity += session.capacity || 0;
 
       return acc;
@@ -48,9 +51,11 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
     if (!data || data.length === 0) return [];
 
     const weeklyStats = data.reduce((acc, session) => {
-      const date = new Date(session.date);
-      const weekStart = new Date(date);
-      weekStart.setDate(date.getDate() - date.getDay());
+      const sessionDate = new Date(session.date);
+      if (isNaN(sessionDate.getTime())) return acc; // Skip invalid dates
+      
+      const weekStart = new Date(sessionDate);
+      weekStart.setDate(sessionDate.getDate() - sessionDate.getDay());
       const weekKey = weekStart.toISOString().split('T')[0];
 
       if (!acc[weekKey]) {
@@ -64,7 +69,7 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
       }
 
       acc[weekKey].sessions += 1;
-      acc[weekKey].totalAttendance += session.checkedInCount || session.checkedIn || 0;
+      acc[weekKey].totalAttendance += session.checkedInCount || 0;
       acc[weekKey].totalCapacity += session.capacity || 0;
 
       return acc;

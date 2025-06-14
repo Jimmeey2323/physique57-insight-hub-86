@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,39 +46,37 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   const [showCount, setShowCount] = useState(5);
   const [includeTrainer, setIncludeTrainer] = useState(false);
 
-  // Helper: computes relevant sessions for each group, avoid inline function reference issues
+  // Helper: computes relevant sessions for each group
   const computeRelevantSessions = (
-    data: SessionData[],
-    itemName: string,
-    type: 'classes' | 'trainers',
-    includeTrainer: boolean
+    sessionData: SessionData[],
+    groupName: string,
+    dataType: 'classes' | 'trainers',
+    withTrainer: boolean
   ): SessionData[] => {
-    return data.filter((sessionItem: SessionData) => {
+    return sessionData.filter((sessionItem: SessionData) => {
       if (!sessionItem) return false;
-      if (type === 'classes') {
-        if (includeTrainer) {
+      if (dataType === 'classes') {
+        if (withTrainer) {
           const sessionKey = `${sessionItem.cleanedClass || ''}-${sessionItem.trainerName || ''}`;
-          return sessionKey === itemName;
+          return sessionKey === groupName;
         } else {
-          return sessionItem.cleanedClass === itemName;
+          return sessionItem.cleanedClass === groupName;
         }
       } else {
-        return sessionItem.trainerName === itemName;
+        return sessionItem.trainerName === groupName;
       }
     });
   };
 
   const processedData = useMemo((): GroupedItem[] => {
-    // --- Defensive: always declare variables BEFORE use (fixing "before initialization" bugs) ---
-
     if (!Array.isArray(data) || data.length === 0) {
       return [];
     }
 
     // 1. Group and aggregate
     const groupedResults: Record<string, GroupedItem> = {};
-    for (let i = 0; i < data.length; i++) {
-      const session = data[i];
+    for (let idx = 0; idx < data.length; idx++) {
+      const session = data[idx];
       if (!session) continue;
 
       let groupKey = '';
@@ -121,9 +120,9 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
 
     const groupedItems: GroupedItem[] = Object.values(groupedResults);
 
-    // 2. Compute averages/fill rates/attendance, ensuring no out-of-scope refs
-    for (let j = 0; j < groupedItems.length; j++) {
-      const item = groupedItems[j];
+    // 2. Compute averages/fill rates/attendance, using helper (no possible "m" shadowing)
+    for (let gIdx = 0; gIdx < groupedItems.length; gIdx++) {
+      const item = groupedItems[gIdx];
       const relevantSessions = computeRelevantSessions(data, item.name, type, includeTrainer);
       const totalCapacity = relevantSessions.reduce(
         (sum, sessionItem) => sum + Number(sessionItem.capacity || 0),
@@ -133,33 +132,36 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     }
 
-    // 3. Sort the array (no referential or closure dependents)
-    const sortedData: GroupedItem[] = [...groupedItems].sort((a, b) => {
+    // 3. Sort with explicit variable names to prevent shadowing and initialization issues
+    const sortedData: GroupedItem[] = [...groupedItems].sort((aItem, bItem) => {
       let aValue = 0;
       let bValue = 0;
 
-      if (selectedMetric === 'attendance') {
-        aValue = a.avgAttendance;
-        bValue = b.avgAttendance;
-      } else if (selectedMetric === 'fillRate') {
-        aValue = a.avgFillRate;
-        bValue = b.avgFillRate;
-      } else if (selectedMetric === 'revenue') {
-        aValue = a.totalRevenue;
-        bValue = b.totalRevenue;
-      } else if (selectedMetric === 'lateCancellations') {
-        aValue = a.lateCancellations;
-        bValue = b.lateCancellations;
-        return variant === 'top' ? bValue - aValue : aValue - bValue;
-      } else {
-        aValue = a.avgAttendance;
-        bValue = b.avgAttendance;
+      switch (selectedMetric) {
+        case 'attendance':
+          aValue = aItem.avgAttendance;
+          bValue = bItem.avgAttendance;
+          break;
+        case 'fillRate':
+          aValue = aItem.avgFillRate;
+          bValue = bItem.avgFillRate;
+          break;
+        case 'revenue':
+          aValue = aItem.totalRevenue;
+          bValue = bItem.totalRevenue;
+          break;
+        case 'lateCancellations':
+          aValue = aItem.lateCancellations;
+          bValue = bItem.lateCancellations;
+          return variant === 'top' ? bValue - aValue : aValue - bValue;
+        default:
+          aValue = aItem.avgAttendance;
+          bValue = bItem.avgAttendance;
       }
       return variant === 'top' ? bValue - aValue : aValue - bValue;
     });
 
     return sortedData.slice(0, showCount);
-  // Never reference values/functions below this line inside this hook!
   }, [data, type, selectedMetric, variant, showCount, includeTrainer]);
 
   const metricOptions = [

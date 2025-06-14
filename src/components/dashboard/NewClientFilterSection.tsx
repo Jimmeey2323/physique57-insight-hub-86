@@ -46,14 +46,14 @@ export const NewClientFilterSection: React.FC<NewClientFilterSectionProps> = ({
           <div>
             <label className="block text-sm font-medium mb-2">Visit Location</label>
             <Select 
-              value={filters.location[0] || ''} 
-              onValueChange={(value) => onFiltersChange({ ...filters, location: value ? [value] : [] })}
+              value={filters.location[0] || 'all'} 
+              onValueChange={(value) => onFiltersChange({ ...filters, location: value === 'all' ? [] : [value] })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All locations" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All locations</SelectItem>
+                <SelectItem value="all">All locations</SelectItem>
                 {getUniqueValues('firstVisitLocation').map(location => (
                   <SelectItem key={location} value={location}>{location}</SelectItem>
                 ))}
@@ -64,14 +64,14 @@ export const NewClientFilterSection: React.FC<NewClientFilterSectionProps> = ({
           <div>
             <label className="block text-sm font-medium mb-2">Trainer</label>
             <Select 
-              value={filters.trainer[0] || ''} 
-              onValueChange={(value) => onFiltersChange({ ...filters, trainer: value ? [value] : [] })}
+              value={filters.trainer[0] || 'all'} 
+              onValueChange={(value) => onFiltersChange({ ...filters, trainer: value === 'all' ? [] : [value] })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All trainers" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All trainers</SelectItem>
+                <SelectItem value="all">All trainers</SelectItem>
                 {getUniqueValues('trainerName').map(trainer => (
                   <SelectItem key={trainer} value={trainer}>{trainer}</SelectItem>
                 ))}
@@ -82,14 +82,14 @@ export const NewClientFilterSection: React.FC<NewClientFilterSectionProps> = ({
           <div>
             <label className="block text-sm font-medium mb-2">Retention Status</label>
             <Select 
-              value={filters.retentionStatus[0] || ''} 
-              onValueChange={(value) => onFiltersChange({ ...filters, retentionStatus: value ? [value] : [] })}
+              value={filters.retentionStatus[0] || 'all'} 
+              onValueChange={(value) => onFiltersChange({ ...filters, retentionStatus: value === 'all' ? [] : [value] })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 {getUniqueValues('retentionStatus').map(status => (
                   <SelectItem key={status} value={status}>{status}</SelectItem>
                 ))}
@@ -100,14 +100,14 @@ export const NewClientFilterSection: React.FC<NewClientFilterSectionProps> = ({
           <div>
             <label className="block text-sm font-medium mb-2">Conversion Status</label>
             <Select 
-              value={filters.conversionStatus[0] || ''} 
-              onValueChange={(value) => onFiltersChange({ ...filters, conversionStatus: value ? [value] : [] })}
+              value={filters.conversionStatus[0] || 'all'} 
+              onValueChange={(value) => onFiltersChange({ ...filters, conversionStatus: value === 'all' ? [] : [value] })}
             >
               <SelectTrigger>
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 {getUniqueValues('conversionStatus').map(status => (
                   <SelectItem key={status} value={status}>{status}</SelectItem>
                 ))}

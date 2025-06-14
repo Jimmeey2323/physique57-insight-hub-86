@@ -11,35 +11,62 @@ const GOOGLE_CONFIG = {
 
 const SPREADSHEET_ID = "1dQMNF69WnXVQdhlLvUZTig3kL97NA21k6eZ9HRu6xiQ";
 
-const parseDate = (dateString: string) => {
-  if (!dateString) return '';
+const parseDate = (dateString: string | undefined | null) => {
+  if (!dateString || dateString.trim() === '' || dateString === '-') return '';
   
-  // Handle various date formats
-  let parsedDate;
-  
-  // Try parsing different formats
-  if (dateString.includes('/')) {
-    // MM/DD/YYYY or DD/MM/YYYY format
-    const parts = dateString.split('/');
-    if (parts.length === 3) {
-      parsedDate = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
+  try {
+    // Handle various date formats
+    let parsedDate;
+    
+    // Try parsing different formats
+    if (dateString.includes('/')) {
+      // MM/DD/YYYY or DD/MM/YYYY format
+      const parts = dateString.split('/');
+      if (parts.length === 3) {
+        const year = parseInt(parts[2]);
+        const month = parseInt(parts[0]) - 1; // Month is 0-indexed
+        const day = parseInt(parts[1]);
+        
+        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
+          parsedDate = new Date(year, month, day);
+        }
+      }
+    } else if (dateString.includes('-')) {
+      // YYYY-MM-DD format
+      parsedDate = new Date(dateString);
+    } else {
+      // Try direct parsing
+      parsedDate = new Date(dateString);
     }
-  } else if (dateString.includes('-')) {
-    // YYYY-MM-DD format
-    parsedDate = new Date(dateString);
-  } else {
-    // Try direct parsing
-    parsedDate = new Date(dateString);
-  }
-  
-  // Validate the date
-  if (isNaN(parsedDate.getTime())) {
-    console.warn('Invalid date format:', dateString);
+    
+    // Validate the date
+    if (!parsedDate || isNaN(parsedDate.getTime())) {
+      console.warn('Invalid date format:', dateString);
+      return '';
+    }
+    
+    // Return ISO string format for consistency
+    return parsedDate.toISOString();
+  } catch (error) {
+    console.warn('Error parsing date:', dateString, error);
     return '';
   }
-  
-  // Return ISO string format for consistency
-  return parsedDate.toISOString();
+};
+
+const safeGet = (row: any[], index: number): string => {
+  return row && row[index] !== undefined && row[index] !== null ? String(row[index]).trim() : '';
+};
+
+const safeGetNumber = (row: any[], index: number): number => {
+  const value = safeGet(row, index);
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+const safeGetInt = (row: any[], index: number): number => {
+  const value = safeGet(row, index);
+  const parsed = parseInt(value);
+  return isNaN(parsed) ? 0 : parsed;
 };
 
 export const useLeadsData = () => {
@@ -62,7 +89,16 @@ export const useLeadsData = () => {
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`Token request failed: ${response.statusText}`);
+      }
+
       const tokenData = await response.json();
+      
+      if (!tokenData.access_token) {
+        throw new Error('No access token received');
+      }
+      
       return tokenData.access_token;
     } catch (error) {
       console.error('Error getting access token:', error);
@@ -73,6 +109,8 @@ export const useLeadsData = () => {
   const fetchLeadsData = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
       const accessToken = await getAccessToken();
       
       const response = await fetch(
@@ -85,60 +123,83 @@ export const useLeadsData = () => {
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch leads data');
+        throw new Error(`Failed to fetch leads data: ${response.statusText}`);
       }
 
       const result = await response.json();
       const rows = result.values || [];
       
+      console.log('Raw sheet data:', { totalRows: rows.length, sampleData: rows.slice(0, 3) });
+      
       if (rows.length < 2) {
+        console.warn('Not enough data rows in sheet');
         setData([]);
         return;
       }
 
-      console.log('Raw sheet data sample:', rows.slice(0, 3));
+      // Process each row with defensive programming
+      const leadsData: LeadsData[] = rows.slice(1)
+        .map((row: any[], index: number) => {
+          try {
+            if (!row || row.length === 0) {
+              console.warn(`Empty row at index ${index + 1}`);
+              return null;
+            }
 
-      const leadsData: LeadsData[] = rows.slice(1).map((row: any[]) => ({
-        id: row[0] || '',
-        fullName: row[1] || '',
-        phone: row[2] || '',
-        email: row[3] || '',
-        createdAt: parseDate(row[4]) || '', // Properly parse the Created At column
-        sourceId: row[5] || '',
-        source: row[6] || '',
-        memberId: row[7] || '',
-        convertedToCustomerAt: parseDate(row[8]) || '',
-        stage: row[9] || '',
-        associate: row[10] || '',
-        remarks: row[11] || '',
-        followUp1Date: parseDate(row[12]) || '',
-        followUpComments1: row[13] || '',
-        followUp2Date: parseDate(row[14]) || '',
-        followUpComments2: row[15] || '',
-        followUp3Date: parseDate(row[16]) || '',
-        followUpComments3: row[17] || '',
-        followUp4Date: parseDate(row[18]) || '',
-        followUpComments4: row[19] || '',
-        center: row[20] || '',
-        classType: row[21] || '',
-        hostId: row[22] || '',
-        status: row[23] || '',
-        channel: row[24] || '',
-        period: row[25] || '',
-        purchasesMade: parseInt(row[26]) || 0,
-        ltv: parseFloat(row[27]) || 0,
-        visits: parseInt(row[28]) || 0,
-        trialStatus: row[29] || '',
-        conversionStatus: row[30] || '',
-        retentionStatus: row[31] || '',
-      }));
+            const leadData: LeadsData = {
+              id: safeGet(row, 0),
+              fullName: safeGet(row, 1),
+              phone: safeGet(row, 2),
+              email: safeGet(row, 3),
+              createdAt: parseDate(safeGet(row, 4)),
+              sourceId: safeGet(row, 5),
+              source: safeGet(row, 6),
+              memberId: safeGet(row, 7),
+              convertedToCustomerAt: parseDate(safeGet(row, 8)),
+              stage: safeGet(row, 9),
+              associate: safeGet(row, 10),
+              remarks: safeGet(row, 11),
+              followUp1Date: parseDate(safeGet(row, 12)),
+              followUpComments1: safeGet(row, 13),
+              followUp2Date: parseDate(safeGet(row, 14)),
+              followUpComments2: safeGet(row, 15),
+              followUp3Date: parseDate(safeGet(row, 16)),
+              followUpComments3: safeGet(row, 17),
+              followUp4Date: parseDate(safeGet(row, 18)),
+              followUpComments4: safeGet(row, 19),
+              center: safeGet(row, 20),
+              classType: safeGet(row, 21),
+              hostId: safeGet(row, 22),
+              status: safeGet(row, 23),
+              channel: safeGet(row, 24),
+              period: safeGet(row, 25),
+              purchasesMade: safeGetInt(row, 26),
+              ltv: safeGetNumber(row, 27),
+              visits: safeGetInt(row, 28),
+              trialStatus: safeGet(row, 29),
+              conversionStatus: safeGet(row, 30),
+              retentionStatus: safeGet(row, 31),
+            };
 
-      console.log('Processed leads data sample:', leadsData.slice(0, 3));
+            return leadData;
+          } catch (rowError) {
+            console.error(`Error processing row ${index + 1}:`, rowError, row);
+            return null;
+          }
+        })
+        .filter((item): item is LeadsData => item !== null);
+
+      console.log('Processed leads data:', { 
+        totalProcessed: leadsData.length, 
+        sampleData: leadsData.slice(0, 3),
+        validDates: leadsData.filter(item => item.createdAt).length 
+      });
+      
       setData(leadsData);
       setError(null);
     } catch (err) {
       console.error('Error fetching leads data:', err);
-      setError('Failed to load leads data');
+      setError(err instanceof Error ? err.message : 'Failed to load leads data');
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -324,7 +325,7 @@ export const TrainerPerformanceSection = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <p className="text-red-600">Error loading trainer performance data: {error}</p>
+          <p className="text-red-600">Error loading trainer performance data: {error?.message || 'Unknown error'}</p>
         </div>
       </div>
     );

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -152,11 +153,33 @@ export const LeadsSection: React.FC = () => {
       return acc;
     }, {} as Record<string, any>);
 
+    // Convert to the format expected by InteractiveChart (simulating SalesData structure)
     return Object.entries(monthlyData).map(([month, data]) => ({
-      date: month,
-      value: data[activeMetric] || data.totalLeads,
-      category: month,
-    })).sort((a, b) => a.date.localeCompare(b.date));
+      memberId: month,
+      customerName: month,
+      customerEmail: '',
+      payingMemberId: '',
+      transactionDate: month,
+      expiryDate: '',
+      packageName: '',
+      packageAmount: data[activeMetric] || data.totalLeads,
+      paymentMode: '',
+      createdAt: month,
+      trainerName: '',
+      trainerImageUrl: '',
+      transactionId: '',
+      membershipType: '',
+      duration: 0,
+      sessions: 0,
+      packageType: '',
+      discount: 0,
+      taxAmount: 0,
+      totalAmount: data[activeMetric] || data.totalLeads,
+      status: '',
+      center: '',
+      source: '',
+      notes: '',
+    })).sort((a, b) => a.transactionDate.localeCompare(b.transactionDate));
   }, [filteredData, activeMetric]);
 
   const topSources = useMemo(() => {
@@ -201,6 +224,36 @@ export const LeadsSection: React.FC = () => {
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
+  }, [filteredData]);
+
+  // Create table data in the format expected by DataTable
+  const tableData = useMemo(() => {
+    return filteredData.map(item => ({
+      memberId: item.id,
+      customerName: item.fullName,
+      customerEmail: item.email,
+      payingMemberId: item.phone,
+      transactionDate: item.createdAt,
+      expiryDate: item.convertedToCustomerAt,
+      packageName: item.source,
+      packageAmount: item.ltv,
+      paymentMode: item.stage,
+      createdAt: item.createdAt,
+      trainerName: item.associate,
+      trainerImageUrl: '',
+      transactionId: item.id,
+      membershipType: item.status,
+      duration: item.visits,
+      sessions: item.purchasesMade,
+      packageType: item.classType,
+      discount: 0,
+      taxAmount: 0,
+      totalAmount: item.ltv,
+      status: item.conversionStatus,
+      center: item.center,
+      source: item.source,
+      notes: item.remarks,
+    }));
   }, [filteredData]);
 
   if (loading) {
@@ -262,36 +315,44 @@ export const LeadsSection: React.FC = () => {
       {/* Metric Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title="Total Leads"
-          value={formatNumber(metrics.totalLeads)}
-          change={0}
-          description="Leads in funnel"
-          calculation="Total lead count"
-          icon="users"
+          data={{
+            title: "Total Leads",
+            value: formatNumber(metrics.totalLeads),
+            change: 0,
+            description: "Leads in funnel",
+            calculation: "Total lead count",
+            icon: "users"
+          }}
         />
         <MetricCard
-          title="Lead to Trial Rate"
-          value={`${metrics.leadToTrialRate.toFixed(1)}%`}
-          change={0}
-          description="Trial conversion"
-          calculation="Trials scheduled / Total leads"
-          icon="target"
+          data={{
+            title: "Lead to Trial Rate",
+            value: `${metrics.leadToTrialRate.toFixed(1)}%`,
+            change: 0,
+            description: "Trial conversion",
+            calculation: "Trials scheduled / Total leads",
+            icon: "target"
+          }}
         />
         <MetricCard
-          title="Trial to Membership"
-          value={`${metrics.trialToMembershipRate.toFixed(1)}%`}
-          change={0}
-          description="Final conversion"
-          calculation="Memberships sold / Trials completed"
-          icon="credit-card"
+          data={{
+            title: "Trial to Membership",
+            value: `${metrics.trialToMembershipRate.toFixed(1)}%`,
+            change: 0,
+            description: "Final conversion",
+            calculation: "Memberships sold / Trials completed",
+            icon: "credit-card"
+          }}
         />
         <MetricCard
-          title="Average LTV"
-          value={formatCurrency(metrics.avgLTV)}
-          change={0}
-          description="Customer lifetime value"
-          calculation="Total LTV / Converted customers"
-          icon="trending-up"
+          data={{
+            title: "Average LTV",
+            value: formatCurrency(metrics.avgLTV),
+            change: 0,
+            description: "Customer lifetime value",
+            calculation: "Total LTV / Converted customers",
+            icon: "trending-up"
+          }}
         />
       </div>
 
@@ -322,7 +383,7 @@ export const LeadsSection: React.FC = () => {
           <InteractiveChart
             data={chartData}
             title="Leads Trend"
-            type="line"
+            type="revenue"
           />
         </div>
       </div>
@@ -335,20 +396,7 @@ export const LeadsSection: React.FC = () => {
           </CardHeader>
           <CardContent>
             <DataTable
-              data={filteredData.map(item => ({
-                'Full Name': item.fullName,
-                'Phone': item.phone,
-                'Email': item.email,
-                'Source': item.source,
-                'Stage': item.stage,
-                'Status': item.status,
-                'Associate': item.associate,
-                'Created At': item.createdAt,
-                'Trial Status': item.trialStatus,
-                'Conversion Status': item.conversionStatus,
-                'LTV': formatCurrency(item.ltv),
-                'Visits': item.visits,
-              }))}
+              data={tableData}
               title="All Leads Data"
             />
           </CardContent>

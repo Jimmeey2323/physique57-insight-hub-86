@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SessionData } from '@/hooks/useSessionsData';
-import { BarChart, Compare } from 'lucide-react';
+import { BarChart, GitCompare } from 'lucide-react';
 
 interface SessionsComparisonToolProps {
   data: SessionData[];
@@ -16,7 +16,7 @@ export const SessionsComparisonTool: React.FC<SessionsComparisonToolProps> = ({ 
     <Card className="bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Compare className="w-5 h-5 text-purple-600" />
+          <GitCompare className="w-5 h-5 text-purple-600" />
           Class Comparison Tool
         </CardTitle>
       </CardHeader>

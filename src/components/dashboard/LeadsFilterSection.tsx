@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { 
   Check, 
@@ -224,7 +223,7 @@ export function FilterPanel() {
   );
   
   return (
-    <Card className="p-4 shadow-md border-border/30 animate-fade-in">
+    <Card className="p-4 shadow-md border-border/30 animate-fade-in bg-white">
       <div className="flex flex-col space-y-4">
         <div className="flex flex-wrap items-center gap-2 justify-between">
           <div className="flex items-center">

@@ -11,6 +11,37 @@ const GOOGLE_CONFIG = {
 
 const SPREADSHEET_ID = "1dQMNF69WnXVQdhlLvUZTig3kL97NA21k6eZ9HRu6xiQ";
 
+const parseDate = (dateString: string) => {
+  if (!dateString) return '';
+  
+  // Handle various date formats
+  let parsedDate;
+  
+  // Try parsing different formats
+  if (dateString.includes('/')) {
+    // MM/DD/YYYY or DD/MM/YYYY format
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+      parsedDate = new Date(parts[2], parts[0] - 1, parts[1]);
+    }
+  } else if (dateString.includes('-')) {
+    // YYYY-MM-DD format
+    parsedDate = new Date(dateString);
+  } else {
+    // Try direct parsing
+    parsedDate = new Date(dateString);
+  }
+  
+  // Validate the date
+  if (isNaN(parsedDate.getTime())) {
+    console.warn('Invalid date format:', dateString);
+    return '';
+  }
+  
+  // Return ISO string format for consistency
+  return parsedDate.toISOString();
+};
+
 export const useLeadsData = () => {
   const [data, setData] = useState<LeadsData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,26 +96,28 @@ export const useLeadsData = () => {
         return;
       }
 
+      console.log('Raw sheet data sample:', rows.slice(0, 3));
+
       const leadsData: LeadsData[] = rows.slice(1).map((row: any[]) => ({
         id: row[0] || '',
         fullName: row[1] || '',
         phone: row[2] || '',
         email: row[3] || '',
-        createdAt: row[4] || '',
+        createdAt: parseDate(row[4]) || '', // Properly parse the Created At column
         sourceId: row[5] || '',
         source: row[6] || '',
         memberId: row[7] || '',
-        convertedToCustomerAt: row[8] || '',
+        convertedToCustomerAt: parseDate(row[8]) || '',
         stage: row[9] || '',
         associate: row[10] || '',
         remarks: row[11] || '',
-        followUp1Date: row[12] || '',
+        followUp1Date: parseDate(row[12]) || '',
         followUpComments1: row[13] || '',
-        followUp2Date: row[14] || '',
+        followUp2Date: parseDate(row[14]) || '',
         followUpComments2: row[15] || '',
-        followUp3Date: row[16] || '',
+        followUp3Date: parseDate(row[16]) || '',
         followUpComments3: row[17] || '',
-        followUp4Date: row[18] || '',
+        followUp4Date: parseDate(row[18]) || '',
         followUpComments4: row[19] || '',
         center: row[20] || '',
         classType: row[21] || '',
@@ -100,6 +133,7 @@ export const useLeadsData = () => {
         retentionStatus: row[31] || '',
       }));
 
+      console.log('Processed leads data sample:', leadsData.slice(0, 3));
       setData(leadsData);
       setError(null);
     } catch (err) {

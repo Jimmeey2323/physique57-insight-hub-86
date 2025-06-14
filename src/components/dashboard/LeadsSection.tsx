@@ -6,16 +6,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard } from 'lucide-react';
 import { useLeadsData } from '@/hooks/useLeadsData';
-import { LeadsFilterSection } from './LeadsFilterSection';
+import { FilterPanel } from './LeadsFilterSection';
 import { LeadsFunnelVisualization } from './LeadsFunnelVisualization';
 import { MetricCard } from './MetricCard';
 import { LeadDataTable } from './LeadDataTable';
 import { LeadInteractiveChart } from './LeadInteractiveChart';
 import { LeadTopBottomLists } from './LeadTopBottomLists';
 import { LeadMonthOnMonthTable } from './LeadMonthOnMonthTable';
+import { LeadSourceMonthOnMonthTable } from './LeadSourceMonthOnMonthTable';
 import { YearOnYearTrainerTable } from './YearOnYearTrainerTable';
 import { ThemeSelector } from './ThemeSelector';
-import { LeadsFilterOptions, LeadsMetricType } from '@/types/leads';
+import { LeadProvider, useLeads } from '../contexts/LeadContext';
+import { LeadsMetricType } from '@/types/leads';
 import { MetricCardData, TrainerMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 
@@ -26,131 +28,83 @@ const locations = [
   { id: 'Kenkere House', name: 'Kenkere House', fullName: 'Kenkere House' }
 ];
 
-export const LeadsSection: React.FC = () => {
+const LeadsSectionContent: React.FC = () => {
   const { data, loading, error, refetch } = useLeadsData();
   const [activeLocation, setActiveLocation] = useState('all');
-  const [filters, setFilters] = useState<LeadsFilterOptions>({
-    dateRange: { start: '', end: '' },
-    location: [],
-    source: [],
-    stage: [],
-    status: [],
-    associate: [],
-    channel: [],
-    trialStatus: [],
-    conversionStatus: [],
-    retentionStatus: [],
-  });
-  const [filtersOpen, setFiltersOpen] = useState(false);
+  const { filters, setOptions } = useLeads();
   const [activeMetric, setActiveMetric] = useState<LeadsMetricType>('totalLeads');
   const [stageMetric, setStageMetric] = useState<LeadsMetricType>('totalLeads');
+  const [sourceMetric, setSourceMetric] = useState<LeadsMetricType>('totalLeads');
   const [yoyMetric, setYoyMetric] = useState<TrainerMetricType>('totalCustomers');
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [isDarkMode, setIsDarkMode] = useState(false);
 
-  console.log('Raw leads data:', data?.length || 0, 'records');
-  console.log('Active location:', activeLocation);
-  console.log('Applied filters:', filters);
+  // Set filter options when data changes
+  React.useEffect(() => {
+    if (data && data.length > 0) {
+      setOptions({
+        sourceOptions: [...new Set(data.map(item => item.source))].filter(Boolean),
+        associateOptions: [...new Set(data.map(item => item.associate))].filter(Boolean),
+        centerOptions: [...new Set(data.map(item => item.center))].filter(Boolean),
+        stageOptions: [...new Set(data.map(item => item.stage))].filter(Boolean),
+        statusOptions: [...new Set(data.map(item => item.status))].filter(Boolean),
+      });
+    }
+  }, [data, setOptions]);
 
   const filteredData = useMemo(() => {
     if (!data) return [];
     
     let filtered = data;
-    console.log('Starting with data count:', filtered.length);
 
     // Apply location filter using 'center' field
     if (activeLocation !== 'all') {
       filtered = filtered.filter(item => item.center === activeLocation);
-      console.log('After location filter:', filtered.length, 'for location:', activeLocation);
     }
 
-    // Apply other filters
+    // Apply filters
     if (filters.source.length > 0) {
       filtered = filtered.filter(item => filters.source.includes(item.source));
-      console.log('After source filter:', filtered.length);
     }
 
     if (filters.stage.length > 0) {
       filtered = filtered.filter(item => filters.stage.includes(item.stage));
-      console.log('After stage filter:', filtered.length);
     }
 
     if (filters.status.length > 0) {
       filtered = filtered.filter(item => filters.status.includes(item.status));
-      console.log('After status filter:', filtered.length);
     }
 
     if (filters.associate.length > 0) {
       filtered = filtered.filter(item => filters.associate.includes(item.associate));
-      console.log('After associate filter:', filtered.length);
     }
 
-    if (filters.trialStatus.length > 0) {
-      filtered = filtered.filter(item => filters.trialStatus.includes(item.trialStatus));
-      console.log('After trial status filter:', filtered.length);
-    }
-
-    if (filters.conversionStatus.length > 0) {
-      filtered = filtered.filter(item => filters.conversionStatus.includes(item.conversionStatus));
-      console.log('After conversion status filter:', filtered.length);
+    if (filters.center.length > 0) {
+      filtered = filtered.filter(item => filters.center.includes(item.center));
     }
 
     // Date range filter
     if (filters.dateRange.start || filters.dateRange.end) {
       filtered = filtered.filter(item => {
+        if (!item.createdAt) return false;
         const itemDate = new Date(item.createdAt);
-        const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
-        const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
         
-        if (startDate && itemDate < startDate) return false;
-        if (endDate && itemDate > endDate) return false;
+        if (filters.dateRange.start && itemDate < filters.dateRange.start) return false;
+        if (filters.dateRange.end && itemDate > filters.dateRange.end) return false;
         return true;
       });
-      console.log('After date range filter:', filtered.length);
     }
 
-    // LTV range filter
-    if (filters.minLTV !== undefined) {
-      filtered = filtered.filter(item => item.ltv >= filters.minLTV!);
-    }
-    if (filters.maxLTV !== undefined) {
-      filtered = filtered.filter(item => item.ltv <= filters.maxLTV!);
-    }
-
-    console.log('Final filtered data count:', filtered.length);
     return filtered;
   }, [data, activeLocation, filters]);
-
-  const availableOptions = useMemo(() => {
-    if (!data) return {
-      locations: [], sources: [], stages: [], statuses: [], associates: [], 
-      channels: [], trialStatuses: [], conversionStatuses: [], retentionStatuses: []
-    };
-    
-    return {
-      locations: [...new Set(data.map(item => item.center))].filter(Boolean),
-      sources: [...new Set(data.map(item => item.source))].filter(Boolean),
-      stages: [...new Set(data.map(item => item.stage))].filter(Boolean),
-      statuses: [...new Set(data.map(item => item.status))].filter(Boolean),
-      associates: [...new Set(data.map(item => item.associate))].filter(Boolean),
-      channels: [...new Set(data.map(item => item.channel))].filter(Boolean),
-      trialStatuses: [...new Set(data.map(item => item.trialStatus))].filter(Boolean),
-      conversionStatuses: [...new Set(data.map(item => item.conversionStatus))].filter(Boolean),
-      retentionStatuses: [...new Set(data.map(item => item.retentionStatus))].filter(Boolean),
-    };
-  }, [data]);
 
   const metrics = useMemo((): MetricCardData[] => {
     const totalLeads = filteredData.length;
     const trialsCompleted = filteredData.filter(item => item.stage === 'Trial Completed').length;
     const membershipsSold = filteredData.filter(item => item.conversionStatus === 'Converted').length;
-    const avgLTV = filteredData.reduce((sum, item) => sum + item.ltv, 0) / totalLeads || 0;
+    const avgLTV = totalLeads > 0 ? filteredData.reduce((sum, item) => sum + item.ltv, 0) / totalLeads : 0;
     const leadToTrialRate = totalLeads > 0 ? (trialsCompleted / totalLeads) * 100 : 0;
     const trialToMembershipRate = trialsCompleted > 0 ? (membershipsSold / trialsCompleted) * 100 : 0;
-
-    console.log('Calculated metrics:', {
-      totalLeads, trialsCompleted, membershipsSold, avgLTV, leadToTrialRate, trialToMembershipRate
-    });
 
     return [
       {
@@ -188,17 +142,20 @@ export const LeadsSection: React.FC = () => {
     ];
   }, [filteredData]);
 
+  // Top sources with proper metrics
   const topSources = useMemo(() => {
     const sourceStats = filteredData.reduce((acc, item) => {
-      if (!acc[item.source]) {
-        acc[item.source] = { leads: 0, conversions: 0 };
+      const source = item.source || 'Unknown';
+      if (!acc[source]) {
+        acc[source] = { leads: 0, conversions: 0, ltv: 0 };
       }
-      acc[item.source].leads++;
+      acc[source].leads++;
       if (item.conversionStatus === 'Converted') {
-        acc[item.source].conversions++;
+        acc[source].conversions++;
       }
+      acc[source].ltv += item.ltv;
       return acc;
-    }, {} as Record<string, { leads: number; conversions: number }>);
+    }, {} as Record<string, { leads: number; conversions: number; ltv: number }>);
 
     return Object.entries(sourceStats)
       .map(([source, stats]) => ({
@@ -206,22 +163,26 @@ export const LeadsSection: React.FC = () => {
         value: stats.leads,
         extra: `${((stats.conversions / stats.leads) * 100).toFixed(1)}%`,
         conversionRate: (stats.conversions / stats.leads) * 100,
+        ltv: stats.ltv / stats.leads,
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
   }, [filteredData]);
 
+  // Top associates
   const topAssociates = useMemo(() => {
     const associateStats = filteredData.reduce((acc, item) => {
-      if (!acc[item.associate]) {
-        acc[item.associate] = { leads: 0, conversions: 0 };
+      const associate = item.associate || 'Unknown';
+      if (!acc[associate]) {
+        acc[associate] = { leads: 0, conversions: 0, ltv: 0 };
       }
-      acc[item.associate].leads++;
+      acc[associate].leads++;
       if (item.conversionStatus === 'Converted') {
-        acc[item.associate].conversions++;
+        acc[associate].conversions++;
       }
+      acc[associate].ltv += item.ltv;
       return acc;
-    }, {} as Record<string, { leads: number; conversions: number }>);
+    }, {} as Record<string, { leads: number; conversions: number; ltv: number }>);
 
     return Object.entries(associateStats)
       .map(([associate, stats]) => ({
@@ -229,77 +190,19 @@ export const LeadsSection: React.FC = () => {
         value: stats.leads,
         extra: `${((stats.conversions / stats.leads) * 100).toFixed(1)}%`,
         conversionRate: (stats.conversions / stats.leads) * 100,
+        ltv: stats.ltv / stats.leads,
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
   }, [filteredData]);
 
-  // Create year-on-year data for lead metrics
-  const yoyLeadData = useMemo(() => {
-    const monthlyStats = filteredData.reduce((acc, item) => {
-      const month = item.createdAt.substring(0, 7); // YYYY-MM format
-      const associate = item.associate || 'Unknown';
-      
-      if (!acc[associate]) {
-        acc[associate] = {};
-      }
-      if (!acc[associate][month]) {
-        acc[associate][month] = {
-          totalLeads: 0,
-          trialsCompleted: 0,
-          membershipsSold: 0,
-          ltvSum: 0
-        };
-      }
-      
-      acc[associate][month].totalLeads++;
-      if (item.stage === 'Trial Completed') {
-        acc[associate][month].trialsCompleted++;
-      }
-      if (item.conversionStatus === 'Converted') {
-        acc[associate][month].membershipsSold++;
-      }
-      acc[associate][month].ltvSum += item.ltv;
-      
-      return acc;
-    }, {} as Record<string, Record<string, any>>);
-
-    // Convert to the format expected by YearOnYearTrainerTable
-    const result: Record<string, Record<string, number>> = {};
-    Object.entries(monthlyStats).forEach(([associate, months]) => {
-      result[associate] = {};
-      Object.entries(months).forEach(([month, stats]) => {
-        const [year, monthNum] = month.split('-');
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const monthName = monthNames[parseInt(monthNum) - 1];
-        const formattedMonth = `${monthName}-${year}`;
-        
-        switch (yoyMetric) {
-          case 'totalCustomers':
-            result[associate][formattedMonth] = stats.totalLeads;
-            break;
-          case 'totalSessions':
-            result[associate][formattedMonth] = stats.trialsCompleted;
-            break;
-          case 'totalPaid':
-            result[associate][formattedMonth] = stats.ltvSum;
-            break;
-          case 'conversion':
-            result[associate][formattedMonth] = stats.totalLeads > 0 ? (stats.trialsCompleted / stats.totalLeads) * 100 : 0;
-            break;
-          default:
-            result[associate][formattedMonth] = stats.totalLeads;
-        }
-      });
-    });
-
-    return result;
-  }, [filteredData, yoyMetric]);
-
-  // Create stage performance data for month-on-month view
+  // Stage performance data for month-on-month view
   const stagePerformanceData = useMemo(() => {
     const monthlyStageStats = filteredData.reduce((acc, item) => {
-      const month = item.createdAt.substring(0, 7); // YYYY-MM format
+      if (!item.createdAt) return acc;
+      
+      const date = new Date(item.createdAt);
+      const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const stage = item.stage || 'Unknown';
       
       if (!acc[stage]) {
@@ -353,6 +256,65 @@ export const LeadsSection: React.FC = () => {
     return result;
   }, [filteredData, stageMetric]);
 
+  // Source performance data for month-on-month view
+  const sourcePerformanceData = useMemo(() => {
+    const monthlySourceStats = filteredData.reduce((acc, item) => {
+      if (!item.createdAt) return acc;
+      
+      const date = new Date(item.createdAt);
+      const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const source = item.source || 'Unknown';
+      
+      if (!acc[source]) {
+        acc[source] = {};
+      }
+      if (!acc[source][month]) {
+        acc[source][month] = {
+          totalLeads: 0,
+          trialsCompleted: 0,
+          membershipsSold: 0,
+          ltvSum: 0
+        };
+      }
+      
+      acc[source][month].totalLeads++;
+      if (item.stage === 'Trial Completed') {
+        acc[source][month].trialsCompleted++;
+      }
+      if (item.conversionStatus === 'Converted') {
+        acc[source][month].membershipsSold++;
+      }
+      acc[source][month].ltvSum += item.ltv;
+      
+      return acc;
+    }, {} as Record<string, Record<string, any>>);
+
+    const result: Record<string, Record<string, number>> = {};
+    Object.entries(monthlySourceStats).forEach(([source, months]) => {
+      result[source] = {};
+      Object.entries(months).forEach(([month, stats]) => {
+        switch (sourceMetric) {
+          case 'totalLeads':
+            result[source][month] = stats.totalLeads;
+            break;
+          case 'leadToTrialConversion':
+            result[source][month] = stats.totalLeads > 0 ? (stats.trialsCompleted / stats.totalLeads) * 100 : 0;
+            break;
+          case 'trialToMembershipConversion':
+            result[source][month] = stats.trialsCompleted > 0 ? (stats.membershipsSold / stats.trialsCompleted) * 100 : 0;
+            break;
+          case 'ltv':
+            result[source][month] = stats.totalLeads > 0 ? stats.ltvSum / stats.totalLeads : 0;
+            break;
+          default:
+            result[source][month] = stats.totalLeads;
+        }
+      });
+    });
+
+    return result;
+  }, [filteredData, sourceMetric]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50/30 flex items-center justify-center">
@@ -399,9 +361,15 @@ export const LeadsSection: React.FC = () => {
     );
   }
 
-  const availableMonths = [...new Set(filteredData.map(item => item.createdAt.substring(0, 7)))].sort();
+  const availableMonths = [...new Set(filteredData.map(item => {
+    if (!item.createdAt) return null;
+    const date = new Date(item.createdAt);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }).filter(Boolean))].sort();
+  
   const availableAssociates = [...new Set(filteredData.map(item => item.associate))].filter(Boolean);
   const availableStages = [...new Set(filteredData.map(item => item.stage))].filter(Boolean);
+  const availableSources = [...new Set(filteredData.map(item => item.source))].filter(Boolean);
 
   return (
     <div className="space-y-6 bg-gray-50/30 min-h-screen p-6">
@@ -441,13 +409,7 @@ export const LeadsSection: React.FC = () => {
 
         {locations.map((location) => (
           <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-            <LeadsFilterSection
-              filters={filters}
-              onFiltersChange={setFilters}
-              availableOptions={availableOptions}
-              isOpen={filtersOpen}
-              onToggle={() => setFiltersOpen(!filtersOpen)}
-            />
+            <FilterPanel />
 
             <Card className="bg-white shadow-sm border border-gray-200">
               <CardHeader className="border-b border-gray-100">
@@ -510,53 +472,26 @@ export const LeadsSection: React.FC = () => {
                 activeMetric={stageMetric}
                 onMetricChange={setStageMetric}
               />
-              
-              <Card className="bg-white shadow-sm border border-gray-200">
-                <CardHeader className="border-b border-gray-100 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-gray-800">Year-on-Year Associate Performance</CardTitle>
-                    <div className="flex gap-2 bg-white rounded-lg p-1 border border-gray-200">
-                      {[
-                        { value: 'totalCustomers', label: 'Total Leads' },
-                        { value: 'totalSessions', label: 'Trials' },
-                        { value: 'totalPaid', label: 'Total LTV' },
-                        { value: 'conversion', label: 'Conversion %' }
-                      ].map((metric) => (
-                        <Button
-                          key={metric.value}
-                          variant={yoyMetric === metric.value ? "default" : "ghost"}
-                          size="sm"
-                          onClick={() => setYoyMetric(metric.value as TrainerMetricType)}
-                          className={`transition-all ${
-                            yoyMetric === metric.value 
-                              ? 'bg-blue-600 text-white shadow-sm' 
-                              : 'text-gray-600 hover:bg-gray-50'
-                          }`}
-                        >
-                          {metric.label}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <YearOnYearTrainerTable
-                    data={yoyLeadData}
-                    months={availableMonths.map(month => {
-                      const [year, monthNum] = month.split('-');
-                      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                      const monthName = monthNames[parseInt(monthNum) - 1];
-                      return `${monthName}-${year}`;
-                    })}
-                    trainers={availableAssociates}
-                    defaultMetric={yoyMetric}
-                  />
-                </CardContent>
-              </Card>
+
+              <LeadSourceMonthOnMonthTable
+                data={sourcePerformanceData}
+                months={availableMonths}
+                sources={availableSources}
+                activeMetric={sourceMetric}
+                onMetricChange={setSourceMetric}
+              />
             </div>
           </TabsContent>
         ))}
       </Tabs>
     </div>
+  );
+};
+
+export const LeadsSection: React.FC = () => {
+  return (
+    <LeadProvider>
+      <LeadsSectionContent />
+    </LeadProvider>
   );
 };

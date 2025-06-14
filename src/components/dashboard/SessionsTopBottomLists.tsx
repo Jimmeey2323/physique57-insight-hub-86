@@ -47,8 +47,8 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
 
   const processedData = useMemo((): GroupedItem[] => {
     console.log('Processing data in SessionsTopBottomLists:', { dataLength: data?.length, type, variant, selectedMetric, includeTrainer });
-    
-    if (!data || data.length === 0) {
+
+    if (!Array.isArray(data) || data.length === 0) {
       console.log('No data available');
       return [];
     }
@@ -56,14 +56,13 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     // Create a results object to store grouped data
     const groupedResults: Record<string, GroupedItem> = {};
 
-    // Process each session and group the data
     for (let i = 0; i < data.length; i++) {
       const session = data[i];
       if (!session) continue;
-      
+
       let groupKey = '';
       let displayName = '';
-      
+
       if (type === 'classes') {
         if (includeTrainer) {
           groupKey = `${session.cleanedClass || ''}-${session.trainerName || ''}`;
@@ -76,7 +75,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
         groupKey = session.trainerName || '';
         displayName = session.trainerName || 'Unknown';
       }
-      
+
       if (!groupKey) continue;
 
       if (!groupedResults[groupKey]) {
@@ -89,12 +88,11 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
           lateCancellations: 0,
           sessions: 0,
           avgAttendance: 0,
-          trainerName: session.trainerName
+          trainerName: session.trainerName,
         };
       }
 
-      // Safely add numeric values
-      const currentGroup = groupedResults[groupKey];
+      const currentGroup: GroupedItem = groupedResults[groupKey];
       currentGroup.totalAttendance += Number(session.checkedInCount || 0);
       currentGroup.totalRevenue += Number(session.totalPaid || 0);
       currentGroup.lateCancellations += Number(session.lateCancelledCount || 0);
@@ -102,12 +100,13 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
     }
 
     // Calculate averages for each group
-    const groupedItems = Object.values(groupedResults) as GroupedItem[];
+    const groupedItems: GroupedItem[] = Object.values(groupedResults);
+
     for (let j = 0; j < groupedItems.length; j++) {
       const item = groupedItems[j];
       const relevantSessions = data.filter((sessionItem: SessionData) => {
         if (!sessionItem) return false;
-        
+
         if (type === 'classes') {
           if (includeTrainer) {
             const sessionKey = `${sessionItem.cleanedClass || ''}-${sessionItem.trainerName || ''}`;
@@ -119,17 +118,20 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
           return sessionItem.trainerName === item.name;
         }
       });
-      
-      const totalCapacity = relevantSessions.reduce((sum, sessionItem) => sum + Number(sessionItem.capacity || 0), 0);
+
+      const totalCapacity = relevantSessions.reduce(
+        (sum, sessionItem) => sum + Number(sessionItem.capacity || 0),
+        0
+      );
       item.avgFillRate = totalCapacity > 0 ? (item.totalAttendance / totalCapacity) * 100 : 0;
       item.avgAttendance = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     }
 
-    // Sort the data based on selected metric and variant
-    const sortedData = groupedItems.sort((a: GroupedItem, b: GroupedItem) => {
+    // Always sort using a new array to avoid mutation
+    const sortedData: GroupedItem[] = [...groupedItems].sort((a, b) => {
       let aValue = 0;
       let bValue = 0;
-      
+
       if (selectedMetric === 'attendance') {
         aValue = a.avgAttendance;
         bValue = b.avgAttendance;
@@ -147,7 +149,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
         aValue = a.avgAttendance;
         bValue = b.avgAttendance;
       }
-      
+
       return variant === 'top' ? bValue - aValue : aValue - bValue;
     });
 

@@ -136,5 +136,8 @@ export interface ChartDataPoint {
 // Generic table data type for flexible table structures
 export type TableData = Record<string, any>;
 
+// Sales-specific metric types
+export type MetricType = 'revenue' | 'transactions' | 'members' | 'atv' | 'auv' | 'asv' | 'upt';
+
 // Trainer-specific metric types
 export type TrainerMetricType = 'totalSessions' | 'totalCustomers' | 'totalPaid' | 'classAverage' | 'retention' | 'conversion';

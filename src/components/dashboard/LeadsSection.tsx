@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +19,8 @@ import { LeadProvider, useLeads } from '@/contexts/LeadContext';
 import { LeadsMetricType } from '@/types/leads';
 import { MetricCardData, TrainerMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
+import { LeadDetailedFilterSection } from './LeadDetailedFilterSection';
+import { LeadPivotTable } from './LeadPivotTable';
 
 const locations = [
   { id: 'all', name: 'All Locations', fullName: 'All Locations' },
@@ -409,7 +410,7 @@ const LeadsSectionContent: React.FC = () => {
 
         {locations.map((location) => (
           <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-            <FilterPanel />
+            <LeadDetailedFilterSection />
 
             <Card className="bg-white shadow-sm border border-gray-200">
               <CardHeader className="border-b border-gray-100">
@@ -445,14 +446,14 @@ const LeadsSectionContent: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <LeadTopBottomLists
-                title="Top Lead Sources"
+                title="Lead Source Performance"
                 items={topSources}
                 variant="top"
                 type="source"
               />
               
               <LeadTopBottomLists
-                title="Top Associates"
+                title="Associate Performance"
                 items={topAssociates}
                 variant="top"
                 type="associate"
@@ -460,6 +461,8 @@ const LeadsSectionContent: React.FC = () => {
             </div>
 
             <div className="space-y-8">
+              <LeadPivotTable data={filteredData} />
+              
               <LeadDataTable
                 title="Lead Performance Analysis"
                 data={filteredData}
@@ -479,6 +482,13 @@ const LeadsSectionContent: React.FC = () => {
                 sources={availableSources}
                 activeMetric={sourceMetric}
                 onMetricChange={setSourceMetric}
+              />
+
+              <YearOnYearTrainerTable
+                data={sourcePerformanceData}
+                months={availableMonths}
+                trainers={availableAssociates}
+                defaultMetric="totalCustomers"
               />
             </div>
           </TabsContent>

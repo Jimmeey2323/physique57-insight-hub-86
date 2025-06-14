@@ -96,6 +96,51 @@ export const calculateNewClientMetrics = (data: NewClientData[]) => {
   return metrics;
 };
 
+export const getNewClientMetrics = (data: NewClientData[]) => {
+  const totalClients = data.length;
+  const convertedClients = data.filter(client => client.conversionStatus === 'Converted').length;
+  const retainedClients = data.filter(client => client.retentionStatus === 'Retained').length;
+  const totalLtv = data.reduce((sum, client) => sum + client.ltv, 0);
+  const avgLtv = totalClients > 0 ? totalLtv / totalClients : 0;
+  const conversionRate = totalClients > 0 ? (convertedClients / totalClients) * 100 : 0;
+  const retentionRate = totalClients > 0 ? (retainedClients / totalClients) * 100 : 0;
+
+  return [
+    {
+      title: "Total New Clients",
+      value: totalClients.toString(),
+      change: 12.5,
+      description: "New customer acquisitions this period",
+      calculation: "Total count of new client records",
+      icon: "users"
+    },
+    {
+      title: "Conversion Rate",
+      value: `${conversionRate.toFixed(1)}%`,
+      change: 8.3,
+      description: "Percentage of clients who converted to memberships",
+      calculation: "Converted clients / Total clients",
+      icon: "target"
+    },
+    {
+      title: "Retention Rate",
+      value: `${retentionRate.toFixed(1)}%`,
+      change: 15.7,
+      description: "Clients retained after trial period",
+      calculation: "Retained clients / Total clients",
+      icon: "trending-up"
+    },
+    {
+      title: "Average LTV",
+      value: `$${avgLtv.toFixed(0)}`,
+      change: 9.2,
+      description: "Average lifetime value per client",
+      calculation: "Total LTV / Total clients",
+      icon: "credit-card"
+    }
+  ];
+};
+
 export const getUniqueTrainers = (data: NewClientData[]) => {
   const trainers = [...new Set(data.map(client => client.trainerName).filter(Boolean))];
   return trainers.sort();

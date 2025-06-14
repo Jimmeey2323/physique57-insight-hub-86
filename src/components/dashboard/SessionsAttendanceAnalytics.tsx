@@ -1,129 +1,133 @@
-import React from 'react';
+
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
-import { SessionData } from '@/hooks/useSessionsData';
-import { Calendar, Clock, Users, TrendingUp, MapPin, Target } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
+import { SessionData } from '@/types/dashboard';
+import { formatNumber } from '@/utils/formatters';
 
 interface SessionsAttendanceAnalyticsProps {
   data: SessionData[];
 }
 
+const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1'];
+
 export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsProps> = ({ data }) => {
-  // Filter out unwanted sessions
-  const filteredData = React.useMemo(() => {
-    return data.filter(session => {
-      const className = session.cleanedClass || '';
-      const excludeKeywords = ['Hosted', 'P57', 'X'];
+  const attendanceData = useMemo(() => {
+    const dailyStats = data.reduce((acc, session) => {
+      const date = session.date || new Date().toISOString().split('T')[0];
+      const sessionCount = session.sessionCount || session.checkedInCount || 1;
       
-      const hasExcludedKeyword = excludeKeywords.some(keyword => 
-        className.toLowerCase().includes(keyword.toLowerCase())
-      );
+      if (!acc[date]) {
+        acc[date] = {
+          date,
+          totalSessions: 0,
+          totalAttendance: 0,
+          averageFillRate: 0,
+          sessionCount: 0
+        };
+      }
       
-      return !hasExcludedKeyword && (session.sessions || session.occurrences || 1) >= 2;
-    });
+      acc[date].totalSessions += sessionCount;
+      acc[date].totalAttendance += session.checkedInCount || 0;
+      acc[date].sessionCount += 1;
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(dailyStats).map((day: any) => ({
+      ...day,
+      averageFillRate: day.sessionCount > 0 ? 
+        data.filter(s => s.date === day.date)
+          .reduce((sum, s) => sum + (s.fillPercentage || 0), 0) / day.sessionCount : 0
+    })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [data]);
 
-  const dayOfWeekData = React.useMemo(() => {
-    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const dayStats = days.map(day => {
-      const dayData = filteredData.filter(session => session.dayOfWeek === day);
-      const totalAttendance = dayData.reduce((sum, s) => sum + s.checkedInCount, 0);
-      const totalCapacity = dayData.reduce((sum, s) => sum + s.capacity, 0);
-      const fillRate = totalCapacity > 0 ? (totalAttendance / totalCapacity) * 100 : 0;
+  const classTypeData = useMemo(() => {
+    const typeStats = data.reduce((acc, session) => {
+      const type = session.cleanedClass || 'Unknown';
+      if (!acc[type]) {
+        acc[type] = {
+          name: type,
+          sessions: 0,
+          attendance: 0,
+          capacity: 0
+        };
+      }
       
-      return {
-        day: day.substring(0, 3),
-        attendance: totalAttendance,
-        sessions: dayData.length,
-        avgAttendance: dayData.length > 0 ? totalAttendance / dayData.length : 0,
-        fillRate: fillRate
-      };
-    });
-    return dayStats;
-  }, [filteredData]);
+      acc[type].sessions += 1;
+      acc[type].attendance += session.checkedInCount || 0;
+      acc[type].capacity += session.capacity || 0;
+      
+      return acc;
+    }, {} as Record<string, any>);
 
-  const timeSlotData = React.useMemo(() => {
-    const timeSlots: Record<string, { attendance: number, sessions: number, revenue: number }> = {};
-    filteredData.forEach(session => {
-      const time = session.time || 'Unknown';
-      if (!timeSlots[time]) {
-        timeSlots[time] = { attendance: 0, sessions: 0, revenue: 0 };
-      }
-      timeSlots[time].attendance += session.checkedInCount;
-      timeSlots[time].sessions += 1;
-      timeSlots[time].revenue += session.totalPaid;
-    });
-    
-    return Object.entries(timeSlots)
-      .map(([time, stats]) => ({
-        time,
-        attendance: stats.attendance,
-        sessions: stats.sessions,
-        avgAttendance: stats.sessions > 0 ? stats.attendance / stats.sessions : 0,
-        revenue: stats.revenue
-      }))
-      .sort((a, b) => a.time.localeCompare(b.time));
-  }, [filteredData]);
+    return Object.values(typeStats).map((type: any) => ({
+      ...type,
+      fillRate: type.capacity > 0 ? (type.attendance / type.capacity) * 100 : 0
+    })).sort((a, b) => b.attendance - a.attendance);
+  }, [data]);
 
-  const locationData = React.useMemo(() => {
-    const locations: Record<string, { attendance: number, sessions: number, revenue: number }> = {};
-    filteredData.forEach(session => {
-      const location = session.location || 'Unknown';
-      if (!locations[location]) {
-        locations[location] = { attendance: 0, sessions: 0, revenue: 0 };
+  const timeSlotData = useMemo(() => {
+    const timeStats = data.reduce((acc, session) => {
+      const time = session.time || '00:00';
+      const hour = parseInt(time.split(':')[0]);
+      const timeSlot = hour < 12 ? 'Morning' : hour < 17 ? 'Afternoon' : 'Evening';
+      
+      if (!acc[timeSlot]) {
+        acc[timeSlot] = {
+          name: timeSlot,
+          sessions: 0,
+          attendance: 0,
+          capacity: 0
+        };
       }
-      locations[location].attendance += session.checkedInCount;
-      locations[location].sessions += 1;
-      locations[location].revenue += session.totalPaid;
-    });
-    
-    return Object.entries(locations).map(([location, stats]) => ({
-      location: location.split(',')[0], // Short name
-      fullLocation: location,
-      attendance: stats.attendance,
-      sessions: stats.sessions,
-      avgAttendance: stats.sessions > 0 ? stats.attendance / stats.sessions : 0,
-      revenue: stats.revenue
+      
+      acc[timeSlot].sessions += 1;
+      acc[timeSlot].attendance += session.checkedInCount || 0;
+      acc[timeSlot].capacity += session.capacity || 0;
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(timeStats).map((slot: any) => ({
+      ...slot,
+      fillRate: slot.capacity > 0 ? (slot.attendance / slot.capacity) * 100 : 0
     }));
-  }, [filteredData]);
+  }, [data]);
 
-  const fillRateData = React.useMemo(() => {
-    const ranges = [
-      { range: '0-20%', min: 0, max: 20 },
-      { range: '21-40%', min: 21, max: 40 },
-      { range: '41-60%', min: 41, max: 60 },
-      { range: '61-80%', min: 61, max: 80 },
-      { range: '81-100%', min: 81, max: 100 }
-    ];
-    
-    return ranges.map(({ range, min, max }) => {
-      const sessionsInRange = filteredData.filter(session => {
-        const fillRate = session.fillPercentage || 0;
-        return fillRate >= min && fillRate <= max;
-      });
+  const trainerData = useMemo(() => {
+    const trainerStats = data.reduce((acc, session) => {
+      const trainer = session.trainer || 'Unknown';
+      if (!acc[trainer]) {
+        acc[trainer] = {
+          name: trainer,
+          sessions: 0,
+          attendance: 0,
+          capacity: 0
+        };
+      }
       
-      return {
-        range,
-        sessions: sessionsInRange.length,
-        attendance: sessionsInRange.reduce((sum, s) => sum + s.checkedInCount, 0)
-      };
-    });
-  }, [filteredData]);
+      acc[trainer].sessions += 1;
+      acc[trainer].attendance += session.checkedInCount || 0;
+      acc[trainer].capacity += session.capacity || 0;
+      
+      return acc;
+    }, {} as Record<string, any>);
 
-  const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#06B6D4', '#84CC16'];
+    return Object.values(trainerStats).map((trainer: any) => ({
+      ...trainer,
+      fillRate: trainer.capacity > 0 ? (trainer.attendance / trainer.capacity) * 100 : 0
+    })).sort((a, b) => b.attendance - a.attendance).slice(0, 10);
+  }, [data]);
 
-  const customTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-xl border border-gray-200/50">
-          <p className="font-semibold text-gray-900 mb-2">{`${label}`}</p>
+        <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+          <p className="font-semibold text-gray-800">{`${label}`}</p>
           {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-sm flex items-center gap-2" style={{ color: entry.color }}>
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: entry.color }}
-              />
-              {`${entry.name}: ${typeof entry.value === 'number' ? entry.value.toLocaleString() : entry.value}`}
+            <p key={index} style={{ color: entry.color }} className="text-sm">
+              {`${entry.dataKey}: ${entry.value}`}
             </p>
           ))}
         </div>
@@ -133,195 +137,146 @@ export const SessionsAttendanceAnalytics: React.FC<SessionsAttendanceAnalyticsPr
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 lg:col-span-2 hover:shadow-xl transition-all duration-300">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-100/50">
-          <CardTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Calendar className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Attendance by Day of Week</h3>
-              <p className="text-sm text-gray-600">Weekly pattern analysis</p>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <ResponsiveContainer width="100%" height={350}>
-            <AreaChart data={dayOfWeekData}>
-              <defs>
-                <linearGradient id="attendanceGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} />
-              <XAxis 
-                dataKey="day" 
-                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
-                tickLine={{ stroke: '#D1D5DB' }}
-              />
-              <YAxis 
-                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
-                tickLine={{ stroke: '#D1D5DB' }}
-              />
-              <Tooltip content={<customTooltip />} />
-              <Area 
-                type="monotone" 
-                dataKey="attendance" 
-                stroke="#3B82F6" 
-                strokeWidth={3}
-                fill="url(#attendanceGradient)" 
-                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
-                activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2, fill: '#fff' }}
-              />
-              <Bar dataKey="sessions" fill="#8B5CF6" opacity={0.6} radius={[4, 4, 0, 0]} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Daily Attendance Trend */}
+        <Card className="bg-white shadow-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-gray-800">Daily Attendance Trend</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={attendanceData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#666"
+                  tick={{ fontSize: 12 }}
+                  tickFormatter={(value) => new Date(value).toLocaleDateString()}
+                />
+                <YAxis stroke="#666" tick={{ fontSize: 12 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Line 
+                  type="monotone" 
+                  dataKey="totalAttendance" 
+                  stroke="#8884d8" 
+                  strokeWidth={2}
+                  dot={{ fill: '#8884d8', strokeWidth: 2 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-        <CardHeader className="bg-gradient-to-r from-green-50 to-teal-50 border-b border-gray-100/50">
-          <CardTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg">
-              <MapPin className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Attendance by Location</h3>
-              <p className="text-sm text-gray-600">Location performance</p>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <ResponsiveContainer width="100%" height={350}>
-            <PieChart>
-              <Pie
-                data={locationData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ location, attendance }) => `${location}: ${attendance}`}
-                outerRadius={120}
-                fill="#8884d8"
-                dataKey="attendance"
-                stroke="#fff"
-                strokeWidth={2}
-              >
-                {locationData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<customTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+        {/* Fill Rate by Class Type */}
+        <Card className="bg-white shadow-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-gray-800">Fill Rate by Class Type</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={classTypeData.slice(0, 8)}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis 
+                  dataKey="name" 
+                  stroke="#666"
+                  tick={{ fontSize: 10 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
+                />
+                <YAxis stroke="#666" tick={{ fontSize: 12 }} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="fillRate" fill="#82ca9d" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 xl:col-span-2 hover:shadow-xl transition-all duration-300">
-        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b border-gray-100/50">
-          <CardTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Clock className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Attendance by Time Slot</h3>
-              <p className="text-sm text-gray-600">Peak hours analysis</p>
-            </div>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-6">
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={timeSlotData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-              <defs>
-                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.9}/>
-                  <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.6}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} />
-              <XAxis 
-                dataKey="time" 
-                tick={{ fontSize: 11, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
-                tickLine={{ stroke: '#D1D5DB' }}
-                angle={-45}
-                textAnchor="end"
-                height={80}
-              />
-              <YAxis 
-                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
-                tickLine={{ stroke: '#D1D5DB' }}
-              />
-              <Tooltip content={<customTooltip />} />
-              <Bar 
-                dataKey="attendance" 
-                fill="url(#barGradient)" 
-                radius={[6, 6, 0, 0]}
-                stroke="#8B5CF6"
-                strokeWidth={1}
-              />
-              <Bar 
-                dataKey="avgAttendance" 
-                fill="#10B981" 
-                opacity={0.7} 
-                radius={[6, 6, 0, 0]}
-                stroke="#10B981"
-                strokeWidth={1}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Time Slot Distribution */}
+        <Card className="bg-white shadow-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-gray-800">Attendance by Time Slot</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={timeSlotData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, value }) => `${name}: ${value}`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="attendance"
+                >
+                  {timeSlotData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      <Card className="bg-white/90 backdrop-blur-sm shadow-lg border-0 hover:shadow-xl transition-all duration-300">
-        <CardHeader className="bg-gradient-to-r from-yellow-50 to-orange-50 border-b border-gray-100/50">
-          <CardTitle className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Target className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Fill Rate Distribution</h3>
-              <p className="text-sm text-gray-600">Capacity utilization</p>
-            </div>
-          </CardTitle>
+        {/* Top Trainers by Attendance */}
+        <Card className="bg-white shadow-sm border border-gray-200">
+          <CardHeader>
+            <CardTitle className="text-gray-800">Top Trainers by Attendance</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={trainerData} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" stroke="#666" tick={{ fontSize: 12 }} />
+                <YAxis 
+                  type="category" 
+                  dataKey="name" 
+                  stroke="#666" 
+                  tick={{ fontSize: 10 }}
+                  width={100}
+                />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="attendance" fill="#ffc658" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Summary Stats */}
+      <Card className="bg-white shadow-sm border border-gray-200">
+        <CardHeader>
+          <CardTitle className="text-gray-800">Attendance Analytics Summary</CardTitle>
         </CardHeader>
-        <CardContent className="p-6">
-          <ResponsiveContainer width="100%" height={350}>
-            <BarChart data={fillRateData} layout="horizontal" margin={{ top: 20, right: 30, left: 60, bottom: 20 }}>
-              <defs>
-                <linearGradient id="fillRateGradient" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.9}/>
-                  <stop offset="95%" stopColor="#F59E0B" stopOpacity={0.6}/>
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" strokeOpacity={0.6} />
-              <XAxis 
-                type="number" 
-                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
-                tickLine={{ stroke: '#D1D5DB' }}
-              />
-              <YAxis 
-                type="category" 
-                dataKey="range" 
-                tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }}
-                axisLine={{ stroke: '#D1D5DB', strokeWidth: 1 }}
-                tickLine={{ stroke: '#D1D5DB' }}
-              />
-              <Tooltip content={<customTooltip />} />
-              <Bar 
-                dataKey="sessions" 
-                fill="url(#fillRateGradient)" 
-                radius={[0, 6, 6, 0]}
-                stroke="#F59E0B"
-                strokeWidth={1}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+              <div className="text-2xl font-bold text-blue-700">
+                {formatNumber(data.reduce((sum, session) => sum + (session.checkedInCount || 0), 0))}
+              </div>
+              <div className="text-sm text-blue-600">Total Attendance</div>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
+              <div className="text-2xl font-bold text-green-700">
+                {data.length > 0 ? 
+                  Math.round(data.reduce((sum, session) => sum + (session.fillPercentage || 0), 0) / data.length) : 0}%
+              </div>
+              <div className="text-sm text-green-600">Average Fill Rate</div>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+              <div className="text-2xl font-bold text-purple-700">{classTypeData.length}</div>
+              <div className="text-sm text-purple-600">Class Types</div>
+            </div>
+            <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
+              <div className="text-2xl font-bold text-orange-700">{trainerData.length}</div>
+              <div className="text-sm text-orange-600">Active Trainers</div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

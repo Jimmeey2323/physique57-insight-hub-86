@@ -59,7 +59,7 @@ export const SessionsSection: React.FC = () => {
         className.toLowerCase().includes(keyword.toLowerCase())
       );
       
-      return !hasExcludedKeyword && (session.sessions || session.occurrences || 1) >= 2;
+      return !hasExcludedKeyword && (session.sessionCount || session.checkedInCount || 1) >= 2;
     });
 
     if (activeLocation !== 'all') {
@@ -200,7 +200,12 @@ export const SessionsSection: React.FC = () => {
                   <SessionsAttendanceAnalytics data={filteredData} />
                   <ClassFormatAnalysis data={filteredData} />
                   <SessionsGroupedTable data={filteredData} />
-                  <SessionsTopBottomLists data={filteredData} />
+                  <SessionsTopBottomLists 
+                    data={filteredData} 
+                    title="Top Performing Classes"
+                    type="classes"
+                    variant="success"
+                  />
                 </TabsContent>
               ))}
             </Tabs>

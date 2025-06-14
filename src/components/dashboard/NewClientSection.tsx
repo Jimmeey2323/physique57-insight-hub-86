@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -10,6 +9,7 @@ import { NewClientFilterSection } from './NewClientFilterSection';
 import { MetricCard } from './MetricCard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { getNewClientMetrics } from '@/utils/newClientMetrics';
+import { NewClientFilterOptions } from '@/types/dashboard';
 
 const locations = [
   { 
@@ -45,6 +45,12 @@ const locations = [
 export const NewClientSection: React.FC = () => {
   const { data, loading, error, refetch } = useNewClientData();
   const [activeLocation, setActiveLocation] = useState('all');
+  const [filters, setFilters] = useState<NewClientFilterOptions>({
+    location: [],
+    trainer: [],
+    retentionStatus: [],
+    conversionStatus: []
+  });
 
   const filteredData = useMemo(() => {
     if (!data) return [];
@@ -55,8 +61,25 @@ export const NewClientSection: React.FC = () => {
       filtered = filtered.filter(item => item.homeLocation === activeLocation);
     }
 
+    // Apply additional filters
+    if (filters.location.length > 0) {
+      filtered = filtered.filter(item => filters.location.includes(item.firstVisitLocation));
+    }
+
+    if (filters.trainer.length > 0) {
+      filtered = filtered.filter(item => filters.trainer.includes(item.trainerName));
+    }
+
+    if (filters.retentionStatus.length > 0) {
+      filtered = filtered.filter(item => filters.retentionStatus.includes(item.retentionStatus));
+    }
+
+    if (filters.conversionStatus.length > 0) {
+      filtered = filtered.filter(item => filters.conversionStatus.includes(item.conversionStatus));
+    }
+
     return filtered;
-  }, [data, activeLocation]);
+  }, [data, activeLocation, filters]);
 
   const metrics = useMemo(() => {
     return getNewClientMetrics(filteredData);
@@ -201,7 +224,11 @@ export const NewClientSection: React.FC = () => {
               {/* Tab Content */}
               {locations.map((location) => (
                 <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-                  <NewClientFilterSection />
+                  <NewClientFilterSection 
+                    filters={filters}
+                    onFiltersChange={setFilters}
+                    data={data || []}
+                  />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {metrics.map((metric, index) => (

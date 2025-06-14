@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
 import { SalesAnalyticsSection } from '@/components/dashboard/SalesAnalyticsSection';
 import { NewClientSection } from '@/components/dashboard/NewClientSection';
+import { TrainerPerformanceSection } from '@/components/dashboard/TrainerPerformanceSection';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';

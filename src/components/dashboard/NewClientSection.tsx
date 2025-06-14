@@ -300,17 +300,15 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   }, [filteredData]);
 
   // Top/Bottom Performers
-  const topTrainers = useMemo(() => {
-    return trainerAnalysis
-      .sort((a, b) => parseFloat(b['Conversion Rate']) - parseFloat(a['Conversion Rate']))
-      .slice(0, 5);
-  }, [trainerAnalysis]);
-
-  const bottomTrainers = useMemo(() => {
-    return trainerAnalysis
-      .sort((a, b) => parseFloat(a['Conversion Rate']) - parseFloat(b['Conversion Rate']))
-      .slice(0, 5);
-  }, [trainerAnalysis]);
+  // Trainer totals for top/bottom logic
+  const trainerTotals = allTrainers.map(trainer => ({
+    Trainer: trainer,
+    Converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),
+    New: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.new ?? 0), 0),
+    Retained: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.retained ?? 0), 0)
+  }));
+  const topTrainers = [...trainerTotals].sort((a, b) => b.Converted - a.Converted).slice(0, 5);
+  const bottomTrainers = [...trainerTotals].sort((a, b) => a.Converted - b.Converted).slice(0, 5);
 
   // Custom table rendering to avoid DataTable issues
   const renderSimpleTable = (title: string, data: any[]) => {
@@ -419,15 +417,15 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
   };
 
   function groupMonthsDescending(months: string[]): string[] {
-    // Convert to "MMM-YY", sort by newest first
-    return [...months]
-      .sort((a, b) => {
-        const [am, ay] = a.split('-');
-        const [bm, by] = b.split('-');
-        const ad = new Date(`20${ay}`, new Date(Date.parse(`${am} 1, 2000`)).getMonth(), 1);
-        const bd = new Date(`20${by}`, new Date(Date.parse(`${bm} 1, 2000`)).getMonth(), 1);
-        return bd.getTime() - ad.getTime();
-      });
+    // Convert to "MMM-YY", sort by newest first using Date objects robustly
+    const monthIndex = (str: string) => {
+      // e.g. "Jan-25"
+      const [m, y] = str.split('-');
+      const month = new Date(Date.parse(`${m} 1, 2000`)).getMonth(); // 0-based
+      const year = Number('20' + y);
+      return new Date(year, month, 1).getTime();
+    };
+    return [...months].sort((a, b) => monthIndex(b) - monthIndex(a));
   }
 
   const allMonthsSet = new Set<string>();
@@ -473,13 +471,13 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
 
   // Top/bottom logic (e.g., top by converted)
   const trainerTotals = allTrainers.map(trainer => ({
-    name: trainer,
-    converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),
-    new: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.new ?? 0), 0),
-    retained: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.retained ?? 0), 0)
+    Trainer: trainer,
+    Converted: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.converted ?? 0), 0),
+    New: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.new ?? 0), 0),
+    Retained: allMonths.reduce((acc, m) => acc + (groupedData[trainer]?.[m]?.retained ?? 0), 0)
   }));
-  const topTrainers = [...trainerTotals].sort((a, b) => b.converted - a.converted).slice(0, 5);
-  const bottomTrainers = [...trainerTotals].sort((a, b) => a.converted - b.converted).slice(0, 5);
+  const topTrainers = [...trainerTotals].sort((a, b) => b.Converted - a.Converted).slice(0, 5);
+  const bottomTrainers = [...trainerTotals].sort((a, b) => a.Converted - b.Converted).slice(0, 5);
 
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
@@ -683,12 +681,12 @@ export const NewClientSection: React.FC<NewClientSectionProps> = ({ data: extern
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
         <TopBottomTrainerList
           title="Top 5 Trainers (by Converted Members)"
-          trainers={topTrainers.map(t => ({ name: t.name, value: t.converted }))}
+          trainers={topTrainers.map(t => ({ name: t.Trainer, value: t.Converted }))}
           variant="top"
         />
         <TopBottomTrainerList
           title="Bottom 5 Trainers (by Converted Members)"
-          trainers={bottomTrainers.map(t => ({ name: t.name, value: t.converted }))}
+          trainers={bottomTrainers.map(t => ({ name: t.Trainer, value: t.Converted }))}
           variant="bottom"
         />
       </div>

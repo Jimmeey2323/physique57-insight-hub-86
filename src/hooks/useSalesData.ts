@@ -3,20 +3,15 @@ import { useState, useEffect } from 'react';
 import { useGoogleSheets } from './useGoogleSheets';
 import { SalesData } from '@/types/dashboard';
 
-export const useDiscountsData = () => {
+export const useSalesData = () => {
   const { data: rawData, loading, error, refetch } = useGoogleSheets();
   const [data, setData] = useState<SalesData[]>([]);
 
   useEffect(() => {
     if (rawData && rawData.length > 0) {
-      console.log('Raw discounts data received:', rawData);
+      console.log('Raw sales data received:', rawData);
       
-      // Filter for sales sheet data - assuming it has discount-related columns
-      const salesData = rawData.filter((row: any) => 
-        row['Payment Category'] || row['Discount Amount'] !== undefined
-      );
-      
-      const processedData = salesData.map((row: any) => ({
+      const processedData = rawData.map((row: any) => ({
         memberId: row['Member Id'] || '',
         customerName: row['Customer Name'] || '',
         customerEmail: row['Customer Email'] || '',
@@ -48,7 +43,7 @@ export const useDiscountsData = () => {
         netDiscountPercent: parseFloat(row['Net Discount %']?.replace('%', '')) || 0
       }));
 
-      console.log('Processed discounts data:', processedData);
+      console.log('Processed sales data:', processedData);
       setData(processedData);
     }
   }, [rawData]);

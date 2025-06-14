@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,7 +23,7 @@ const locations = [
   { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
 ];
 
-export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ data = [] }) => {
+export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ data }) => {
   const [activeLocation, setActiveLocation] = useState('kwality');
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -39,11 +40,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
   // Helper function to filter data by date range and other filters
   const applyFilters = (rawData: SalesData[]) => {
-    // Add safety check for undefined data
-    if (!rawData || rawData.length === 0) {
-      return [];
-    }
-
     let filtered = rawData;
 
     // Apply location filter first

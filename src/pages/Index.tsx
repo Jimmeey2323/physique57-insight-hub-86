@@ -8,17 +8,13 @@ import { TrainerPerformanceSection } from '@/components/dashboard/TrainerPerform
 import { DiscountsSection } from '@/components/dashboard/DiscountsSection';
 import { LeadsSection } from '@/components/dashboard/LeadsSection';
 import { DashboardNavigation } from '@/components/dashboard/DashboardNavigation';
-import { useSalesData } from '@/hooks/useSalesData';
-import { useDiscountsData } from '@/hooks/useDiscountsData';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('sales');
-  const { data: salesData, loading: salesLoading } = useSalesData();
-  const { data: discountsData, loading: discountsLoading } = useDiscountsData();
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <DashboardNavigation activeSection={activeTab} onSectionChange={setActiveTab} />
+      <DashboardNavigation />
       
       <div className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -32,13 +28,7 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="sales">
-            {salesLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-lg">Loading sales data...</div>
-              </div>
-            ) : (
-              <SalesAnalyticsSection data={salesData} />
-            )}
+            <SalesAnalyticsSection />
           </TabsContent>
 
           <TabsContent value="new-clients">
@@ -54,13 +44,7 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="discounts">
-            {discountsLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-lg">Loading discounts data...</div>
-              </div>
-            ) : (
-              <DiscountsSection data={discountsData} />
-            )}
+            <DiscountsSection />
           </TabsContent>
 
           <TabsContent value="leads">

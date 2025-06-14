@@ -146,7 +146,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
   const getMetricValue = (item: typeof processedData[0]) => {
     switch (selectedMetric) {
       case 'attendance':
-        return formatNumber(item.avgAttendance.toFixed(1));
+        return formatNumber(Number(item.avgAttendance.toFixed(1)));
       case 'fillRate':
         return `${item.avgFillRate.toFixed(1)}%`;
       case 'revenue':
@@ -154,7 +154,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       case 'lateCancellations':
         return formatNumber(item.lateCancellations);
       default:
-        return formatNumber(item.avgAttendance.toFixed(1));
+        return formatNumber(Number(item.avgAttendance.toFixed(1)));
     }
   };
 

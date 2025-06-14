@@ -1,3 +1,4 @@
+
 export interface SalesData {
   memberId: string;
   customerName: string;
@@ -20,6 +21,14 @@ export interface SalesData {
   calculatedLocation: string;
   cleanedProduct: string;
   cleanedCategory: string;
+  discountAmount?: number;
+  grossRevenue?: number;
+  preTaxMrp?: number;
+  vat?: number;
+  netRevenue?: number;
+  postTaxMrp?: number;
+  grossDiscountPercent?: number;
+  netDiscountPercent?: number;
 }
 
 export interface SessionData {

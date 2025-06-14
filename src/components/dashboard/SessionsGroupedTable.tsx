@@ -28,7 +28,21 @@ interface SessionsGroupedTableProps {
   data: SessionData[];
 }
 
-type ViewType = 'uniqueId' | 'trainer' | 'classType' | 'dayOfWeek' | 'timeSlot' | 'location' | 'date' | 'capacity';
+type ViewType = 
+  | 'uniqueId' 
+  | 'trainer' 
+  | 'classType' 
+  | 'dayOfWeek' 
+  | 'timeSlot' 
+  | 'location' 
+  | 'date' 
+  | 'capacity'
+  | 'classTypeDay'
+  | 'classTypeTime'
+  | 'classTypeDayTime'
+  | 'classTypeDayTimeLocation'
+  | 'classTypeDayTimeLocationTrainer';
+
 type SortField = 'name' | 'occurrences' | 'totalAttendees' | 'avgFillRate' | 'totalRevenue' | 'avgRevenue';
 type SortDirection = 'asc' | 'desc';
 
@@ -68,6 +82,21 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
           break;
         case 'capacity':
           groupKey = `${session.capacity} seats`;
+          break;
+        case 'classTypeDay':
+          groupKey = `${session.cleanedClass || 'Unknown'} - ${session.dayOfWeek || 'Unknown'}`;
+          break;
+        case 'classTypeTime':
+          groupKey = `${session.cleanedClass || 'Unknown'} - ${session.time || 'Unknown'}`;
+          break;
+        case 'classTypeDayTime':
+          groupKey = `${session.cleanedClass || 'Unknown'} - ${session.dayOfWeek || 'Unknown'} - ${session.time || 'Unknown'}`;
+          break;
+        case 'classTypeDayTimeLocation':
+          groupKey = `${session.cleanedClass || 'Unknown'} - ${session.dayOfWeek || 'Unknown'} - ${session.time || 'Unknown'} - ${session.location || 'Unknown'}`;
+          break;
+        case 'classTypeDayTimeLocationTrainer':
+          groupKey = `${session.cleanedClass || 'Unknown'} - ${session.dayOfWeek || 'Unknown'} - ${session.time || 'Unknown'} - ${session.location || 'Unknown'} - ${session.trainerName || 'Unknown'}`;
           break;
         default:
           groupKey = session.uniqueId || 'Unknown';
@@ -142,8 +171,50 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
     { value: 'timeSlot', label: 'By Time Slot', icon: Calendar },
     { value: 'location', label: 'By Location', icon: Calendar },
     { value: 'date', label: 'By Date', icon: Calendar },
-    { value: 'capacity', label: 'By Capacity', icon: Users }
+    { value: 'capacity', label: 'By Capacity', icon: Users },
+    { value: 'classTypeDay', label: 'Class + Day', icon: Target },
+    { value: 'classTypeTime', label: 'Class + Time', icon: Target },
+    { value: 'classTypeDayTime', label: 'Class + Day + Time', icon: Target },
+    { value: 'classTypeDayTimeLocation', label: 'Class + Day + Time + Location', icon: Target },
+    { value: 'classTypeDayTimeLocationTrainer', label: 'Class + Day + Time + Location + Trainer', icon: Target }
   ];
+
+  const getDisplayColumns = () => {
+    const parts = currentView.includes('classType') ? 
+      processedGroups[0]?.name.split(' - ') || [] : [];
+    
+    const columns = [];
+    
+    if (currentView.includes('classType')) {
+      columns.push({ key: 'cleanedClass', label: 'Class' });
+    }
+    if (currentView.includes('Day')) {
+      columns.push({ key: 'dayOfWeek', label: 'Day' });
+    }
+    if (currentView.includes('Time')) {
+      columns.push({ key: 'time', label: 'Time' });
+    }
+    if (currentView.includes('Location')) {
+      columns.push({ key: 'location', label: 'Location' });
+    }
+    if (currentView.includes('Trainer')) {
+      columns.push({ key: 'trainerName', label: 'Trainer' });
+    }
+    
+    return columns;
+  };
+
+  const parseGroupedRowData = (groupName: string) => {
+    const parts = groupName.split(' - ');
+    const columns = getDisplayColumns();
+    const result: Record<string, string> = {};
+    
+    columns.forEach((col, index) => {
+      result[col.key] = parts[index] || '';
+    });
+    
+    return result;
+  };
 
   return (
     <Card className="bg-white shadow-sm border border-gray-200">
@@ -193,6 +264,11 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                     )}
                   </Button>
                 </TableHead>
+                {getDisplayColumns().map(col => (
+                  <TableHead key={col.key} className="text-center min-w-24">
+                    {col.label}
+                  </TableHead>
+                ))}
                 <TableHead className="text-center min-w-24">
                   <Button
                     variant="ghost"
@@ -261,66 +337,81 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
               </TableRow>
             </TableHeader>
             <TableBody>
-              {processedGroups.map((group) => (
-                <React.Fragment key={group.name}>
-                  <TableRow 
-                    className="cursor-pointer hover:bg-gray-50 border-b-2 border-gray-200"
-                    onClick={() => toggleGroup(group.name)}
-                  >
-                    <TableCell className="sticky left-0 bg-white z-10 border-r h-6 py-1">
-                      <div className="flex items-center gap-2">
-                        {expandedGroups.has(group.name) ? 
-                          <ChevronDown className="h-4 w-4 text-gray-500" /> : 
-                          <ChevronRight className="h-4 w-4 text-gray-500" />
-                        }
-                        <span className="font-medium text-sm truncate">{group.name}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center h-6 py-1">
-                      <Badge variant="secondary" className="text-xs">
-                        {group.occurrences}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-center h-6 py-1 text-sm">
-                      {formatNumber(group.totalAttendees)}
-                    </TableCell>
-                    <TableCell className="text-center h-6 py-1 text-sm">
-                      {group.avgFillRate.toFixed(1)}%
-                    </TableCell>
-                    <TableCell className="text-center h-6 py-1 text-sm">
-                      {formatCurrency(group.totalRevenue)}
-                    </TableCell>
-                    <TableCell className="text-center h-6 py-1 text-sm">
-                      {formatCurrency(group.avgRevenue)}
-                    </TableCell>
-                  </TableRow>
-                  
-                  {expandedGroups.has(group.name) && group.sessions.map((session, index) => (
-                    <TableRow key={`${group.name}-${index}`} className="bg-blue-50">
-                      <TableCell className="sticky left-0 bg-blue-50 z-10 border-r h-6 py-1 pl-8">
-                        <span className="text-xs text-gray-600 truncate">
-                          {session.sessionName} - {session.date}
-                        </span>
+              {processedGroups.map((group) => {
+                const groupRowData = parseGroupedRowData(group.name);
+                const displayColumns = getDisplayColumns();
+                
+                return (
+                  <React.Fragment key={group.name}>
+                    <TableRow 
+                      className="cursor-pointer hover:bg-gray-50 border-b-2 border-gray-200"
+                      onClick={() => toggleGroup(group.name)}
+                    >
+                      <TableCell className="sticky left-0 bg-white z-10 border-r h-6 py-1">
+                        <div className="flex items-center gap-2">
+                          {expandedGroups.has(group.name) ? 
+                            <ChevronDown className="h-4 w-4 text-gray-500" /> : 
+                            <ChevronRight className="h-4 w-4 text-gray-500" />
+                          }
+                          <span className="font-medium text-sm truncate">{group.name}</span>
+                        </div>
                       </TableCell>
-                      <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
-                        1
+                      {displayColumns.map(col => (
+                        <TableCell key={col.key} className="text-center h-6 py-1 text-sm">
+                          {groupRowData[col.key]}
+                        </TableCell>
+                      ))}
+                      <TableCell className="text-center h-6 py-1">
+                        <Badge variant="secondary" className="text-xs">
+                          {group.occurrences}
+                        </Badge>
                       </TableCell>
-                      <TableCell className="text-center h-6 py-1 text-xs">
-                        {session.checkedInCount}
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {formatNumber(group.totalAttendees)}
                       </TableCell>
-                      <TableCell className="text-center h-6 py-1 text-xs">
-                        {session.fillPercentage?.toFixed(1)}%
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {group.avgFillRate.toFixed(1)}%
                       </TableCell>
-                      <TableCell className="text-center h-6 py-1 text-xs">
-                        {formatCurrency(session.totalPaid)}
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {formatCurrency(group.totalRevenue)}
                       </TableCell>
-                      <TableCell className="text-center h-6 py-1 text-xs">
-                        {formatCurrency(session.totalPaid)}
+                      <TableCell className="text-center h-6 py-1 text-sm">
+                        {formatCurrency(group.avgRevenue)}
                       </TableCell>
                     </TableRow>
-                  ))}
-                </React.Fragment>
-              ))}
+                    
+                    {expandedGroups.has(group.name) && group.sessions.map((session, index) => (
+                      <TableRow key={`${group.name}-${index}`} className="bg-blue-50">
+                        <TableCell className="sticky left-0 bg-blue-50 z-10 border-r h-6 py-1 pl-8">
+                          <span className="text-xs text-gray-600 truncate">
+                            {session.sessionName} - {session.date}
+                          </span>
+                        </TableCell>
+                        {displayColumns.map(col => (
+                          <TableCell key={col.key} className="text-center h-6 py-1 text-xs text-gray-600">
+                            {session[col.key as keyof SessionData] || '-'}
+                          </TableCell>
+                        ))}
+                        <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
+                          1
+                        </TableCell>
+                        <TableCell className="text-center h-6 py-1 text-xs">
+                          {session.checkedInCount}
+                        </TableCell>
+                        <TableCell className="text-center h-6 py-1 text-xs">
+                          {session.fillPercentage?.toFixed(1)}%
+                        </TableCell>
+                        <TableCell className="text-center h-6 py-1 text-xs">
+                          {formatCurrency(session.totalPaid)}
+                        </TableCell>
+                        <TableCell className="text-center h-6 py-1 text-xs">
+                          {formatCurrency(session.totalPaid)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </React.Fragment>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

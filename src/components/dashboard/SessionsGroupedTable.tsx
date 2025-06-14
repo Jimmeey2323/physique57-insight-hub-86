@@ -43,13 +43,13 @@ type ViewType =
   | 'classTypeDayTimeLocation'
   | 'classTypeDayTimeLocationTrainer';
 
-type SortField = 'name' | 'occurrences' | 'totalAttendees' | 'avgFillRate' | 'totalRevenue' | 'avgRevenue';
+type SortField = 'name' | 'occurrences' | 'totalAttendees' | 'avgFillRate' | 'totalRevenue' | 'avgRevenue' | 'classAverage';
 type SortDirection = 'asc' | 'desc';
 
 export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data }) => {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [currentView, setCurrentView] = useState<ViewType>('classTypeDayTimeLocation');
-  const [sortField, setSortField] = useState<SortField>('occurrences');
+  const [sortField, setSortField] = useState<SortField>('classAverage');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   const groupedData = useMemo(() => {
@@ -118,6 +118,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
       const totalRevenue = sessions.reduce((sum, s) => sum + s.totalPaid, 0);
       const avgFillRate = totalCapacity > 0 ? (totalAttendees / totalCapacity) * 100 : 0;
       const avgRevenue = sessions.length > 0 ? totalRevenue / sessions.length : 0;
+      const classAverage = sessions.length > 0 ? totalAttendees / sessions.length : 0;
 
       return {
         name: groupName,
@@ -126,7 +127,8 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
         totalAttendees,
         avgFillRate,
         totalRevenue,
-        avgRevenue
+        avgRevenue,
+        classAverage
       };
     }).sort((a, b) => {
       const aVal = a[sortField];
@@ -228,7 +230,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                 <ChevronDown className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent>
+            <DropdownMenuContent className="bg-white">
               {viewOptions.map(option => (
                 <DropdownMenuItem
                   key={option.value}
@@ -262,7 +264,7 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                   </Button>
                 </TableHead>
                 {getDisplayColumns().map(col => (
-                  <TableHead key={col.key} className="text-center min-w-24">
+                  <TableHead key={col.key} className="text-center min-w-24 font-semibold">
                     {col.label}
                   </TableHead>
                 ))}
@@ -275,6 +277,19 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                   >
                     Sessions
                     {sortField === 'occurrences' && (
+                      sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
+                    )}
+                  </Button>
+                </TableHead>
+                <TableHead className="text-center min-w-24">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('classAverage')}
+                    className="h-6 p-0 font-semibold"
+                  >
+                    Class Average
+                    {sortField === 'classAverage' && (
                       sortDirection === 'asc' ? <SortAsc className="ml-1 h-3 w-3" /> : <SortDesc className="ml-1 h-3 w-3" />
                     )}
                   </Button>
@@ -363,6 +378,9 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                           {group.occurrences}
                         </Badge>
                       </TableCell>
+                      <TableCell className="text-center h-6 py-1 text-sm font-bold text-blue-600">
+                        {group.classAverage.toFixed(1)}
+                      </TableCell>
                       <TableCell className="text-center h-6 py-1 text-sm font-medium">
                         {formatNumber(group.totalAttendees)}
                       </TableCell>
@@ -391,6 +409,9 @@ export const SessionsGroupedTable: React.FC<SessionsGroupedTableProps> = ({ data
                         ))}
                         <TableCell className="text-center h-6 py-1 text-xs text-gray-600">
                           1
+                        </TableCell>
+                        <TableCell className="text-center h-6 py-1 text-xs font-semibold text-blue-600">
+                          {session.checkedInCount}
                         </TableCell>
                         <TableCell className="text-center h-6 py-1 text-xs">
                           {session.checkedInCount}

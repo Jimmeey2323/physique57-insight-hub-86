@@ -135,12 +135,10 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
           bValue = b.lateCancellations;
           return variant === 'top' ? bValue - aValue : aValue - bValue;
         case 'classAverage':
-          aValue = a.classAverage;
-          bValue = b.classAverage;
-          break;
         default:
           aValue = a.classAverage;
           bValue = b.classAverage;
+          break;
       }
       
       return variant === 'top' ? bValue - aValue : aValue - bValue;
@@ -168,7 +166,6 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       case 'lateCancellations':
         return formatNumber(item.lateCancellations);
       case 'classAverage':
-        return item.classAverage.toFixed(1);
       default:
         return item.classAverage.toFixed(1);
     }
@@ -185,7 +182,6 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
       case 'lateCancellations':
         return `${((item.lateCancellations / item.sessions) * 100).toFixed(1)}% rate`;
       case 'classAverage':
-        return `${formatNumber(item.totalAttendance)} total attendees`;
       default:
         return `${formatNumber(item.totalAttendance)} total attendees`;
     }
@@ -228,7 +224,7 @@ export const SessionsTopBottomLists: React.FC<SessionsTopBottomListsProps> = ({
                   {metricOptions.find(opt => opt.value === selectedMetric)?.label}
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent>
+              <DropdownMenuContent className="bg-white">
                 {metricOptions.map(option => (
                   <DropdownMenuItem
                     key={option.value}

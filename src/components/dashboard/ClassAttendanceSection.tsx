@@ -1,9 +1,10 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Users, Target, TrendingUp, Calendar } from 'lucide-react';
+import { Loader2, RefreshCw, Users, Target, TrendingUp, Calendar, Filter, BarChart3 } from 'lucide-react';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { SessionsFilterSection } from './SessionsFilterSection';
 import { SessionsGroupedTable } from './SessionsGroupedTable';
@@ -14,6 +15,7 @@ import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
 import { SessionsTrendsInsights } from './SessionsTrendsInsights';
 import { SessionsAnomalyDetection } from './SessionsAnomalyDetection';
 import { SessionsForecasting } from './SessionsForecasting';
+import { ClassFormatAnalysis } from './ClassFormatAnalysis';
 
 const locations = [
   { id: 'all', name: 'All Locations', fullName: 'All Locations' },
@@ -81,8 +83,8 @@ export const ClassAttendanceSection: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50/30 flex items-center justify-center">
-        <Card className="p-8 bg-white shadow-lg">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-2xl border-0">
           <CardContent className="flex items-center gap-4">
             <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
             <div>
@@ -97,8 +99,8 @@ export const ClassAttendanceSection: React.FC = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50/30 flex items-center justify-center p-4">
-        <Card className="p-8 bg-white shadow-lg max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-2xl border-0 max-w-md">
           <CardContent className="text-center space-y-4">
             <RefreshCw className="w-12 h-12 text-red-600 mx-auto" />
             <div>
@@ -126,74 +128,115 @@ export const ClassAttendanceSection: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 bg-gray-50/30 min-h-screen p-6">
-      <div className="text-center mb-8">
-        <h2 className="text-4xl font-bold text-gray-900 mb-4">
-          Class Attendance Analytics
-        </h2>
-        <p className="text-xl text-gray-600">
-          Track class performance, attendance patterns, and instructor insights
-        </p>
-      </div>
-
-      <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-white p-1 rounded-lg shadow-sm border">
-          {locations.map((location) => (
-            <TabsTrigger
-              key={location.id}
-              value={location.id}
-              className="relative overflow-hidden rounded-md px-6 py-3 font-medium text-sm transition-all duration-200 data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm hover:bg-gray-50"
-            >
-              <span className="relative z-10 block text-center">
-                <div className="font-semibold">{location.name.split(',')[0]}</div>
-                {location.name.includes(',') && (
-                  <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
-                )}
-              </span>
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {locations.map((location) => (
-          <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-            <SessionsFilterSection 
-              filters={filters}
-              setFilters={setFilters}
-              options={uniqueOptions}
-            />
-
-            <SessionsMetricCards data={filteredData} />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <SessionsTopBottomLists
-                data={filteredData}
-                title="Top Performing Classes"
-                type="classes"
-                variant="top"
-              />
-              
-              <SessionsTopBottomLists
-                data={filteredData}
-                title="Top Performing Trainers"
-                type="trainers"
-                variant="top"
-              />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <div className="container mx-auto px-6 py-8">
+        {/* Header Section */}
+        <div className="text-center mb-8 space-y-4">
+          <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-white/50">
+            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-white" />
             </div>
+            <span className="text-sm font-medium text-gray-600">Analytics Dashboard</span>
+          </div>
+          
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
+            Class Attendance Analytics
+          </h1>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Comprehensive insights into class performance, attendance patterns, and instructor analytics
+          </p>
+        </div>
 
-            <SessionsGroupedTable data={filteredData} />
+        {/* Location Tabs */}
+        <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
+          <div className="flex justify-center mb-8">
+            <TabsList className="bg-white/80 backdrop-blur-sm p-2 rounded-2xl shadow-lg border border-white/50 grid grid-cols-4 w-full max-w-2xl">
+              {locations.map((location) => (
+                <TabsTrigger
+                  key={location.id}
+                  value={location.id}
+                  className="relative rounded-xl px-6 py-3 font-medium text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                >
+                  <span className="relative z-10 block text-center">
+                    <div className="font-semibold">{location.name.split(',')[0]}</div>
+                    {location.name.includes(',') && (
+                      <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
+                    )}
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
-            <SessionsAttendanceAnalytics data={filteredData} />
+          {locations.map((location) => (
+            <TabsContent key={location.id} value={location.id} className="space-y-8">
+              {/* Filters */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 p-6">
+                <SessionsFilterSection 
+                  filters={filters}
+                  setFilters={setFilters}
+                  options={uniqueOptions}
+                />
+              </div>
 
-            <SessionsForecasting data={filteredData} />
+              {/* Metrics Cards */}
+              <SessionsMetricCards data={filteredData} />
 
-            <SessionsComparisonTool data={filteredData} />
+              {/* Top/Bottom Lists */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                  <SessionsTopBottomLists
+                    data={filteredData}
+                    title="Top Performing Classes"
+                    type="classes"
+                    variant="top"
+                  />
+                </div>
+                
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                  <SessionsTopBottomLists
+                    data={filteredData}
+                    title="Top Performing Trainers"
+                    type="trainers"
+                    variant="top"
+                  />
+                </div>
+              </div>
 
-            <SessionsAnomalyDetection data={filteredData} />
+              {/* Sessions Analysis Table */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                <SessionsGroupedTable data={filteredData} />
+              </div>
 
-            <SessionsTrendsInsights data={filteredData} />
-          </TabsContent>
-        ))}
-      </Tabs>
+              {/* Class Format Analysis */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                <ClassFormatAnalysis data={filteredData} />
+              </div>
+
+              {/* Analytics Sections */}
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                <SessionsAttendanceAnalytics data={filteredData} />
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                <SessionsForecasting data={filteredData} />
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                <SessionsComparisonTool data={filteredData} />
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                <SessionsAnomalyDetection data={filteredData} />
+              </div>
+
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
+                <SessionsTrendsInsights data={filteredData} />
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
     </div>
   );
 };

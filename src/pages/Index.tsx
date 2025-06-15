@@ -44,26 +44,79 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
-      {/* Updated Background with New Barre Studio Image */}
+      {/* Animated Barre Studio Background */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Subtle Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-white/70 to-gray-50/40"></div>
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-rose-50/30 via-purple-50/20 to-pink-50/30"></div>
         
-        {/* New Barre Studio Background - Less Blurred */}
-        <div className="absolute right-0 top-0 h-full w-3/5 opacity-25">
-          <img 
-            src="/lovable-uploads/2ff13f7c-20bd-4e82-848c-601b777bbc76.png" 
-            alt="Barre Studio Background" 
-            className="h-full w-full object-cover blur-[2px]"
-          />
-          {/* Lighter overlay for better text readability */}
-          <div className="absolute inset-0 bg-white/50"></div>
+        {/* Animated Barre Studio Illustration */}
+        <div className="absolute right-0 top-0 h-full w-3/5 opacity-15">
+          <div className="relative h-full w-full">
+            {/* Animated woman figure at barre */}
+            <div className="absolute top-1/4 right-1/4 w-32 h-48 animate-pulse">
+              <svg viewBox="0 0 200 300" className="w-full h-full text-purple-300">
+                {/* Barre */}
+                <rect x="10" y="120" width="80" height="4" fill="currentColor" className="animate-pulse" />
+                <rect x="8" y="0" width="4" height="140" fill="currentColor" />
+                <rect x="86" y="0" width="4" height="140" fill="currentColor" />
+                
+                {/* Woman figure */}
+                <g className="animate-bounce" style={{ animationDuration: '3s', animationDelay: '0.5s' }}>
+                  {/* Head */}
+                  <circle cx="120" cy="30" r="15" fill="currentColor" opacity="0.6" />
+                  {/* Hair bun */}
+                  <circle cx="125" cy="20" r="8" fill="currentColor" opacity="0.4" />
+                  
+                  {/* Body */}
+                  <rect x="110" y="45" width="20" height="40" rx="10" fill="currentColor" opacity="0.5" />
+                  
+                  {/* Arms */}
+                  <rect x="95" y="50" width="15" height="4" rx="2" fill="currentColor" opacity="0.6" transform="rotate(-15 102 52)" />
+                  <rect x="130" y="50" width="15" height="4" rx="2" fill="currentColor" opacity="0.6" transform="rotate(15 137 52)" />
+                  
+                  {/* Legs in barre position */}
+                  <rect x="105" y="85" width="6" height="30" rx="3" fill="currentColor" opacity="0.6" transform="rotate(-10 108 100)" />
+                  <rect x="125" y="85" width="6" height="30" rx="3" fill="currentColor" opacity="0.6" transform="rotate(45 128 100)" />
+                  
+                  {/* Extended leg */}
+                  <rect x="135" y="95" width="25" height="4" rx="2" fill="currentColor" opacity="0.6" transform="rotate(10 147 97)" />
+                </g>
+              </svg>
+            </div>
+            
+            {/* Additional animated elements */}
+            <div className="absolute top-1/3 right-1/2 w-24 h-32 animate-pulse" style={{ animationDelay: '1s' }}>
+              <svg viewBox="0 0 150 200" className="w-full h-full text-pink-300">
+                {/* Mirror */}
+                <rect x="20" y="20" width="60" height="80" rx="5" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                <rect x="25" y="25" width="50" height="70" rx="3" fill="currentColor" opacity="0.1" />
+                
+                {/* Reflection of movement */}
+                <g opacity="0.2" className="animate-pulse" style={{ animationDuration: '2s' }}>
+                  <circle cx="50" cy="40" r="8" fill="currentColor" />
+                  <rect x="45" y="48" width="10" height="20" rx="5" fill="currentColor" />
+                  <rect x="40" y="68" width="8" height="15" rx="4" fill="currentColor" transform="rotate(-20 44 75)" />
+                  <rect x="52" y="68" width="8" height="15" rx="4" fill="currentColor" transform="rotate(30 56 75)" />
+                </g>
+              </svg>
+            </div>
+            
+            {/* Floating elements representing movement */}
+            <div className="absolute top-1/2 right-1/3 space-y-4">
+              <div className="w-2 h-2 bg-purple-300 rounded-full animate-bounce opacity-40" style={{ animationDelay: '0s', animationDuration: '2s' }}></div>
+              <div className="w-1.5 h-1.5 bg-pink-300 rounded-full animate-bounce opacity-30" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}></div>
+              <div className="w-2.5 h-2.5 bg-rose-300 rounded-full animate-bounce opacity-50" style={{ animationDelay: '1s', animationDuration: '1.8s' }}></div>
+            </div>
+          </div>
+          
+          {/* Soft overlay for better text readability */}
+          <div className="absolute inset-0 bg-white/40"></div>
         </div>
         
         {/* Subtle Decorative Elements */}
-        <div className="absolute top-32 left-16 w-24 h-24 bg-slate-200/20 rounded-full blur-2xl"></div>
-        <div className="absolute top-64 right-32 w-32 h-32 bg-gray-200/15 rounded-full blur-2xl"></div>
-        <div className="absolute bottom-32 left-24 w-28 h-28 bg-slate-100/25 rounded-full blur-2xl"></div>
+        <div className="absolute top-32 left-16 w-24 h-24 bg-purple-200/20 rounded-full blur-2xl animate-pulse"></div>
+        <div className="absolute top-64 right-32 w-32 h-32 bg-pink-200/15 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute bottom-32 left-24 w-28 h-28 bg-rose-100/25 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
 
       {/* Content */}

@@ -19,6 +19,12 @@ interface DashboardNavigationProps {
 
 const sections = [
   {
+    id: 'executive-summary',
+    name: 'Executive Summary',
+    icon: FileBarChart,
+    description: 'Comprehensive overview of all metrics'
+  },
+  {
     id: 'sales-analytics',
     name: 'Sales Analytics',
     icon: BarChart3,
@@ -53,12 +59,6 @@ const sections = [
     name: 'Discounts & Promotions',
     icon: Percent,
     description: 'Promotional campaign effectiveness'
-  },
-  {
-    id: 'executive-summary',
-    name: 'Executive Summary',
-    icon: FileBarChart,
-    description: 'Comprehensive overview of all metrics'
   }
 ];
 

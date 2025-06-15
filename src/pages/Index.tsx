@@ -7,18 +7,19 @@ import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-
 const Index = () => {
   const navigate = useNavigate();
-  const { data, loading, error, refetch } = useGoogleSheets();
-
+  const {
+    data,
+    loading,
+    error,
+    refetch
+  } = useGoogleSheets();
   const handleSectionClick = (sectionId: string) => {
     navigate(`/${sectionId}`);
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex items-center justify-center relative overflow-hidden">
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex items-center justify-center relative overflow-hidden">
         {/* Animated Background Elements */}
         <div className="absolute inset-0">
           <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-slate-800/20 to-gray-800/20 rounded-full blur-3xl animate-pulse"></div>
@@ -32,38 +33,39 @@ const Index = () => {
           <div className="relative flex items-center justify-center">
             {/* Outer rotating rings */}
             <div className="absolute w-48 h-48">
-              <div className="absolute inset-0 border-4 border-transparent rounded-full animate-spin" 
-                   style={{ 
-                     background: 'conic-gradient(from 0deg, transparent, #1e293b, #475569, transparent)',
-                     animationDuration: '3s' 
-                   }}>
+              <div className="absolute inset-0 border-4 border-transparent rounded-full animate-spin" style={{
+              background: 'conic-gradient(from 0deg, transparent, #1e293b, #475569, transparent)',
+              animationDuration: '3s'
+            }}>
               </div>
             </div>
             <div className="absolute w-40 h-40">
-              <div className="absolute inset-0 border-3 border-transparent rounded-full animate-spin" 
-                   style={{ 
-                     background: 'conic-gradient(from 180deg, transparent, #374151, #6b7280, transparent)',
-                     animationDuration: '2s', 
-                     animationDirection: 'reverse' 
-                   }}>
+              <div className="absolute inset-0 border-3 border-transparent rounded-full animate-spin" style={{
+              background: 'conic-gradient(from 180deg, transparent, #374151, #6b7280, transparent)',
+              animationDuration: '2s',
+              animationDirection: 'reverse'
+            }}>
               </div>
             </div>
             <div className="absolute w-32 h-32">
-              <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" 
-                   style={{ 
-                     background: 'conic-gradient(from 90deg, transparent, #4b5563, #9ca3af, transparent)',
-                     animationDuration: '4s' 
-                   }}>
+              <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{
+              background: 'conic-gradient(from 90deg, transparent, #4b5563, #9ca3af, transparent)',
+              animationDuration: '4s'
+            }}>
               </div>
             </div>
             
             {/* Center circle with 57 - NO FADING */}
             <div className="relative w-28 h-28 bg-gradient-to-br from-slate-900 via-gray-900 to-black rounded-full flex items-center justify-center shadow-2xl border-2 border-slate-700/50">
               {/* Inner glow ring */}
-              <div className="absolute inset-1 bg-gradient-to-br from-slate-600/30 to-transparent rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
+              <div className="absolute inset-1 bg-gradient-to-br from-slate-600/30 to-transparent rounded-full animate-spin" style={{
+              animationDuration: '8s'
+            }}></div>
               
               {/* Subtle pulsing inner ring */}
-              <div className="absolute inset-2 rounded-full border border-slate-500/30 animate-pulse" style={{ animationDuration: '2s' }}></div>
+              <div className="absolute inset-2 rounded-full border border-slate-500/30 animate-pulse" style={{
+              animationDuration: '2s'
+            }}></div>
               
               {/* 57 Text - Bigger and NO FADING */}
               <div className="relative z-10">
@@ -71,34 +73,33 @@ const Index = () => {
               </div>
               
               {/* Rotating subtle highlight */}
-              <div className="absolute top-2 left-2 w-2 h-2 bg-white/40 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
+              <div className="absolute top-2 left-2 w-2 h-2 bg-white/40 rounded-full animate-spin" style={{
+              animationDuration: '3s'
+            }}></div>
             </div>
             
             {/* Orbiting particles with dark colors */}
-            <div className="absolute w-3 h-3 bg-slate-600 rounded-full shadow-lg animate-spin" 
-                 style={{ 
-                   top: '-20px', 
-                   right: '30px', 
-                   animationDuration: '4s',
-                   transformOrigin: '0 140px'
-                 }}>
+            <div className="absolute w-3 h-3 bg-slate-600 rounded-full shadow-lg animate-spin" style={{
+            top: '-20px',
+            right: '30px',
+            animationDuration: '4s',
+            transformOrigin: '0 140px'
+          }}>
             </div>
-            <div className="absolute w-2 h-2 bg-gray-700 rounded-full shadow-lg animate-spin" 
-                 style={{ 
-                   bottom: '-15px', 
-                   left: '35px', 
-                   animationDuration: '3s',
-                   animationDirection: 'reverse',
-                   transformOrigin: '0 -120px'
-                 }}>
+            <div className="absolute w-2 h-2 bg-gray-700 rounded-full shadow-lg animate-spin" style={{
+            bottom: '-15px',
+            left: '35px',
+            animationDuration: '3s',
+            animationDirection: 'reverse',
+            transformOrigin: '0 -120px'
+          }}>
             </div>
-            <div className="absolute w-2.5 h-2.5 bg-slate-800 rounded-full shadow-lg animate-spin" 
-                 style={{ 
-                   top: '40px', 
-                   left: '-25px', 
-                   animationDuration: '5s',
-                   transformOrigin: '100px 0'
-                 }}>
+            <div className="absolute w-2.5 h-2.5 bg-slate-800 rounded-full shadow-lg animate-spin" style={{
+            top: '40px',
+            left: '-25px',
+            animationDuration: '5s',
+            transformOrigin: '100px 0'
+          }}>
             </div>
           </div>
 
@@ -127,13 +128,10 @@ const Index = () => {
             </div>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 flex items-center justify-center p-4">
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 flex items-center justify-center p-4">
         <Card className="p-12 bg-white/95 backdrop-blur-sm shadow-2xl border-0 rounded-2xl max-w-lg">
           <CardContent className="text-center space-y-6">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
@@ -147,12 +145,9 @@ const Index = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-white relative overflow-hidden">
+  return <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Refined Background */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Subtle Gradient Background */}
@@ -165,7 +160,9 @@ const Index = () => {
             <rect x="80" y="140" width="240" height="6" rx="3" fill="currentColor" className="text-slate-300" />
             
             {/* Refined Woman Figure */}
-            <g className="animate-pulse" style={{ animationDuration: '6s' }}>
+            <g className="animate-pulse" style={{
+            animationDuration: '6s'
+          }}>
               {/* Head */}
               <circle cx="200" cy="90" r="22" fill="currentColor" className="text-slate-400" />
               
@@ -211,7 +208,7 @@ const Index = () => {
             {/* Main Title with Stylish Font */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-slate-900 mb-4 tracking-tight font-serif">
               <span className="font-extralight">Physique</span>{' '}
-              <span className="font-bold animate-color-cycle">57</span>
+              <span className="font-bold animate-color-cycle text-8xl">57</span>
               <span className="text-slate-600 font-light">, India</span>
             </h1>
             
@@ -264,8 +261,6 @@ const Index = () => {
           animation: color-cycle 4s infinite ease-in-out;
         }
       `}</style>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;

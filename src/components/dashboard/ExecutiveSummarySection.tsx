@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -32,7 +33,11 @@ import {
   UserCheck,
   GraduationCap,
   Megaphone,
-  TrendingUp as Forecast
+  TrendingUp as Forecast,
+  BarChart,
+  PieChart,
+  LineChart as LineChartIcon,
+  Settings
 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useSessionsData } from '@/hooks/useSessionsData';
@@ -40,7 +45,7 @@ import { usePayrollData } from '@/hooks/usePayrollData';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { useLeadsData } from '@/hooks/useLeadsData';
 import { useDiscountsData } from '@/hooks/useDiscountsData';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Area, AreaChart, ComposedChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart as RechartsBarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Area, AreaChart, ComposedChart, FunnelChart, Funnel, LabelList } from 'recharts';
 import { formatCurrency } from '@/utils/formatters';
 
 interface EditableSummaryProps {
@@ -144,12 +149,16 @@ const EditableSummary: React.FC<EditableSummaryProps> = ({ title, initialContent
 };
 
 export const ExecutiveSummarySection = () => {
-  const { data: salesData, loading: salesLoading } = useGoogleSheets();
-  const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
-  const { data: payrollData, loading: payrollLoading } = usePayrollData();
-  const { data: newClientData, loading: newClientLoading } = useNewClientData();
-  const { data: leadsData, loading: leadsLoading } = useLeadsData();
-  const { data: discountsData, loading: discountsLoading } = useDiscountsData();
+  const { data: salesData, isLoading: salesLoading } = useGoogleSheets();
+  const { data: sessionsData, isLoading: sessionsLoading } = useSessionsData();
+  const { data: payrollData, isLoading: payrollLoading } = usePayrollData();
+  const { data: newClientData, isLoading: newClientLoading } = useNewClientData();
+  const { data: leadsData, isLoading: leadsLoading } = useLeadsData();
+  const { data: discountsData, isLoading: discountsLoading } = useDiscountsData();
+
+  const [chartType, setChartType] = useState<'line' | 'bar' | 'area'>('line');
+  const [showLabels, setShowLabels] = useState(true);
+  const [showLegend, setShowLegend] = useState(true);
 
   // Check if all data is loaded
   const isLoading = salesLoading || sessionsLoading || payrollLoading || newClientLoading || leadsLoading || discountsLoading;
@@ -206,17 +215,45 @@ export const ExecutiveSummarySection = () => {
 
     // Lead Sources - Fix the property access
     const leadSources = leadsData?.reduce((acc, lead) => {
-      const source = lead.source || lead.leadSource || 'Unknown'; // Try both possible property names
+      const source = lead.source || 'Unknown';
       acc[source] = (acc[source] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {};
 
+    // Lead Sources for Funnel - Convert to funnel format
+    const leadSourcesFunnel = Object.entries(leadSources)
+      .map(([source, count]) => ({
+        name: source,
+        value: count,
+        fill: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][Object.keys(leadSources).indexOf(source) % 5]
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    // Leads by Stage
+    const leadsByStage = leadsData?.reduce((acc, lead) => {
+      const stage = lead.stage || 'Unknown';
+      acc[stage] = (acc[stage] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    // Top Products (from sales data)
+    const topProducts = salesData?.reduce((acc, sale) => {
+      const product = sale.cleanedProduct || sale.paymentItem || 'Unknown';
+      if (!acc[product]) {
+        acc[product] = { count: 0, revenue: 0 };
+      }
+      acc[product].count += 1;
+      acc[product].revenue += sale.paymentValue || 0;
+      return acc;
+    }, {} as Record<string, { count: number; revenue: number }>) || {};
+
     // Top Trainers with more details
     const topTrainers = payrollData?.sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0)).slice(0, 5) || [];
     
-    // Sales by Sold By
+    // Sales by Sold By - exclude "-"
     const salesBySoldBy = salesData?.reduce((acc, sale) => {
       const soldBy = sale.soldBy || 'Unknown';
+      if (soldBy === '-' || soldBy === '' || soldBy === 'Unknown') return acc;
       if (!acc[soldBy]) {
         acc[soldBy] = { count: 0, revenue: 0 };
       }
@@ -230,7 +267,7 @@ export const ExecutiveSummarySection = () => {
     const forecastData = Array.from({ length: 6 }, (_, i) => {
       const month = new Date(currentMonth);
       month.setMonth(month.getMonth() + i + 1);
-      const growthRate = 1.05 + (Math.random() * 0.1); // 5-15% growth
+      const growthRate = 1.05 + (Math.random() * 0.1);
       return {
         month: month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
         predicted: totalRevenue * growthRate * (1 + i * 0.02),
@@ -275,11 +312,14 @@ export const ExecutiveSummarySection = () => {
       { name: 'Memberships', value: 20, amount: totalRevenue * 0.20, color: '#10B981' }
     ];
 
-    // Top classes based on class averages (attendance per session)
+    // Top classes based on class averages (attendance per session) - exclude "Hosted" and classes with < 2 occurrences
     const classAverages = sessionsData?.reduce((acc, session) => {
       const key = session.cleanedClass || session.classType || 'Unknown';
+      // Exclude classes containing "Hosted" (case insensitive)
+      if (key.toLowerCase().includes('hosted')) return acc;
+      
       if (!acc[key]) {
-        acc[key] = { totalAttendance: 0, sessions: 0, trainerName: session.trainerName };
+        acc[key] = { totalAttendance: 0, sessions: 0, trainerName: session.instructor || session.trainerName || 'Unknown' };
       }
       acc[key].totalAttendance += session.checkedInCount || 0;
       acc[key].sessions += 1;
@@ -287,6 +327,7 @@ export const ExecutiveSummarySection = () => {
     }, {} as Record<string, { totalAttendance: number; sessions: number; trainerName: string }>) || {};
 
     const topClasses = Object.entries(classAverages)
+      .filter(([, data]) => data.sessions >= 2) // Exclude classes with less than 2 occurrences
       .map(([className, data]) => ({
         className,
         averageAttendance: data.sessions > 0 ? data.totalAttendance / data.sessions : 0,
@@ -330,6 +371,9 @@ export const ExecutiveSummarySection = () => {
       topTrainers,
       topClasses,
       leadSources,
+      leadSourcesFunnel,
+      leadsByStage,
+      topProducts,
       salesBySoldBy,
       
       // Growth metrics
@@ -343,11 +387,13 @@ export const ExecutiveSummarySection = () => {
   const AnimatedMetricCard = ({ title, value, change, icon: Icon, progress, description, color = 'blue' }: any) => {
     const [animatedValue, setAnimatedValue] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
+    const [hasStartedAnimation, setHasStartedAnimation] = useState(false);
 
     useEffect(() => {
-      // Only start animation when metrics are available
-      if (!metrics) return;
+      // Only start animation when metrics are available and haven't started yet
+      if (!metrics || hasStartedAnimation) return;
       
+      setHasStartedAnimation(true);
       const numericValue = typeof value === 'string' 
         ? parseFloat(value.replace(/[₹,KLCr%]/g, '')) 
         : value;
@@ -369,8 +415,10 @@ export const ExecutiveSummarySection = () => {
         }, duration / steps);
         
         return () => clearInterval(counter);
+      } else {
+        setAnimatedValue(0);
       }
-    }, [value, metrics]);
+    }, [value, metrics, hasStartedAnimation]);
 
     const colorClasses = {
       blue: 'from-blue-500 to-cyan-600',
@@ -406,48 +454,53 @@ export const ExecutiveSummarySection = () => {
       <HoverCard>
         <HoverCardTrigger asChild>
           <Card 
-            className="bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-105 hover:-translate-y-1"
+            className="bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-700 cursor-pointer group hover:scale-105 hover:-translate-y-2 transform-gpu"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} rounded-lg group-hover:scale-110 transition-transform duration-300`}>
-                  <Icon className="h-6 w-6 text-white" />
+            {/* Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            
+            {/* Top Border Animation */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
+            
+            {/* Icon Background */}
+            <div className="absolute top-4 right-4 p-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
+              <Icon className="h-6 w-6 text-blue-600" />
+            </div>
+            
+            <CardContent className="p-6 relative z-10">
+              <div className="mb-4">
+                <p className="text-sm font-semibold text-slate-600 mb-2 tracking-wide uppercase">{title}</p>
+                <div className="flex items-end gap-3 mb-3">
+                  <span className="text-3xl font-bold text-slate-900 transition-all duration-500">
+                    {typeof value === 'string' && value.includes('%') 
+                      ? `${animatedValue.toFixed(1)}%`
+                      : typeof value === 'string' && value.includes('₹')
+                      ? formatCurrency(animatedValue)
+                      : typeof value === 'string' 
+                      ? value 
+                      : animatedValue.toLocaleString('en-IN')}
+                  </span>
+                  {change !== undefined && (
+                    <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all duration-300 shadow-sm border ${
+                      change >= 0 
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200'
+                        : 'bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border-red-200'
+                    }`}>
+                      {change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                      {Math.abs(change).toFixed(1)}%
+                    </div>
+                  )}
                 </div>
-                {change !== undefined && (
-                  <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                    change >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-                  }`}>
-                    {change >= 0 ? (
-                      <ArrowUpRight className="w-3 h-3" />
-                    ) : (
-                      <ArrowDownRight className="w-3 h-3" />
-                    )}
-                    {Math.abs(change).toFixed(1)}%
-                  </div>
-                )}
               </div>
               
-              <div className="space-y-3">
-                <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">{title}</p>
-                <p className="text-3xl font-bold text-slate-900">
-                  {typeof value === 'string' && value.includes('%') 
-                    ? `${animatedValue.toFixed(1)}%`
-                    : typeof value === 'string' && value.includes('₹')
-                    ? formatCurrency(animatedValue)
-                    : typeof value === 'string' 
-                    ? value 
-                    : animatedValue.toLocaleString('en-IN')}
-                </p>
-                
-                {progress !== undefined && (
-                  <div className="space-y-2">
-                    <Progress value={progress} className="h-2" />
-                    <p className="text-xs text-slate-500">{progress.toFixed(0)}% of target</p>
-                  </div>
-                )}
-              </div>
+              {progress !== undefined && (
+                <div className="space-y-2">
+                  <Progress value={progress} className="h-2" />
+                  <p className="text-xs text-slate-500">{progress.toFixed(0)}% of target</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </HoverCardTrigger>
@@ -468,6 +521,47 @@ export const ExecutiveSummarySection = () => {
         </HoverCardContent>
       </HoverCard>
     );
+  };
+
+  const renderChart = (data: any[], dataKey: string) => {
+    const commonProps = {
+      data,
+      margin: { top: 5, right: 30, left: 20, bottom: 5 }
+    };
+
+    switch (chartType) {
+      case 'bar':
+        return (
+          <RechartsBarChart {...commonProps}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis dataKey="month" stroke="#64748b" />
+            <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+            <Tooltip formatter={(value) => [formatCurrency(Number(value)), dataKey]} />
+            {showLegend && <Bar dataKey={dataKey} fill="#3B82F6" />}
+            {!showLegend && <Bar dataKey={dataKey} fill="#3B82F6" />}
+          </RechartsBarChart>
+        );
+      case 'area':
+        return (
+          <AreaChart {...commonProps}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis dataKey="month" stroke="#64748b" />
+            <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+            <Tooltip formatter={(value) => [formatCurrency(Number(value)), dataKey]} />
+            <Area type="monotone" dataKey={dataKey} fill="#3B82F6" fillOpacity={0.6} stroke="#3B82F6" />
+          </AreaChart>
+        );
+      default:
+        return (
+          <LineChart {...commonProps}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+            <XAxis dataKey="month" stroke="#64748b" />
+            <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+            <Tooltip formatter={(value) => [formatCurrency(Number(value)), dataKey]} />
+            <Line type="monotone" dataKey={dataKey} stroke="#3B82F6" strokeWidth={2} />
+          </LineChart>
+        );
+    }
   };
 
   const handleSummaryUpdate = (section: string, content: string[]) => {
@@ -517,6 +611,64 @@ export const ExecutiveSummarySection = () => {
         </h2>
         <p className="text-lg text-slate-600 font-light">Comprehensive business insights and performance metrics</p>
       </div>
+
+      {/* Chart Controls */}
+      <Card className="bg-white border border-slate-200 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Settings className="w-5 h-5 text-blue-600" />
+              Chart Controls
+            </span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-4 items-center">
+            <div className="flex gap-2">
+              <Button
+                variant={chartType === 'line' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('line')}
+              >
+                <LineChartIcon className="w-4 h-4 mr-1" />
+                Line
+              </Button>
+              <Button
+                variant={chartType === 'bar' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('bar')}
+              >
+                <BarChart className="w-4 h-4 mr-1" />
+                Bar
+              </Button>
+              <Button
+                variant={chartType === 'area' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setChartType('area')}
+              >
+                <Activity className="w-4 h-4 mr-1" />
+                Area
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={showLabels ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowLabels(!showLabels)}
+              >
+                Labels
+              </Button>
+              <Button
+                variant={showLegend ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setShowLegend(!showLegend)}
+              >
+                Legend
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Primary KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -624,52 +776,31 @@ export const ExecutiveSummarySection = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={[...metrics.trendData.slice(-6), ...metrics.forecastData]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" stroke="#64748b" />
-                <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
-                <Tooltip formatter={(value, name) => [
-                  formatCurrency(Number(value)), 
-                  name === 'revenue' ? 'Historical Revenue' : 'Predicted Revenue'
-                ]} />
-                <Area type="monotone" dataKey="revenue" fill="#3B82F6" fillOpacity={0.6} stroke="#3B82F6" />
-                <Line type="monotone" dataKey="predicted" stroke="#10B981" strokeDasharray="5 5" strokeWidth={2} />
-              </ComposedChart>
+              {renderChart([...metrics.trendData.slice(-6), ...metrics.forecastData], 'revenue')}
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Lead Sources Distribution */}
+        {/* Lead Sources Funnel */}
         <Card className="bg-white border border-slate-200 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Megaphone className="w-5 h-5 text-purple-600" />
-              Lead Sources Distribution
+              Lead Sources Funnel
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={Object.entries(metrics.leadSources).map(([source, count], index) => ({
-                    name: source,
-                    value: count,
-                    color: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][index % 5]
-                  }))}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {Object.entries(metrics.leadSources).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][index % 5]} />
-                  ))}
-                </Pie>
+              <FunnelChart>
                 <Tooltip />
-              </PieChart>
+                <Funnel
+                  dataKey="value"
+                  data={metrics.leadSourcesFunnel}
+                  isAnimationActive
+                >
+                  <LabelList position="center" fill="#fff" stroke="none" />
+                </Funnel>
+              </FunnelChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -685,7 +816,7 @@ export const ExecutiveSummarySection = () => {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={metrics.locationMonthlyData}>
+            <RechartsBarChart data={metrics.locationMonthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" stroke="#64748b" />
               <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
@@ -693,7 +824,7 @@ export const ExecutiveSummarySection = () => {
               <Bar dataKey="Kwality House" fill="#3B82F6" />
               <Bar dataKey="Supreme HQ" fill="#8B5CF6" />
               <Bar dataKey="Kenkere House" fill="#10B981" />
-            </BarChart>
+            </RechartsBarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -780,6 +911,88 @@ export const ExecutiveSummarySection = () => {
                 ))}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Tables Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Discount Analysis */}
+        <Card className="bg-white border border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Percent className="w-5 h-5 text-red-600" />
+              Discount Analysis
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Total Discounts</span>
+                <span className="font-bold text-red-600">{formatCurrency(metrics.totalDiscounts)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Avg Discount %</span>
+                <span className="font-bold">{metrics.avgDiscountPercent.toFixed(1)}%</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Discounted Sales</span>
+                <span className="font-bold">{metrics.discountedSales}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm font-medium">Discount Rate</span>
+                <span className="font-bold">{((metrics.discountedSales / metrics.totalSales) * 100).toFixed(1)}%</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Leads by Stage */}
+        <Card className="bg-white border border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-blue-600" />
+              Leads by Stage
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(metrics.leadsByStage)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5)
+                .map(([stage, count]) => (
+                <div key={stage} className="flex justify-between items-center">
+                  <span className="text-sm font-medium">{stage}</span>
+                  <Badge variant="secondary">{count}</Badge>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Products */}
+        <Card className="bg-white border border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-600" />
+              Top Products
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Object.entries(metrics.topProducts)
+                .sort(([,a], [,b]) => b.revenue - a.revenue)
+                .slice(0, 5)
+                .map(([product, data]) => (
+                <div key={product} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium truncate">{product}</span>
+                    <span className="text-xs font-bold">{formatCurrency(data.revenue)}</span>
+                  </div>
+                  <div className="text-xs text-slate-500">{data.count} sales</div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>

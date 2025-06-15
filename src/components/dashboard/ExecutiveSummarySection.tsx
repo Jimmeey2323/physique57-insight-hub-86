@@ -19,7 +19,6 @@ import {
   ArrowDownRight
 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
-import { SalesData } from '@/types/dashboard';
 
 export const ExecutiveSummarySection = () => {
   const { data } = useGoogleSheets();
@@ -38,7 +37,7 @@ export const ExecutiveSummarySection = () => {
       };
     }
 
-    const totalRevenue = data.reduce((sum: number, item: SalesData) => sum + (item.amount || 0), 0);
+    const totalRevenue = data.reduce((sum: number, item: any) => sum + (item.revenue || item.price || 0), 0);
     const totalSales = data.length;
     const averageOrderValue = totalSales > 0 ? totalRevenue / totalSales : 0;
     
@@ -48,8 +47,8 @@ export const ExecutiveSummarySection = () => {
     
     // Find most popular package
     const packageCounts: { [key: string]: number } = {};
-    data.forEach((item: SalesData) => {
-      const packageName = item.packageName || item.item || 'Unknown';
+    data.forEach((item: any) => {
+      const packageName = item.package || item.name || item.title || 'Unknown';
       packageCounts[packageName] = (packageCounts[packageName] || 0) + 1;
     });
     
@@ -197,18 +196,18 @@ export const ExecutiveSummarySection = () => {
           <CardContent>
             <div className="space-y-3">
               {metrics.recentSales.length > 0 ? (
-                metrics.recentSales.slice(0, 3).map((sale: SalesData, index: number) => (
+                metrics.recentSales.slice(0, 3).map((sale: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded">
                     <div>
                       <p className="font-medium text-sm">
-                        {sale.packageName || sale.item || 'Package Sale'}
+                        {sale.package || sale.name || sale.title || 'Package Sale'}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {formatDate(sale.createdAt || sale.date || new Date().toISOString())}
+                        {formatDate(sale.timestamp || sale.date || new Date().toISOString())}
                       </p>
                     </div>
                     <Badge variant="outline">
-                      {formatCurrency(sale.amount || 0)}
+                      {formatCurrency(sale.revenue || sale.price || 0)}
                     </Badge>
                   </div>
                 ))

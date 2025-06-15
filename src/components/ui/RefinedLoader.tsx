@@ -24,7 +24,7 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
         {/* Sophisticated Compact Loader */}
         <div className="relative flex items-center justify-center">
           {/* Outer elegant rings - Smaller */}
-          <div className="absolute w-44 h-44 opacity-50">
+          <div className="absolute w-36 h-36 opacity-50">
             <div className="absolute inset-0 rounded-full border border-transparent animate-spin" 
                  style={{
                    background: 'conic-gradient(from 0deg, transparent, rgba(99, 102, 241, 0.3), rgba(139, 92, 246, 0.4), transparent)',
@@ -33,7 +33,7 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
             </div>
           </div>
           
-          <div className="absolute w-36 h-36 opacity-40">
+          <div className="absolute w-30 h-30 opacity-40">
             <div className="absolute inset-0 rounded-full border border-transparent animate-spin" 
                  style={{
                    background: 'conic-gradient(from 180deg, transparent, rgba(139, 92, 246, 0.2), rgba(168, 85, 247, 0.3), transparent)',
@@ -43,7 +43,7 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
             </div>
           </div>
           
-          <div className="absolute w-28 h-28 opacity-30">
+          <div className="absolute w-24 h-24 opacity-30">
             <div className="absolute inset-0 rounded-full border border-transparent animate-spin" 
                  style={{
                    background: 'conic-gradient(from 90deg, transparent, rgba(168, 85, 247, 0.15), rgba(196, 181, 253, 0.25), transparent)',
@@ -52,8 +52,8 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
             </div>
           </div>
           
-          {/* Ultra-Refined center circle with color-changing 57 */}
-          <div className="relative w-24 h-24 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-full flex items-center justify-center shadow-2xl border border-slate-600/20">
+          {/* Ultra-Refined center circle with color-changing 57 - Smaller circle, bigger text */}
+          <div className="relative w-20 h-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-full flex items-center justify-center shadow-2xl border border-slate-600/20">
             {/* Subtle inner glow */}
             <div className="absolute inset-1.5 bg-gradient-to-br from-slate-700/15 to-transparent rounded-full animate-pulse" 
                  style={{ animationDuration: '3s' }}>
@@ -62,9 +62,9 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
             {/* Elegant inner ring */}
             <div className="absolute inset-2 rounded-full border border-slate-500/15"></div>
             
-            {/* Color-Changing 57 Text - Ultra Refined */}
+            {/* Color-Changing 57 Text - Bigger text */}
             <div className="relative z-10">
-              <span className="text-3xl font-light tracking-wider drop-shadow-lg animate-color-change" 
+              <span className="text-4xl font-light tracking-wider drop-shadow-lg animate-color-change" 
                     style={{ 
                       fontFamily: 'ui-serif, serif',
                       textShadow: '0 0 20px rgba(255,255,255,0.3)'
@@ -80,30 +80,30 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
             </div>
           </div>
           
-          {/* Elegant orbiting elements - Smaller */}
+          {/* Elegant orbiting elements - Adjusted for smaller circle */}
           <div className="absolute w-1.5 h-1.5 bg-indigo-400 rounded-full shadow-sm animate-spin opacity-60" 
                style={{
-                 top: '-10px',
-                 right: '30px',
+                 top: '-8px',
+                 right: '25px',
                  animationDuration: '6s',
-                 transformOrigin: '0 120px'
+                 transformOrigin: '0 100px'
                }}>
           </div>
           <div className="absolute w-1 h-1 bg-purple-500 rounded-full shadow-sm animate-spin opacity-50" 
                style={{
-                 bottom: '-8px',
-                 left: '35px',
+                 bottom: '-6px',
+                 left: '30px',
                  animationDuration: '4s',
                  animationDirection: 'reverse',
-                 transformOrigin: '0 -110px'
+                 transformOrigin: '0 -90px'
                }}>
           </div>
           <div className="absolute w-2 h-2 bg-violet-600 rounded-full shadow-sm animate-spin opacity-40" 
                style={{
-                 top: '40px',
-                 left: '-25px',
+                 top: '35px',
+                 left: '-20px',
                  animationDuration: '7s',
-                 transformOrigin: '100px 0'
+                 transformOrigin: '80px 0'
                }}>
           </div>
         </div>

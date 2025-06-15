@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '@/components/ui/footer';
@@ -48,34 +49,68 @@ const Index = () => {
         {/* Subtle Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-50/30 via-white to-gray-50/20"></div>
         
-        {/* Elegant Barre Workout Silhouette */}
+        {/* Improved Wall-Mounted Barre with Woman */}
         <div className="absolute right-0 top-0 h-full w-2/5 opacity-3">
           <svg viewBox="0 0 400 600" className="h-full w-full">
-            {/* Barre */}
+            {/* Wall */}
+            <rect x="0" y="0" width="80" height="600" fill="currentColor" className="text-slate-200" />
+            
+            {/* Wall-mounted Barre Brackets */}
+            <rect x="65" y="135" width="20" height="15" rx="3" fill="currentColor" className="text-slate-400" />
+            <rect x="65" y="385" width="20" height="15" rx="3" fill="currentColor" className="text-slate-400" />
+            
+            {/* Horizontal Barre (wall-mounted) */}
             <rect x="80" y="140" width="240" height="6" rx="3" fill="currentColor" className="text-slate-300" />
             
-            {/* Refined Woman Figure */}
+            {/* Improved Woman Figure at Barre */}
             <g className="animate-pulse" style={{ animationDuration: '6s' }}>
               {/* Head */}
-              <circle cx="200" cy="90" r="22" fill="currentColor" className="text-slate-400" />
+              <circle cx="160" cy="90" r="18" fill="currentColor" className="text-slate-400" />
               
               {/* Hair in Bun */}
-              <circle cx="190" cy="75" r="12" fill="currentColor" className="text-slate-500" />
+              <circle cx="152" cy="78" r="10" fill="currentColor" className="text-slate-500" />
+              
+              {/* Neck */}
+              <rect x="156" y="108" width="8" height="12" fill="currentColor" className="text-slate-400" />
               
               {/* Torso */}
-              <ellipse cx="200" cy="190" rx="35" ry="75" fill="currentColor" className="text-slate-400" />
+              <ellipse cx="160" cy="170" rx="28" ry="50" fill="currentColor" className="text-slate-400" />
               
-              {/* Arms in Barre Position */}
-              <ellipse cx="170" cy="150" rx="12" ry="45" fill="currentColor" className="text-slate-400" transform="rotate(-20 170 150)" />
-              <ellipse cx="230" cy="150" rx="12" ry="45" fill="currentColor" className="text-slate-400" transform="rotate(20 230 150)" />
+              {/* Left Arm (holding barre) */}
+              <ellipse cx="135" cy="140" rx="8" ry="35" fill="currentColor" className="text-slate-400" transform="rotate(-15 135 140)" />
+              {/* Left Hand on Barre */}
+              <circle cx="125" cy="143" r="6" fill="currentColor" className="text-slate-500" />
               
-              {/* Legs in Elegant Barre Pose */}
-              <ellipse cx="185" cy="310" rx="15" ry="65" fill="currentColor" className="text-slate-400" transform="rotate(-10 185 310)" />
-              <ellipse cx="215" cy="310" rx="15" ry="65" fill="currentColor" className="text-slate-400" transform="rotate(35 215 310)" />
+              {/* Right Arm (graceful position) */}
+              <ellipse cx="185" cy="155" rx="8" ry="30" fill="currentColor" className="text-slate-400" transform="rotate(45 185 155)" />
+              {/* Right Hand */}
+              <circle cx="200" cy="140" r="5" fill="currentColor" className="text-slate-500" />
+              
+              {/* Left Leg (supporting) */}
+              <ellipse cx="145" cy="280" rx="12" ry="60" fill="currentColor" className="text-slate-400" transform="rotate(-5 145 280)" />
+              
+              {/* Right Leg (extended for barre exercise) */}
+              <ellipse cx="180" cy="270" rx="12" ry="55" fill="currentColor" className="text-slate-400" transform="rotate(25 180 270)" />
               
               {/* Ballet Feet */}
-              <ellipse cx="170" cy="385" rx="10" ry="6" fill="currentColor" className="text-slate-500" />
-              <ellipse cx="240" cy="365" rx="10" ry="6" fill="currentColor" className="text-slate-500" />
+              <ellipse cx="135" cy="345" rx="8" ry="5" fill="currentColor" className="text-slate-500" />
+              <ellipse cx="195" cy="315" rx="8" ry="5" fill="currentColor" className="text-slate-500" transform="rotate(25 195 315)" />
+              
+              {/* Workout Attire Details */}
+              <ellipse cx="160" cy="155" rx="22" ry="15" fill="currentColor" className="text-slate-300" />
+              
+              {/* Floor Line */}
+              <line x1="80" y1="350" x2="400" y2="350" stroke="currentColor" strokeWidth="2" className="text-slate-200" />
+            </g>
+            
+            {/* Exercise Movement Indicators */}
+            <g className="animate-pulse" style={{ animationDuration: '4s', animationDelay: '1s' }}>
+              {/* Movement Arc for Leg */}
+              <path d="M 175 290 Q 190 260 205 280" stroke="currentColor" strokeWidth="1" fill="none" className="text-slate-300" strokeDasharray="3,3" />
+              
+              {/* Balance Points */}
+              <circle cx="140" cy="340" r="2" fill="currentColor" className="text-slate-400" />
+              <circle cx="200" cy="310" r="2" fill="currentColor" className="text-slate-400" />
             </g>
           </svg>
         </div>

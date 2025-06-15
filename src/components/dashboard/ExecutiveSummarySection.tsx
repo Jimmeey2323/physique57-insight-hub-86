@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -5,7 +6,6 @@ import { Progress } from '@/components/ui/progress';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -32,11 +32,7 @@ import {
   UserCheck,
   GraduationCap,
   Megaphone,
-  TrendingUp as Forecast,
-  BarChart,
-  PieChart,
-  LineChart as LineChartIcon,
-  Settings
+  TrendingUp as Forecast
 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useSessionsData } from '@/hooks/useSessionsData';
@@ -44,7 +40,7 @@ import { usePayrollData } from '@/hooks/usePayrollData';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { useLeadsData } from '@/hooks/useLeadsData';
 import { useDiscountsData } from '@/hooks/useDiscountsData';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart as RechartsBarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Area, AreaChart, ComposedChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Area, AreaChart, ComposedChart } from 'recharts';
 import { formatCurrency } from '@/utils/formatters';
 
 interface EditableSummaryProps {
@@ -150,213 +146,108 @@ const EditableSummary: React.FC<EditableSummaryProps> = ({ title, initialContent
 export const ExecutiveSummarySection = () => {
   const { data: salesData, loading: salesLoading } = useGoogleSheets();
   const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
-  const payrollQuery = usePayrollData();
+  const { data: payrollData, loading: payrollLoading } = usePayrollData();
   const { data: newClientData, loading: newClientLoading } = useNewClientData();
   const { data: leadsData, loading: leadsLoading } = useLeadsData();
   const { data: discountsData, loading: discountsLoading } = useDiscountsData();
 
-  // Handle payroll data - check if it's a React Query result or custom hook result
-  const payrollData = payrollQuery?.data || payrollQuery;
-  const payrollLoading = payrollQuery?.isLoading ?? payrollQuery?.loading ?? false;
-
-  const [chartType, setChartType] = useState<'line' | 'bar' | 'area'>('line');
-  const [showLabels, setShowLabels] = useState(true);
-  const [showLegend, setShowLegend] = useState(true);
-
   // Check if all data is loaded
   const isLoading = salesLoading || sessionsLoading || payrollLoading || newClientLoading || leadsLoading || discountsLoading;
 
-  // Calculate comprehensive metrics from all data sources with better error handling
+  // Calculate comprehensive metrics from all data sources
   const metrics = useMemo(() => {
-    console.log('=== DEBUGGING METRICS CALCULATION ===');
-    console.log('Sales Data:', salesData?.length || 0, 'records');
-    console.log('Sessions Data:', sessionsData?.length || 0, 'records');
-    console.log('Payroll Data:', Array.isArray(payrollData) ? payrollData.length : 'Not an array', payrollData);
-    console.log('New Client Data:', newClientData?.length || 0, 'records');
-    console.log('Leads Data:', leadsData?.length || 0, 'records');
-    console.log('Discounts Data:', discountsData?.length || 0, 'records');
-    console.log('Is Loading:', isLoading);
+    if (isLoading) return null;
 
-    if (isLoading) {
-      console.log('Still loading data...');
-      return null;
-    }
+    console.log('Sales Data:', salesData?.length || 0);
+    console.log('Sessions Data:', sessionsData?.length || 0);
+    console.log('Payroll Data:', payrollData?.length || 0);
+    console.log('New Client Data:', newClientData?.length || 0);
+    console.log('Leads Data:', leadsData?.length || 0);
+    console.log('Discounts Data:', discountsData?.length || 0);
 
-    // Ensure we have arrays to work with
-    const safeSalesData = Array.isArray(salesData) ? salesData : [];
-    const safeSessionsData = Array.isArray(sessionsData) ? sessionsData : [];
-    const safePayrollData = Array.isArray(payrollData) ? payrollData : [];
-    const safeNewClientData = Array.isArray(newClientData) ? newClientData : [];
-    const safeLeadsData = Array.isArray(leadsData) ? leadsData : [];
-    const safeDiscountsData = Array.isArray(discountsData) ? discountsData : [];
-
-    // Sales Metrics - using real data with better validation
-    const totalRevenue = safeSalesData.reduce((sum, item) => {
-      const value = typeof item.paymentValue === 'number' ? item.paymentValue : parseFloat(item.paymentValue) || 0;
-      return sum + value;
-    }, 0);
-    
-    const totalSales = safeSalesData.length;
+    // Sales Metrics
+    const totalRevenue = salesData?.reduce((sum, item) => sum + (item.paymentValue || 0), 0) || 0;
+    const totalSales = salesData?.length || 0;
     const averageOrderValue = totalSales > 0 ? totalRevenue / totalSales : 0;
 
-    console.log('Sales metrics:', { totalRevenue, totalSales, averageOrderValue });
+    // Discount Metrics
+    const totalDiscounts = discountsData?.reduce((sum, item) => sum + (item.discountAmount || 0), 0) || 0;
+    const avgDiscountPercent = discountsData?.length > 0 ? 
+      discountsData.reduce((sum, item) => sum + (item.grossDiscountPercent || 0), 0) / discountsData.length : 0;
+    const discountedSales = discountsData?.filter(item => (item.discountAmount || 0) > 0).length || 0;
 
-    // Discount Metrics - using real data with better validation
-    const totalDiscounts = safeDiscountsData.reduce((sum, item) => {
-      const value = typeof item.discountAmount === 'number' ? item.discountAmount : parseFloat(item.discountAmount) || 0;
-      return sum + value;
-    }, 0);
-    
-    const avgDiscountPercent = safeDiscountsData.length > 0 ? 
-      safeDiscountsData.reduce((sum, item) => {
-        const value = typeof item.grossDiscountPercent === 'number' ? item.grossDiscountPercent : parseFloat(item.grossDiscountPercent) || 0;
-        return sum + value;
-      }, 0) / safeDiscountsData.length : 0;
-    
-    const discountedSales = safeDiscountsData.filter(item => {
-      const value = typeof item.discountAmount === 'number' ? item.discountAmount : parseFloat(item.discountAmount) || 0;
-      return value > 0;
-    }).length;
-
-    console.log('Discount metrics:', { totalDiscounts, avgDiscountPercent, discountedSales });
-
-    // Sessions Metrics - using real data with better filtering
-    const filteredSessions = safeSessionsData.filter(session => {
-      const className = session.cleanedClass || session.classType || '';
-      const excludeKeywords = ['Hosted', 'P57', 'X'];
-      
-      const hasExcludedKeyword = excludeKeywords.some(keyword => 
-        className.toLowerCase().includes(keyword.toLowerCase())
-      );
-      
-      return !hasExcludedKeyword;
-    });
-
-    const totalSessions = filteredSessions.length;
-    const totalAttendance = filteredSessions.reduce((sum, session) => {
-      const value = typeof session.checkedInCount === 'number' ? session.checkedInCount : parseFloat(session.checkedInCount) || 0;
-      return sum + value;
-    }, 0);
-    
-    const totalCapacity = filteredSessions.reduce((sum, session) => {
-      const value = typeof session.capacity === 'number' ? session.capacity : parseFloat(session.capacity) || 0;
-      return sum + value;
-    }, 0);
-    
-    const averageFillRate = totalCapacity > 0 ? (totalAttendance / totalCapacity) * 100 : 0;
+    // Sessions Metrics
+    const totalSessions = sessionsData?.length || 0;
+    const totalAttendance = sessionsData?.reduce((sum, session) => sum + (session.checkedInCount || 0), 0) || 0;
+    const averageFillRate = totalSessions > 0 ? 
+      sessionsData?.reduce((sum, session) => sum + (session.fillPercentage || 0), 0) / totalSessions : 0;
     const avgClassSize = totalSessions > 0 ? totalAttendance / totalSessions : 0;
 
-    console.log('Session metrics:', { totalSessions, totalAttendance, totalCapacity, averageFillRate, avgClassSize });
+    // Trainer Metrics
+    const totalTrainers = payrollData ? new Set(payrollData.map(item => item.teacherName)).size : 0;
+    const trainerRevenue = payrollData?.reduce((sum, item) => sum + (item.totalPaid || 0), 0) || 0;
+    const trainerSessions = payrollData?.reduce((sum, item) => sum + (item.totalSessions || 0), 0) || 0;
 
-    // Trainer Metrics - using real data with better validation
-    const totalTrainers = safePayrollData.length > 0 ? new Set(safePayrollData.map(item => item.teacherName)).size : 0;
-    const trainerRevenue = safePayrollData.reduce((sum, item) => {
-      const value = typeof item.totalPaid === 'number' ? item.totalPaid : parseFloat(item.totalPaid) || 0;
-      return sum + value;
-    }, 0);
-    
-    const trainerSessions = safePayrollData.reduce((sum, item) => {
-      const value = typeof item.totalSessions === 'number' ? item.totalSessions : parseFloat(item.totalSessions) || 0;
-      return sum + value;
-    }, 0);
-
-    console.log('Trainer metrics:', { totalTrainers, trainerRevenue, trainerSessions });
-
-    // New Client Metrics - using real data with better validation
-    const totalNewClients = safeNewClientData.length;
-    const newClientLTV = safeNewClientData.reduce((sum, client) => {
-      const value = typeof client.ltv === 'number' ? client.ltv : parseFloat(client.ltv) || 0;
-      return sum + value;
-    }, 0);
-    
+    // New Client Metrics
+    const totalNewClients = newClientData?.length || 0;
+    const newClientLTV = newClientData?.reduce((sum, client) => sum + (client.ltv || 0), 0) || 0;
     const avgNewClientLTV = totalNewClients > 0 ? newClientLTV / totalNewClients : 0;
     
-    // Retention & Conversion - using real data
-    const retainedClients = safeNewClientData.filter(client => client.retentionStatus === 'Retained').length;
+    // Retention & Conversion
+    const retainedClients = newClientData?.filter(client => client.retentionStatus === 'Retained').length || 0;
     const retentionRate = totalNewClients > 0 ? (retainedClients / totalNewClients) * 100 : 0;
-    const convertedClients = safeNewClientData.filter(client => client.conversionStatus === 'Converted').length;
+    const convertedClients = newClientData?.filter(client => client.conversionStatus === 'Converted').length || 0;
     const conversionRate = totalNewClients > 0 ? (convertedClients / totalNewClients) * 100 : 0;
 
-    console.log('Client metrics:', { totalNewClients, avgNewClientLTV, retentionRate, conversionRate });
-
-    // Leads Metrics - using real data with better validation
-    const totalLeads = safeLeadsData.length;
-    const convertedLeads = safeLeadsData.filter(lead => lead.conversionStatus === 'Converted').length;
+    // Leads Metrics
+    const totalLeads = leadsData?.length || 0;
+    const convertedLeads = leadsData?.filter(lead => lead.conversionStatus === 'Converted').length || 0;
     const leadConversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
-    console.log('Lead metrics:', { totalLeads, convertedLeads, leadConversionRate });
-
-    // Lead Sources
-    const leadSources = safeLeadsData.reduce((acc, lead) => {
-      const source = lead.source || 'Unknown';
+    // Lead Sources - Fix the property access
+    const leadSources = leadsData?.reduce((acc, lead) => {
+      const source = lead.source || lead.leadSource || 'Unknown'; // Try both possible property names
       acc[source] = (acc[source] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
-
-    // Lead Sources for Pie Chart
-    const leadSourcesChart = Object.entries(leadSources)
-      .map(([source, count]) => ({
-        name: source,
-        value: count,
-        percentage: totalLeads > 0 ? ((count / totalLeads) * 100).toFixed(1) : '0'
-      }))
-      .sort((a, b) => b.value - a.value);
-
-    // Leads by Stage
-    const leadsByStage = safeLeadsData.reduce((acc, lead) => {
-      const stage = lead.stage || 'Unknown';
-      acc[stage] = (acc[stage] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    // Top Products (from sales data)
-    const topProducts = safeSalesData.reduce((acc, sale) => {
-      const product = sale.cleanedProduct || sale.paymentItem || 'Unknown';
-      if (!acc[product]) {
-        acc[product] = { count: 0, revenue: 0 };
-      }
-      acc[product].count += 1;
-      const value = typeof sale.paymentValue === 'number' ? sale.paymentValue : parseFloat(sale.paymentValue) || 0;
-      acc[product].revenue += value;
-      return acc;
-    }, {} as Record<string, { count: number; revenue: number }>);
+    }, {} as Record<string, number>) || {};
 
     // Top Trainers with more details
-    const topTrainers = safePayrollData
-      .map(trainer => ({
-        ...trainer,
-        totalPaid: typeof trainer.totalPaid === 'number' ? trainer.totalPaid : parseFloat(trainer.totalPaid) || 0,
-        totalSessions: typeof trainer.totalSessions === 'number' ? trainer.totalSessions : parseFloat(trainer.totalSessions) || 0
-      }))
-      .sort((a, b) => b.totalPaid - a.totalPaid)
-      .slice(0, 5);
+    const topTrainers = payrollData?.sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0)).slice(0, 5) || [];
     
-    // Sales by Sold By - exclude "-" and empty values
-    const salesBySoldBy = safeSalesData.reduce((acc, sale) => {
+    // Sales by Sold By
+    const salesBySoldBy = salesData?.reduce((acc, sale) => {
       const soldBy = sale.soldBy || 'Unknown';
-      if (soldBy === '-' || soldBy === '' || soldBy === 'Unknown' || !soldBy.trim()) return acc;
       if (!acc[soldBy]) {
         acc[soldBy] = { count: 0, revenue: 0 };
       }
       acc[soldBy].count += 1;
-      const value = typeof sale.paymentValue === 'number' ? sale.paymentValue : parseFloat(sale.paymentValue) || 0;
-      acc[soldBy].revenue += value;
+      acc[soldBy].revenue += sale.paymentValue || 0;
       return acc;
-    }, {} as Record<string, { count: number; revenue: number }>);
+    }, {} as Record<string, { count: number; revenue: number }>) || {};
 
-    // Generate realistic trend data based on actual revenue
+    // Generate forecast data (next 6 months)
     const currentMonth = new Date();
+    const forecastData = Array.from({ length: 6 }, (_, i) => {
+      const month = new Date(currentMonth);
+      month.setMonth(month.getMonth() + i + 1);
+      const growthRate = 1.05 + (Math.random() * 0.1); // 5-15% growth
+      return {
+        month: month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
+        predicted: totalRevenue * growthRate * (1 + i * 0.02),
+        trend: 'up'
+      };
+    });
+
+    // Historical trend data (last 12 months)
     const trendData = Array.from({ length: 12 }, (_, i) => {
       const month = new Date();
       month.setMonth(month.getMonth() - (11 - i));
-      const baseRevenue = totalRevenue / 12;
-      const variance = (Math.random() - 0.5) * 0.4;
       return {
         month: month.toLocaleDateString('en-US', { month: 'short' }),
-        revenue: baseRevenue * (1 + variance),
-        sessions: Math.floor((totalSessions / 12) * (1 + variance)),
-        newClients: Math.floor((totalNewClients / 12) * (1 + variance)),
-        leads: Math.floor((totalLeads / 12) * (1 + variance))
+        revenue: totalRevenue * (0.7 + Math.random() * 0.6) / 12,
+        sessions: Math.floor(totalSessions * (0.7 + Math.random() * 0.6) / 12),
+        newClients: Math.floor(totalNewClients * (0.7 + Math.random() * 0.6) / 12),
+        leads: Math.floor(totalLeads * (0.7 + Math.random() * 0.6) / 12)
       };
     });
 
@@ -364,31 +255,38 @@ export const ExecutiveSummarySection = () => {
     const currentYear = new Date().getFullYear();
     const locationMonthlyData = Array.from({ length: 12 }, (_, monthIndex) => {
       const monthName = new Date(currentYear, monthIndex).toLocaleDateString('en-US', { month: 'short' });
-      const baseRevenue = totalRevenue / 12;
-      const variance = (Math.random() - 0.5) * 0.3;
       return {
         month: monthName,
-        'Kwality House': baseRevenue * 0.4 * (1 + variance),
-        'Supreme HQ': baseRevenue * 0.35 * (1 + variance),
-        'Kenkere House': baseRevenue * 0.25 * (1 + variance)
+        'Kwality House': (totalRevenue * 0.4 * (0.8 + Math.random() * 0.4)) / 12,
+        'Supreme HQ': (totalRevenue * 0.35 * (0.8 + Math.random() * 0.4)) / 12,
+        'Kenkere House': (totalRevenue * 0.25 * (0.8 + Math.random() * 0.4)) / 12
       };
     });
 
-    // Top classes based on class averages (attendance per session) - exclude "Hosted" and classes with < 2 occurrences
-    const classAverages = filteredSessions.reduce((acc, session) => {
+    const locationData = [
+      { name: 'Kwality House', revenue: totalRevenue * 0.4, sessions: Math.floor(totalSessions * 0.4), clients: Math.floor(totalNewClients * 0.4) },
+      { name: 'Supreme HQ', revenue: totalRevenue * 0.35, sessions: Math.floor(totalSessions * 0.35), clients: Math.floor(totalNewClients * 0.35) },
+      { name: 'Kenkere House', revenue: totalRevenue * 0.25, sessions: Math.floor(totalSessions * 0.25), clients: Math.floor(totalNewClients * 0.25) }
+    ];
+
+    const serviceData = [
+      { name: 'Personal Training', value: 45, amount: totalRevenue * 0.45, color: '#3B82F6' },
+      { name: 'Group Classes', value: 35, amount: totalRevenue * 0.35, color: '#8B5CF6' },
+      { name: 'Memberships', value: 20, amount: totalRevenue * 0.20, color: '#10B981' }
+    ];
+
+    // Top classes based on class averages (attendance per session)
+    const classAverages = sessionsData?.reduce((acc, session) => {
       const key = session.cleanedClass || session.classType || 'Unknown';
-      
       if (!acc[key]) {
-        acc[key] = { totalAttendance: 0, sessions: 0, trainerName: session.trainerName || 'Unknown' };
+        acc[key] = { totalAttendance: 0, sessions: 0, trainerName: session.trainerName };
       }
-      const attendance = typeof session.checkedInCount === 'number' ? session.checkedInCount : parseFloat(session.checkedInCount) || 0;
-      acc[key].totalAttendance += attendance;
+      acc[key].totalAttendance += session.checkedInCount || 0;
       acc[key].sessions += 1;
       return acc;
-    }, {} as Record<string, { totalAttendance: number; sessions: number; trainerName: string }>);
+    }, {} as Record<string, { totalAttendance: number; sessions: number; trainerName: string }>) || {};
 
     const topClasses = Object.entries(classAverages)
-      .filter(([, data]) => data.sessions >= 2) // Exclude classes with less than 2 occurrences
       .map(([className, data]) => ({
         className,
         averageAttendance: data.sessions > 0 ? data.totalAttendance / data.sessions : 0,
@@ -399,7 +297,7 @@ export const ExecutiveSummarySection = () => {
       .sort((a, b) => b.averageAttendance - a.averageAttendance)
       .slice(0, 5);
 
-    const finalMetrics = {
+    return {
       // Core metrics
       totalRevenue,
       totalSales,
@@ -425,41 +323,38 @@ export const ExecutiveSummarySection = () => {
       
       // Chart data
       trendData,
+      forecastData,
+      locationData,
       locationMonthlyData,
+      serviceData,
       topTrainers,
       topClasses,
       leadSources,
-      leadSourcesChart,
-      leadsByStage,
-      topProducts,
       salesBySoldBy,
       
-      // Growth metrics (calculated from real data trends)
-      monthlyGrowth: 8.5,
-      sessionGrowth: 6.2,
-      clientGrowth: 12.3,
-      leadGrowth: 18.7
+      // Growth metrics
+      monthlyGrowth: 12.5,
+      sessionGrowth: 8.3,
+      clientGrowth: 15.7,
+      leadGrowth: 22.1
     };
-
-    console.log('Final metrics calculated:', finalMetrics);
-    return finalMetrics;
   }, [salesData, sessionsData, payrollData, newClientData, leadsData, discountsData, isLoading]);
 
   const AnimatedMetricCard = ({ title, value, change, icon: Icon, progress, description, color = 'blue' }: any) => {
     const [animatedValue, setAnimatedValue] = useState(0);
-    const [hasStartedAnimation, setHasStartedAnimation] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
 
     useEffect(() => {
-      if (!metrics || hasStartedAnimation) return;
+      // Only start animation when metrics are available
+      if (!metrics) return;
       
-      setHasStartedAnimation(true);
       const numericValue = typeof value === 'string' 
         ? parseFloat(value.replace(/[₹,KLCr%]/g, '')) 
         : value;
       
-      if (!isNaN(numericValue) && numericValue > 0) {
-        const duration = 1000; // Reduced from 1500ms to 1000ms for faster animation
-        const steps = 30; // Reduced from 50 to 30 for smoother performance
+      if (!isNaN(numericValue)) {
+        const duration = 2000;
+        const steps = 60;
         const increment = numericValue / steps;
         let current = 0;
         
@@ -474,78 +369,85 @@ export const ExecutiveSummarySection = () => {
         }, duration / steps);
         
         return () => clearInterval(counter);
-      } else {
-        setAnimatedValue(numericValue || 0);
       }
-    }, [value, metrics, hasStartedAnimation]);
+    }, [value, metrics]);
 
-    // Simple loading skeleton - faster rendering
+    const colorClasses = {
+      blue: 'from-blue-500 to-cyan-600',
+      green: 'from-green-500 to-emerald-600',
+      purple: 'from-purple-500 to-violet-600',
+      orange: 'from-orange-500 to-red-600',
+      indigo: 'from-indigo-500 to-blue-600',
+      pink: 'from-pink-500 to-rose-600',
+      teal: 'from-teal-500 to-cyan-600',
+      red: 'from-red-500 to-pink-600'
+    };
+
+    // Show skeleton loader when data is not ready
     if (!metrics) {
       return (
-        <Card className="bg-white border border-slate-200 shadow-sm">
+        <Card className="bg-white border border-slate-200 shadow-lg">
           <CardContent className="p-6">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <div className="w-8 h-8 bg-slate-200 rounded animate-pulse"></div>
-                <div className="w-12 h-4 bg-slate-200 rounded animate-pulse"></div>
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <Skeleton className="h-6 w-16 rounded-full" />
               </div>
-              <div className="w-20 h-3 bg-slate-200 rounded animate-pulse"></div>
-              <div className="w-24 h-6 bg-slate-200 rounded animate-pulse"></div>
-              <div className="w-full h-2 bg-slate-200 rounded animate-pulse"></div>
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-2 w-full rounded-full" />
             </div>
           </CardContent>
         </Card>
       );
     }
 
-    const formatAnimatedValue = () => {
-      if (typeof value === 'string' && value.includes('%')) {
-        return `${animatedValue.toFixed(1)}%`;
-      } else if (typeof value === 'string' && value.includes('₹')) {
-        return formatCurrency(animatedValue);
-      } else if (typeof value === 'string') {
-        return value;
-      } else {
-        return Math.round(animatedValue).toLocaleString('en-IN');
-      }
-    };
-
     return (
       <HoverCard>
         <HoverCardTrigger asChild>
-          <Card className="bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] transform-gpu">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
-            <div className="absolute top-4 right-4 p-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
-              <Icon className="h-6 w-6 text-blue-600" />
-            </div>
-            
-            <CardContent className="p-6 relative z-10">
-              <div className="mb-4">
-                <p className="text-sm font-semibold text-slate-600 mb-2 tracking-wide uppercase">{title}</p>
-                <div className="flex items-end gap-3 mb-3">
-                  <span className="text-3xl font-bold text-slate-900 transition-all duration-500">
-                    {formatAnimatedValue()}
-                  </span>
-                  {change !== undefined && (
-                    <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold transition-all duration-300 shadow-sm border ${
-                      change >= 0 
-                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border-green-200'
-                        : 'bg-gradient-to-r from-red-50 to-rose-50 text-red-700 border-red-200'
-                    }`}>
-                      {change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                      {Math.abs(change).toFixed(1)}%
-                    </div>
-                  )}
+          <Card 
+            className="bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-105 hover:-translate-y-1"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+          >
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} rounded-lg group-hover:scale-110 transition-transform duration-300`}>
+                  <Icon className="h-6 w-6 text-white" />
                 </div>
+                {change !== undefined && (
+                  <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                    change >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}>
+                    {change >= 0 ? (
+                      <ArrowUpRight className="w-3 h-3" />
+                    ) : (
+                      <ArrowDownRight className="w-3 h-3" />
+                    )}
+                    {Math.abs(change).toFixed(1)}%
+                  </div>
+                )}
               </div>
               
-              {progress !== undefined && (
-                <div className="space-y-2">
-                  <Progress value={progress} className="h-2" />
-                  <p className="text-xs text-slate-500">{progress.toFixed(0)}% of target</p>
-                </div>
-              )}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">{title}</p>
+                <p className="text-3xl font-bold text-slate-900">
+                  {typeof value === 'string' && value.includes('%') 
+                    ? `${animatedValue.toFixed(1)}%`
+                    : typeof value === 'string' && value.includes('₹')
+                    ? formatCurrency(animatedValue)
+                    : typeof value === 'string' 
+                    ? value 
+                    : animatedValue.toLocaleString('en-IN')}
+                </p>
+                
+                {progress !== undefined && (
+                  <div className="space-y-2">
+                    <Progress value={progress} className="h-2" />
+                    <p className="text-xs text-slate-500">{progress.toFixed(0)}% of target</p>
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </HoverCardTrigger>
@@ -568,75 +470,34 @@ export const ExecutiveSummarySection = () => {
     );
   };
 
-  const renderChart = (data: any[], dataKey: string) => {
-    const commonProps = {
-      data,
-      margin: { top: 5, right: 30, left: 20, bottom: 5 }
-    };
-
-    switch (chartType) {
-      case 'bar':
-        return (
-          <RechartsBarChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="month" stroke="#64748b" />
-            <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
-            <Tooltip formatter={(value) => [formatCurrency(Number(value)), dataKey]} />
-            <Bar dataKey={dataKey} fill="#3B82F6" />
-          </RechartsBarChart>
-        );
-      case 'area':
-        return (
-          <AreaChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="month" stroke="#64748b" />
-            <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
-            <Tooltip formatter={(value) => [formatCurrency(Number(value)), dataKey]} />
-            <Area type="monotone" dataKey={dataKey} fill="#3B82F6" fillOpacity={0.6} stroke="#3B82F6" />
-          </AreaChart>
-        );
-      default:
-        return (
-          <LineChart {...commonProps}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-            <XAxis dataKey="month" stroke="#64748b" />
-            <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
-            <Tooltip formatter={(value) => [formatCurrency(Number(value)), dataKey]} />
-            <Line type="monotone" dataKey={dataKey} stroke="#3B82F6" strokeWidth={2} />
-          </LineChart>
-        );
-    }
-  };
-
   const handleSummaryUpdate = (section: string, content: string[]) => {
     console.log(`Updated ${section} summary:`, content);
   };
 
-  const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#84CC16', '#F97316'];
-
-  // Show simple loading state when data is not ready
+  // Show loading state when data is not ready
   if (isLoading) {
     return (
       <div className="space-y-8">
         <div className="text-center mb-8">
-          <div className="animate-pulse">
-            <div className="h-8 bg-slate-200 rounded-lg w-80 mx-auto mb-2"></div>
-            <div className="h-4 bg-slate-100 rounded w-64 mx-auto"></div>
-          </div>
+          <h2 className="text-4xl font-light text-slate-800 mb-2 font-serif">
+            <span className="font-extralight">Executive</span>{' '}
+            <span className="font-bold bg-gradient-to-r from-slate-800 via-gray-800 to-black bg-clip-text text-transparent">Dashboard</span>
+          </h2>
+          <p className="text-lg text-slate-600 font-light">Loading comprehensive business insights...</p>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="bg-white border border-slate-200 shadow-sm">
+            <Card key={i} className="bg-white border border-slate-200 shadow-lg">
               <CardContent className="p-6">
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="w-8 h-8 bg-slate-200 rounded animate-pulse"></div>
-                    <div className="w-12 h-4 bg-slate-200 rounded animate-pulse"></div>
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
                   </div>
-                  <div className="w-20 h-3 bg-slate-200 rounded animate-pulse"></div>
-                  <div className="w-24 h-6 bg-slate-200 rounded animate-pulse"></div>
-                  <div className="w-full h-2 bg-slate-200 rounded animate-pulse"></div>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-2 w-full rounded-full" />
                 </div>
               </CardContent>
             </Card>
@@ -657,70 +518,12 @@ export const ExecutiveSummarySection = () => {
         <p className="text-lg text-slate-600 font-light">Comprehensive business insights and performance metrics</p>
       </div>
 
-      {/* Chart Controls */}
-      <Card className="bg-white border border-slate-200 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-blue-600" />
-              Chart Controls
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-4 items-center">
-            <div className="flex gap-2">
-              <Button
-                variant={chartType === 'line' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setChartType('line')}
-              >
-                <LineChartIcon className="w-4 h-4 mr-1" />
-                Line
-              </Button>
-              <Button
-                variant={chartType === 'bar' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setChartType('bar')}
-              >
-                <BarChart className="w-4 h-4 mr-1" />
-                Bar
-              </Button>
-              <Button
-                variant={chartType === 'area' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setChartType('area')}
-              >
-                <Activity className="w-4 h-4 mr-1" />
-                Area
-              </Button>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant={showLabels ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowLabels(!showLabels)}
-              >
-                Labels
-              </Button>
-              <Button
-                variant={showLegend ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setShowLegend(!showLegend)}
-              >
-                Legend
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Primary KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AnimatedMetricCard
           title="Total Revenue"
-          value={formatCurrency(metrics?.totalRevenue || 0)}
-          change={metrics?.monthlyGrowth || 0}
+          value={formatCurrency(metrics.totalRevenue)}
+          change={metrics.monthlyGrowth}
           icon={DollarSign}
           progress={75}
           color="blue"
@@ -729,18 +532,18 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Total Sessions"
-          value={metrics?.totalSessions || 0}
-          change={metrics?.sessionGrowth || 0}
+          value={metrics.totalSessions.toLocaleString()}
+          change={metrics.sessionGrowth}
           icon={Calendar}
-          progress={metrics?.averageFillRate || 0}
+          progress={metrics.averageFillRate}
           color="green"
           description="Total fitness sessions conducted across all trainers and locations"
         />
         
         <AnimatedMetricCard
           title="New Clients"
-          value={metrics?.totalNewClients || 0}
-          change={metrics?.clientGrowth || 0}
+          value={metrics.totalNewClients.toLocaleString()}
+          change={metrics.clientGrowth}
           icon={UserPlus}
           progress={85}
           color="purple"
@@ -749,10 +552,10 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Lead Conversion"
-          value={`${(metrics?.leadConversionRate || 0).toFixed(1)}%`}
-          change={metrics?.leadGrowth || 0}
+          value={`${metrics.leadConversionRate.toFixed(1)}%`}
+          change={metrics.leadGrowth}
           icon={Target}
-          progress={metrics?.leadConversionRate || 0}
+          progress={metrics.leadConversionRate}
           color="orange"
           description="Lead to client conversion rate showing sales effectiveness"
         />
@@ -762,7 +565,7 @@ export const ExecutiveSummarySection = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AnimatedMetricCard
           title="Discount Impact"
-          value={formatCurrency(metrics?.totalDiscounts || 0)}
+          value={formatCurrency(metrics.totalDiscounts)}
           change={-2.3}
           icon={Percent}
           color="red"
@@ -771,7 +574,7 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Retention Rate"
-          value={`${(metrics?.retentionRate || 0).toFixed(1)}%`}
+          value={`${metrics.retentionRate.toFixed(1)}%`}
           change={15.2}
           icon={UserCheck}
           color="teal"
@@ -780,7 +583,7 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Avg Class Size"
-          value={(metrics?.avgClassSize || 0).toFixed(1)}
+          value={metrics.avgClassSize.toFixed(1)}
           change={8.7}
           icon={GraduationCap}
           color="indigo"
@@ -789,7 +592,7 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Avg Discount"
-          value={`${(metrics?.avgDiscountPercent || 0).toFixed(1)}%`}
+          value={`${metrics.avgDiscountPercent.toFixed(1)}%`}
           change={-5.1}
           icon={CreditCard}
           color="pink"
@@ -801,57 +604,72 @@ export const ExecutiveSummarySection = () => {
       <EditableSummary
         title="Revenue Performance"
         initialContent={[
-          `Strong revenue growth of ${(metrics?.monthlyGrowth || 0).toFixed(1)}% month-over-month reaching ${formatCurrency(metrics?.totalRevenue || 0)}`,
-          `Average order value increased to ${formatCurrency(metrics?.averageOrderValue || 0)} with ${metrics?.totalSales || 0} total transactions`,
-          `Trainer-generated revenue contributes ${formatCurrency(metrics?.trainerRevenue || 0)} across ${metrics?.totalTrainers || 0} active trainers`,
-          `Total discounts of ${formatCurrency(metrics?.totalDiscounts || 0)} given to ${metrics?.discountedSales || 0} sales affecting margins`
+          `Strong revenue growth of ${metrics.monthlyGrowth.toFixed(1)}% month-over-month reaching ${formatCurrency(metrics.totalRevenue)}`,
+          `Average order value increased to ${formatCurrency(metrics.averageOrderValue)} with ${metrics.totalSales} total transactions`,
+          `Trainer-generated revenue contributes ${formatCurrency(metrics.trainerRevenue)} across ${metrics.totalTrainers} active trainers`,
+          `Total discounts of ${formatCurrency(metrics.totalDiscounts)} given to ${metrics.discountedSales} sales affecting margins`
         ]}
         onSave={(content) => handleSummaryUpdate('revenue', content)}
       />
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Trend */}
+        {/* Revenue Trend & Forecast */}
         <Card className="bg-white border border-slate-200 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Forecast className="w-5 h-5 text-blue-600" />
-              Revenue Trend Analysis
+              Revenue Trend & Forecast
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              {renderChart(metrics?.trendData || [], 'revenue')}
+              <ComposedChart data={[...metrics.trendData.slice(-6), ...metrics.forecastData]}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="month" stroke="#64748b" />
+                <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+                <Tooltip formatter={(value, name) => [
+                  formatCurrency(Number(value)), 
+                  name === 'revenue' ? 'Historical Revenue' : 'Predicted Revenue'
+                ]} />
+                <Area type="monotone" dataKey="revenue" fill="#3B82F6" fillOpacity={0.6} stroke="#3B82F6" />
+                <Line type="monotone" dataKey="predicted" stroke="#10B981" strokeDasharray="5 5" strokeWidth={2} />
+              </ComposedChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Lead Sources Pie Chart */}
+        {/* Lead Sources Distribution */}
         <Card className="bg-white border border-slate-200 shadow-lg">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <PieChart className="w-5 h-5 text-purple-600" />
+              <Megaphone className="w-5 h-5 text-purple-600" />
               Lead Sources Distribution
             </CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <RechartsPieChart>
+              <PieChart>
                 <Pie
-                  data={metrics?.leadSourcesChart || []}
+                  data={Object.entries(metrics.leadSources).map(([source, count], index) => ({
+                    name: source,
+                    value: count,
+                    color: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][index % 5]
+                  }))}
                   cx="50%"
                   cy="50%"
-                  outerRadius={100}
+                  labelLine={false}
+                  label={({ name, value }) => `${name}: ${value}`}
+                  outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
-                  label={({ name, percentage }) => `${name}: ${percentage}%`}
                 >
-                  {(metrics?.leadSourcesChart || []).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {Object.entries(metrics.leadSources).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][index % 5]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value, name) => [value, 'Leads']} />
-              </RechartsPieChart>
+                <Tooltip />
+              </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -867,7 +685,7 @@ export const ExecutiveSummarySection = () => {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={400}>
-            <RechartsBarChart data={metrics?.locationMonthlyData || []}>
+            <BarChart data={metrics.locationMonthlyData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" stroke="#64748b" />
               <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
@@ -875,7 +693,7 @@ export const ExecutiveSummarySection = () => {
               <Bar dataKey="Kwality House" fill="#3B82F6" />
               <Bar dataKey="Supreme HQ" fill="#8B5CF6" />
               <Bar dataKey="Kenkere House" fill="#10B981" />
-            </RechartsBarChart>
+            </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -901,8 +719,8 @@ export const ExecutiveSummarySection = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(metrics?.topTrainers || []).map((trainer, index) => (
-                  <TableRow key={`${trainer.teacherName}-${index}`} className="hover:bg-slate-50">
+                {metrics.topTrainers.map((trainer, index) => (
+                  <TableRow key={trainer.teacherName} className="hover:bg-slate-50">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
@@ -942,11 +760,11 @@ export const ExecutiveSummarySection = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.entries(metrics?.salesBySoldBy || {})
+                {Object.entries(metrics.salesBySoldBy)
                   .sort(([,a], [,b]) => b.revenue - a.revenue)
                   .slice(0, 5)
                   .map(([soldBy, data], index) => (
-                  <TableRow key={`${soldBy}-${index}`} className="hover:bg-slate-50">
+                  <TableRow key={soldBy} className="hover:bg-slate-50">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
@@ -966,96 +784,14 @@ export const ExecutiveSummarySection = () => {
         </Card>
       </div>
 
-      {/* Additional Tables Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Discount Analysis */}
-        <Card className="bg-white border border-slate-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Percent className="w-5 h-5 text-red-600" />
-              Discount Analysis
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Total Discounts</span>
-                <span className="font-bold text-red-600">{formatCurrency(metrics?.totalDiscounts || 0)}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Avg Discount %</span>
-                <span className="font-bold">{(metrics?.avgDiscountPercent || 0).toFixed(1)}%</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Discounted Sales</span>
-                <span className="font-bold">{metrics?.discountedSales || 0}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Discount Rate</span>
-                <span className="font-bold">{(((metrics?.discountedSales || 0) / (metrics?.totalSales || 1)) * 100).toFixed(1)}%</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Leads by Stage */}
-        <Card className="bg-white border border-slate-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-blue-600" />
-              Leads by Stage
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(metrics?.leadsByStage || {})
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 5)
-                .map(([stage, count]) => (
-                <div key={stage} className="flex justify-between items-center">
-                  <span className="text-sm font-medium">{stage}</span>
-                  <Badge variant="secondary">{count}</Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Products */}
-        <Card className="bg-white border border-slate-200 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Star className="w-5 h-5 text-yellow-600" />
-              Top Products
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(metrics?.topProducts || {})
-                .sort(([,a], [,b]) => b.revenue - a.revenue)
-                .slice(0, 5)
-                .map(([product, data]) => (
-                <div key={product} className="space-y-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium truncate">{product}</span>
-                    <span className="text-xs font-bold">{formatCurrency(data.revenue)}</span>
-                  </div>
-                  <div className="text-xs text-slate-500">{data.count} sales</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Conversion & Retention Insights */}
       <EditableSummary
         title="Conversion & Retention Analysis"
         initialContent={[
-          `Lead conversion rate at ${(metrics?.leadConversionRate || 0).toFixed(1)}% from ${(metrics?.totalLeads || 0).toLocaleString()} total leads`,
-          `Client retention rate of ${(metrics?.retentionRate || 0).toFixed(1)}% shows strong customer satisfaction and engagement`,
-          `Average class size of ${(metrics?.avgClassSize || 0).toFixed(1)} attendees indicating optimal capacity utilization`,
-          `Discount strategy impact: ${formatCurrency(metrics?.totalDiscounts || 0)} in discounts across ${metrics?.discountedSales || 0} sales`
+          `Lead conversion rate at ${metrics.leadConversionRate.toFixed(1)}% from ${metrics.totalLeads.toLocaleString()} total leads`,
+          `Client retention rate of ${metrics.retentionRate.toFixed(1)}% shows strong customer satisfaction and engagement`,
+          `Average class size of ${metrics.avgClassSize.toFixed(1)} attendees indicating optimal capacity utilization`,
+          `Discount strategy impact: ${formatCurrency(metrics.totalDiscounts)} in discounts across ${metrics.discountedSales} sales`
         ]}
         onSave={(content) => handleSummaryUpdate('conversion', content)}
       />
@@ -1080,7 +816,7 @@ export const ExecutiveSummarySection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {(metrics?.topClasses || []).map((classData, index) => (
+              {metrics.topClasses.map((classData, index) => (
                 <TableRow key={`${classData.className}-${index}`} className="hover:bg-slate-50">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -1108,9 +844,9 @@ export const ExecutiveSummarySection = () => {
         title="Strategic Business Insights"
         initialContent={[
           `Multi-location performance shows balanced growth with revenue distribution across all studio locations`,
-          `Top trainers drive ${formatCurrency(metrics?.trainerRevenue || 0)} in revenue with strong retention rates above industry average`,
+          `Top trainers drive ${formatCurrency(metrics.trainerRevenue)} in revenue with strong retention rates above industry average`,
           `Lead generation strategy effectiveness varies by source with highest conversion from referrals and social media`,
-          `Discount strategy requires optimization as ${(metrics?.avgDiscountPercent || 0).toFixed(1)}% average discount impacts profit margins significantly`
+          `Discount strategy requires optimization as ${metrics.avgDiscountPercent.toFixed(1)}% average discount impacts profit margins significantly`
         ]}
         onSave={(content) => handleSummaryUpdate('strategic', content)}
       />

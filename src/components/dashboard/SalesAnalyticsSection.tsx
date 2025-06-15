@@ -9,6 +9,9 @@ import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
 import { DrillDownModal } from './DrillDownModal';
 import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
+import { MonthOnMonthTable } from './MonthOnMonthTable';
+import { ProductPerformanceTable } from './ProductPerformanceTable';
+import { CategoryPerformanceTable } from './CategoryPerformanceTable';
 import { SalesData, FilterOptions, MetricCardData, YearOnYearMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -329,23 +332,65 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
             </div>
 
             <div className="space-y-8">
-              <DataTable title="Month-on-Month Performance Matrix" data={filteredData} type="monthly" filters={filters} onRowClick={handleTableRowClick} />
-              
-              <DataTable title="Product Performance Analysis" data={filteredData} type="product" filters={filters} onRowClick={handleTableRowClick} />
-              
-              <DataTable title="Category Performance Analysis (Ungrouped)" data={filteredData} type="category" filters={filters} onRowClick={handleTableRowClick} />
-              
-              <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
-                <CardContent className="p-0">
-                  <EnhancedYearOnYearTable data={historicData} filters={filters} selectedMetric={activeYoyMetric} onRowClick={row => {
-                setDrillDownData({
-                  name: 'Year-on-Year',
-                  ...row
-                });
-                setDrillDownType('product');
-              }} collapsedGroups={collapsedGroups} onGroupToggle={handleGroupToggle} />
-                </CardContent>
-              </Card>
+              {/* Month-on-Month Table */}
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                  <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-700 rounded-full"></div>
+                  Month-on-Month Performance
+                </h3>
+                <MonthOnMonthTable 
+                  data={filteredData} 
+                  filters={filters} 
+                  onRowClick={handleTableRowClick}
+                  collapsedGroups={collapsedGroups}
+                  onGroupToggle={handleGroupToggle}
+                />
+              </div>
+
+              {/* Year-on-Year Table */}
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                  <div className="w-1 h-8 bg-gradient-to-b from-purple-500 to-purple-700 rounded-full"></div>
+                  Year-on-Year Performance
+                </h3>
+                <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+                  <CardContent className="p-0">
+                    <EnhancedYearOnYearTable data={historicData} filters={filters} selectedMetric={activeYoyMetric} onRowClick={row => {
+                  setDrillDownData({
+                    name: 'Year-on-Year',
+                    ...row
+                  });
+                  setDrillDownType('product');
+                }} collapsedGroups={collapsedGroups} onGroupToggle={handleGroupToggle} />
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Product Performance Table */}
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                  <div className="w-1 h-8 bg-gradient-to-b from-green-500 to-green-700 rounded-full"></div>
+                  Product Performance Analysis
+                </h3>
+                <ProductPerformanceTable 
+                  data={filteredData} 
+                  filters={filters} 
+                  onRowClick={handleTableRowClick}
+                />
+              </div>
+
+              {/* Category Performance Table */}
+              <div className="space-y-4">
+                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
+                  <div className="w-1 h-8 bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-full"></div>
+                  Category Performance Analysis
+                </h3>
+                <CategoryPerformanceTable 
+                  data={filteredData} 
+                  filters={filters} 
+                  onRowClick={handleTableRowClick}
+                />
+              </div>
             </div>
           </TabsContent>)}
       </Tabs>

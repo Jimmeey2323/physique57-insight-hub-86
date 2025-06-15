@@ -292,14 +292,14 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
           <table className="min-w-full bg-white border-t border-gray-200">
             <thead className="bg-gradient-to-r from-blue-50 to-blue-100 sticky top-0 z-20">
               <tr>
-                <th className="bg-gradient-to-r from-indigo-700 to-purple-800 text-white font-semibold uppercase tracking-wider px-12 py-2 text-left">
+                <th className="bg-purple-700 text-white font-semibold uppercase tracking-wider px-12 py-2 text-left">
                   Product/Category
                 </th>
                 {monthlyData.map(({
                 key,
                 display,
                 year
-              }) => <th key={key} className="bg-gradient-to-r from-indigo-700 to-purple-800 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2\\n">
+              }) => <th key={key} className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2">
                     <div className="flex flex-col">
                       <span className="text-base">{display.split(' ')[0]}</span>
                       <span className="text-yellow-200 text-xs">

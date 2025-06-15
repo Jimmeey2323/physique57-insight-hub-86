@@ -7,13 +7,15 @@ import { TrainerPerformanceSection } from '@/components/dashboard/TrainerPerform
 import { LeadsSection } from '@/components/dashboard/LeadsSection';
 import { ClassAttendanceSection } from '@/components/dashboard/ClassAttendanceSection';
 import { DiscountsSection } from '@/components/dashboard/DiscountsSection';
+import { SessionsSection } from '@/components/dashboard/SessionsSection';
+import { ExecutiveSummarySection } from '@/components/dashboard/ExecutiveSummarySection';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index = () => {
-  const [activeSection, setActiveSection] = useState('sales-analytics');
+  const [activeSection, setActiveSection] = useState('executive-summary');
   const { data, loading, error, refetch } = useGoogleSheets();
 
   if (loading) {
@@ -54,6 +56,8 @@ const Index = () => {
 
   const renderActiveSection = () => {
     switch (activeSection) {
+      case 'executive-summary':
+        return <ExecutiveSummarySection />;
       case 'sales-analytics':
         return <SalesAnalyticsSection data={data} />;
       case 'client-retention':
@@ -66,17 +70,10 @@ const Index = () => {
         return <ClassAttendanceSection />;
       case 'discounts-promotions':
         return <DiscountsSection />;
-      case 'executive-summary':
-        return (
-          <Card className="p-8">
-            <CardContent className="text-center">
-              <h3 className="text-2xl font-semibold mb-4">Executive Summary</h3>
-              <p className="text-slate-600">Coming soon - Comprehensive overview of all metrics</p>
-            </CardContent>
-          </Card>
-        );
+      case 'sessions':
+        return <SessionsSection />;
       default:
-        return <SalesAnalyticsSection data={data} />;
+        return <ExecutiveSummarySection />;
     }
   };
 

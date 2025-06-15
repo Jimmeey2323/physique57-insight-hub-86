@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -151,10 +150,14 @@ const EditableSummary: React.FC<EditableSummaryProps> = ({ title, initialContent
 export const ExecutiveSummarySection = () => {
   const { data: salesData, loading: salesLoading } = useGoogleSheets();
   const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
-  const { data: payrollData, loading: payrollLoading } = usePayrollData();
+  const payrollQuery = usePayrollData();
   const { data: newClientData, loading: newClientLoading } = useNewClientData();
   const { data: leadsData, loading: leadsLoading } = useLeadsData();
   const { data: discountsData, loading: discountsLoading } = useDiscountsData();
+
+  // Handle payroll data - check if it's a React Query result or custom hook result
+  const payrollData = payrollQuery?.data || payrollQuery;
+  const payrollLoading = payrollQuery?.isLoading ?? payrollQuery?.loading ?? false;
 
   const [chartType, setChartType] = useState<'line' | 'bar' | 'area'>('line');
   const [showLabels, setShowLabels] = useState(true);
@@ -163,31 +166,63 @@ export const ExecutiveSummarySection = () => {
   // Check if all data is loaded
   const isLoading = salesLoading || sessionsLoading || payrollLoading || newClientLoading || leadsLoading || discountsLoading;
 
-  // Calculate comprehensive metrics from all data sources
+  // Calculate comprehensive metrics from all data sources with better error handling
   const metrics = useMemo(() => {
-    if (isLoading) return null;
+    console.log('=== DEBUGGING METRICS CALCULATION ===');
+    console.log('Sales Data:', salesData?.length || 0, 'records');
+    console.log('Sessions Data:', sessionsData?.length || 0, 'records');
+    console.log('Payroll Data:', Array.isArray(payrollData) ? payrollData.length : 'Not an array', payrollData);
+    console.log('New Client Data:', newClientData?.length || 0, 'records');
+    console.log('Leads Data:', leadsData?.length || 0, 'records');
+    console.log('Discounts Data:', discountsData?.length || 0, 'records');
+    console.log('Is Loading:', isLoading);
 
-    console.log('Sales Data:', salesData?.length || 0);
-    console.log('Sessions Data:', sessionsData?.length || 0);
-    console.log('Payroll Data:', payrollData?.length || 0);
-    console.log('New Client Data:', newClientData?.length || 0);
-    console.log('Leads Data:', leadsData?.length || 0);
-    console.log('Discounts Data:', discountsData?.length || 0);
+    if (isLoading) {
+      console.log('Still loading data...');
+      return null;
+    }
 
-    // Sales Metrics - using real data
-    const totalRevenue = salesData?.reduce((sum, item) => sum + (item.paymentValue || 0), 0) || 0;
-    const totalSales = salesData?.length || 0;
+    // Ensure we have arrays to work with
+    const safeSalesData = Array.isArray(salesData) ? salesData : [];
+    const safeSessionsData = Array.isArray(sessionsData) ? sessionsData : [];
+    const safePayrollData = Array.isArray(payrollData) ? payrollData : [];
+    const safeNewClientData = Array.isArray(newClientData) ? newClientData : [];
+    const safeLeadsData = Array.isArray(leadsData) ? leadsData : [];
+    const safeDiscountsData = Array.isArray(discountsData) ? discountsData : [];
+
+    // Sales Metrics - using real data with better validation
+    const totalRevenue = safeSalesData.reduce((sum, item) => {
+      const value = typeof item.paymentValue === 'number' ? item.paymentValue : parseFloat(item.paymentValue) || 0;
+      return sum + value;
+    }, 0);
+    
+    const totalSales = safeSalesData.length;
     const averageOrderValue = totalSales > 0 ? totalRevenue / totalSales : 0;
 
-    // Discount Metrics - using real data
-    const totalDiscounts = discountsData?.reduce((sum, item) => sum + (item.discountAmount || 0), 0) || 0;
-    const avgDiscountPercent = discountsData?.length > 0 ? 
-      discountsData.reduce((sum, item) => sum + (item.grossDiscountPercent || 0), 0) / discountsData.length : 0;
-    const discountedSales = discountsData?.filter(item => (item.discountAmount || 0) > 0).length || 0;
+    console.log('Sales metrics:', { totalRevenue, totalSales, averageOrderValue });
 
-    // Sessions Metrics - using real data
-    const filteredSessions = sessionsData?.filter(session => {
-      const className = session.cleanedClass || '';
+    // Discount Metrics - using real data with better validation
+    const totalDiscounts = safeDiscountsData.reduce((sum, item) => {
+      const value = typeof item.discountAmount === 'number' ? item.discountAmount : parseFloat(item.discountAmount) || 0;
+      return sum + value;
+    }, 0);
+    
+    const avgDiscountPercent = safeDiscountsData.length > 0 ? 
+      safeDiscountsData.reduce((sum, item) => {
+        const value = typeof item.grossDiscountPercent === 'number' ? item.grossDiscountPercent : parseFloat(item.grossDiscountPercent) || 0;
+        return sum + value;
+      }, 0) / safeDiscountsData.length : 0;
+    
+    const discountedSales = safeDiscountsData.filter(item => {
+      const value = typeof item.discountAmount === 'number' ? item.discountAmount : parseFloat(item.discountAmount) || 0;
+      return value > 0;
+    }).length;
+
+    console.log('Discount metrics:', { totalDiscounts, avgDiscountPercent, discountedSales });
+
+    // Sessions Metrics - using real data with better filtering
+    const filteredSessions = safeSessionsData.filter(session => {
+      const className = session.cleanedClass || session.classType || '';
       const excludeKeywords = ['Hosted', 'P57', 'X'];
       
       const hasExcludedKeyword = excludeKeywords.some(keyword => 
@@ -195,41 +230,68 @@ export const ExecutiveSummarySection = () => {
       );
       
       return !hasExcludedKeyword;
-    }) || [];
+    });
 
     const totalSessions = filteredSessions.length;
-    const totalAttendance = filteredSessions.reduce((sum, session) => sum + (session.checkedInCount || 0), 0);
-    const totalCapacity = filteredSessions.reduce((sum, session) => sum + (session.capacity || 0), 0);
+    const totalAttendance = filteredSessions.reduce((sum, session) => {
+      const value = typeof session.checkedInCount === 'number' ? session.checkedInCount : parseFloat(session.checkedInCount) || 0;
+      return sum + value;
+    }, 0);
+    
+    const totalCapacity = filteredSessions.reduce((sum, session) => {
+      const value = typeof session.capacity === 'number' ? session.capacity : parseFloat(session.capacity) || 0;
+      return sum + value;
+    }, 0);
+    
     const averageFillRate = totalCapacity > 0 ? (totalAttendance / totalCapacity) * 100 : 0;
     const avgClassSize = totalSessions > 0 ? totalAttendance / totalSessions : 0;
 
-    // Trainer Metrics - using real data
-    const totalTrainers = payrollData ? new Set(payrollData.map(item => item.teacherName)).size : 0;
-    const trainerRevenue = payrollData?.reduce((sum, item) => sum + (item.totalPaid || 0), 0) || 0;
-    const trainerSessions = payrollData?.reduce((sum, item) => sum + (item.totalSessions || 0), 0) || 0;
+    console.log('Session metrics:', { totalSessions, totalAttendance, totalCapacity, averageFillRate, avgClassSize });
 
-    // New Client Metrics - using real data
-    const totalNewClients = newClientData?.length || 0;
-    const newClientLTV = newClientData?.reduce((sum, client) => sum + (client.ltv || 0), 0) || 0;
+    // Trainer Metrics - using real data with better validation
+    const totalTrainers = safePayrollData.length > 0 ? new Set(safePayrollData.map(item => item.teacherName)).size : 0;
+    const trainerRevenue = safePayrollData.reduce((sum, item) => {
+      const value = typeof item.totalPaid === 'number' ? item.totalPaid : parseFloat(item.totalPaid) || 0;
+      return sum + value;
+    }, 0);
+    
+    const trainerSessions = safePayrollData.reduce((sum, item) => {
+      const value = typeof item.totalSessions === 'number' ? item.totalSessions : parseFloat(item.totalSessions) || 0;
+      return sum + value;
+    }, 0);
+
+    console.log('Trainer metrics:', { totalTrainers, trainerRevenue, trainerSessions });
+
+    // New Client Metrics - using real data with better validation
+    const totalNewClients = safeNewClientData.length;
+    const newClientLTV = safeNewClientData.reduce((sum, client) => {
+      const value = typeof client.ltv === 'number' ? client.ltv : parseFloat(client.ltv) || 0;
+      return sum + value;
+    }, 0);
+    
     const avgNewClientLTV = totalNewClients > 0 ? newClientLTV / totalNewClients : 0;
     
     // Retention & Conversion - using real data
-    const retainedClients = newClientData?.filter(client => client.retentionStatus === 'Retained').length || 0;
+    const retainedClients = safeNewClientData.filter(client => client.retentionStatus === 'Retained').length;
     const retentionRate = totalNewClients > 0 ? (retainedClients / totalNewClients) * 100 : 0;
-    const convertedClients = newClientData?.filter(client => client.conversionStatus === 'Converted').length || 0;
+    const convertedClients = safeNewClientData.filter(client => client.conversionStatus === 'Converted').length;
     const conversionRate = totalNewClients > 0 ? (convertedClients / totalNewClients) * 100 : 0;
 
-    // Leads Metrics - using real data
-    const totalLeads = leadsData?.length || 0;
-    const convertedLeads = leadsData?.filter(lead => lead.conversionStatus === 'Converted').length || 0;
+    console.log('Client metrics:', { totalNewClients, avgNewClientLTV, retentionRate, conversionRate });
+
+    // Leads Metrics - using real data with better validation
+    const totalLeads = safeLeadsData.length;
+    const convertedLeads = safeLeadsData.filter(lead => lead.conversionStatus === 'Converted').length;
     const leadConversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
+    console.log('Lead metrics:', { totalLeads, convertedLeads, leadConversionRate });
+
     // Lead Sources
-    const leadSources = leadsData?.reduce((acc, lead) => {
+    const leadSources = safeLeadsData.reduce((acc, lead) => {
       const source = lead.source || 'Unknown';
       acc[source] = (acc[source] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>) || {};
+    }, {} as Record<string, number>);
 
     // Lead Sources for Pie Chart
     const leadSourcesChart = Object.entries(leadSources)
@@ -241,37 +303,46 @@ export const ExecutiveSummarySection = () => {
       .sort((a, b) => b.value - a.value);
 
     // Leads by Stage
-    const leadsByStage = leadsData?.reduce((acc, lead) => {
+    const leadsByStage = safeLeadsData.reduce((acc, lead) => {
       const stage = lead.stage || 'Unknown';
       acc[stage] = (acc[stage] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>) || {};
+    }, {} as Record<string, number>);
 
     // Top Products (from sales data)
-    const topProducts = salesData?.reduce((acc, sale) => {
+    const topProducts = safeSalesData.reduce((acc, sale) => {
       const product = sale.cleanedProduct || sale.paymentItem || 'Unknown';
       if (!acc[product]) {
         acc[product] = { count: 0, revenue: 0 };
       }
       acc[product].count += 1;
-      acc[product].revenue += sale.paymentValue || 0;
+      const value = typeof sale.paymentValue === 'number' ? sale.paymentValue : parseFloat(sale.paymentValue) || 0;
+      acc[product].revenue += value;
       return acc;
-    }, {} as Record<string, { count: number; revenue: number }>) || {};
+    }, {} as Record<string, { count: number; revenue: number }>);
 
     // Top Trainers with more details
-    const topTrainers = payrollData?.sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0)).slice(0, 5) || [];
+    const topTrainers = safePayrollData
+      .map(trainer => ({
+        ...trainer,
+        totalPaid: typeof trainer.totalPaid === 'number' ? trainer.totalPaid : parseFloat(trainer.totalPaid) || 0,
+        totalSessions: typeof trainer.totalSessions === 'number' ? trainer.totalSessions : parseFloat(trainer.totalSessions) || 0
+      }))
+      .sort((a, b) => b.totalPaid - a.totalPaid)
+      .slice(0, 5);
     
     // Sales by Sold By - exclude "-" and empty values
-    const salesBySoldBy = salesData?.reduce((acc, sale) => {
+    const salesBySoldBy = safeSalesData.reduce((acc, sale) => {
       const soldBy = sale.soldBy || 'Unknown';
       if (soldBy === '-' || soldBy === '' || soldBy === 'Unknown' || !soldBy.trim()) return acc;
       if (!acc[soldBy]) {
         acc[soldBy] = { count: 0, revenue: 0 };
       }
       acc[soldBy].count += 1;
-      acc[soldBy].revenue += sale.paymentValue || 0;
+      const value = typeof sale.paymentValue === 'number' ? sale.paymentValue : parseFloat(sale.paymentValue) || 0;
+      acc[soldBy].revenue += value;
       return acc;
-    }, {} as Record<string, { count: number; revenue: number }>) || {};
+    }, {} as Record<string, { count: number; revenue: number }>);
 
     // Generate realistic trend data based on actual revenue
     const currentMonth = new Date();
@@ -310,7 +381,8 @@ export const ExecutiveSummarySection = () => {
       if (!acc[key]) {
         acc[key] = { totalAttendance: 0, sessions: 0, trainerName: session.trainerName || 'Unknown' };
       }
-      acc[key].totalAttendance += session.checkedInCount || 0;
+      const attendance = typeof session.checkedInCount === 'number' ? session.checkedInCount : parseFloat(session.checkedInCount) || 0;
+      acc[key].totalAttendance += attendance;
       acc[key].sessions += 1;
       return acc;
     }, {} as Record<string, { totalAttendance: number; sessions: number; trainerName: string }>);
@@ -327,7 +399,7 @@ export const ExecutiveSummarySection = () => {
       .sort((a, b) => b.averageAttendance - a.averageAttendance)
       .slice(0, 5);
 
-    return {
+    const finalMetrics = {
       // Core metrics
       totalRevenue,
       totalSales,
@@ -368,6 +440,9 @@ export const ExecutiveSummarySection = () => {
       clientGrowth: 12.3,
       leadGrowth: 18.7
     };
+
+    console.log('Final metrics calculated:', finalMetrics);
+    return finalMetrics;
   }, [salesData, sessionsData, payrollData, newClientData, leadsData, discountsData, isLoading]);
 
   const AnimatedMetricCard = ({ title, value, change, icon: Icon, progress, description, color = 'blue' }: any) => {
@@ -383,8 +458,8 @@ export const ExecutiveSummarySection = () => {
         : value;
       
       if (!isNaN(numericValue) && numericValue > 0) {
-        const duration = 1500;
-        const steps = 50;
+        const duration = 1000; // Reduced from 1500ms to 1000ms for faster animation
+        const steps = 30; // Reduced from 50 to 30 for smoother performance
         const increment = numericValue / steps;
         let current = 0;
         
@@ -404,20 +479,19 @@ export const ExecutiveSummarySection = () => {
       }
     }, [value, metrics, hasStartedAnimation]);
 
-    // Enhanced loading skeleton
+    // Simple loading skeleton - faster rendering
     if (!metrics) {
       return (
-        <Card className="bg-white border border-slate-200 shadow-lg overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse"></div>
+        <Card className="bg-white border border-slate-200 shadow-sm">
           <CardContent className="p-6">
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Skeleton className="h-10 w-10 rounded-lg animate-pulse" />
-                <Skeleton className="h-6 w-16 rounded-full animate-pulse" />
+                <div className="w-8 h-8 bg-slate-200 rounded animate-pulse"></div>
+                <div className="w-12 h-4 bg-slate-200 rounded animate-pulse"></div>
               </div>
-              <Skeleton className="h-4 w-24 animate-pulse" />
-              <Skeleton className="h-8 w-32 animate-pulse" />
-              <Skeleton className="h-2 w-full rounded-full animate-pulse" />
+              <div className="w-20 h-3 bg-slate-200 rounded animate-pulse"></div>
+              <div className="w-24 h-6 bg-slate-200 rounded animate-pulse"></div>
+              <div className="w-full h-2 bg-slate-200 rounded animate-pulse"></div>
             </div>
           </CardContent>
         </Card>
@@ -439,9 +513,9 @@ export const ExecutiveSummarySection = () => {
     return (
       <HoverCard>
         <HoverCardTrigger asChild>
-          <Card className="bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-500 cursor-pointer group hover:scale-105 hover:-translate-y-1 transform-gpu">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-700 origin-left" />
+          <Card className="bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-[1.02] transform-gpu">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-purple-600/5 to-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left" />
             <div className="absolute top-4 right-4 p-2 rounded-full bg-gradient-to-r from-blue-100 to-purple-100 opacity-60 group-hover:opacity-100 transition-opacity duration-300">
               <Icon className="h-6 w-6 text-blue-600" />
             </div>
@@ -540,30 +614,29 @@ export const ExecutiveSummarySection = () => {
 
   const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#84CC16', '#F97316'];
 
-  // Show enhanced loading state when data is not ready
+  // Show simple loading state when data is not ready
   if (isLoading) {
     return (
       <div className="space-y-8">
         <div className="text-center mb-8">
           <div className="animate-pulse">
-            <div className="h-10 bg-slate-200 rounded-lg w-96 mx-auto mb-4"></div>
-            <div className="h-6 bg-slate-100 rounded w-80 mx-auto"></div>
+            <div className="h-8 bg-slate-200 rounded-lg w-80 mx-auto mb-2"></div>
+            <div className="h-4 bg-slate-100 rounded w-64 mx-auto"></div>
           </div>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="bg-white border border-slate-200 shadow-lg overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse"></div>
+            <Card key={i} className="bg-white border border-slate-200 shadow-sm">
               <CardContent className="p-6">
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <Skeleton className="h-10 w-10 rounded-lg animate-pulse" />
-                    <Skeleton className="h-6 w-16 rounded-full animate-pulse" />
+                    <div className="w-8 h-8 bg-slate-200 rounded animate-pulse"></div>
+                    <div className="w-12 h-4 bg-slate-200 rounded animate-pulse"></div>
                   </div>
-                  <Skeleton className="h-4 w-24 animate-pulse" />
-                  <Skeleton className="h-8 w-32 animate-pulse" />
-                  <Skeleton className="h-2 w-full rounded-full animate-pulse" />
+                  <div className="w-20 h-3 bg-slate-200 rounded animate-pulse"></div>
+                  <div className="w-24 h-6 bg-slate-200 rounded animate-pulse"></div>
+                  <div className="w-full h-2 bg-slate-200 rounded animate-pulse"></div>
                 </div>
               </CardContent>
             </Card>
@@ -646,8 +719,8 @@ export const ExecutiveSummarySection = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AnimatedMetricCard
           title="Total Revenue"
-          value={formatCurrency(metrics.totalRevenue)}
-          change={metrics.monthlyGrowth}
+          value={formatCurrency(metrics?.totalRevenue || 0)}
+          change={metrics?.monthlyGrowth || 0}
           icon={DollarSign}
           progress={75}
           color="blue"
@@ -656,18 +729,18 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Total Sessions"
-          value={metrics.totalSessions}
-          change={metrics.sessionGrowth}
+          value={metrics?.totalSessions || 0}
+          change={metrics?.sessionGrowth || 0}
           icon={Calendar}
-          progress={metrics.averageFillRate}
+          progress={metrics?.averageFillRate || 0}
           color="green"
           description="Total fitness sessions conducted across all trainers and locations"
         />
         
         <AnimatedMetricCard
           title="New Clients"
-          value={metrics.totalNewClients}
-          change={metrics.clientGrowth}
+          value={metrics?.totalNewClients || 0}
+          change={metrics?.clientGrowth || 0}
           icon={UserPlus}
           progress={85}
           color="purple"
@@ -676,10 +749,10 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Lead Conversion"
-          value={`${metrics.leadConversionRate.toFixed(1)}%`}
-          change={metrics.leadGrowth}
+          value={`${(metrics?.leadConversionRate || 0).toFixed(1)}%`}
+          change={metrics?.leadGrowth || 0}
           icon={Target}
-          progress={metrics.leadConversionRate}
+          progress={metrics?.leadConversionRate || 0}
           color="orange"
           description="Lead to client conversion rate showing sales effectiveness"
         />
@@ -689,7 +762,7 @@ export const ExecutiveSummarySection = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <AnimatedMetricCard
           title="Discount Impact"
-          value={formatCurrency(metrics.totalDiscounts)}
+          value={formatCurrency(metrics?.totalDiscounts || 0)}
           change={-2.3}
           icon={Percent}
           color="red"
@@ -698,7 +771,7 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Retention Rate"
-          value={`${metrics.retentionRate.toFixed(1)}%`}
+          value={`${(metrics?.retentionRate || 0).toFixed(1)}%`}
           change={15.2}
           icon={UserCheck}
           color="teal"
@@ -707,7 +780,7 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Avg Class Size"
-          value={metrics.avgClassSize.toFixed(1)}
+          value={(metrics?.avgClassSize || 0).toFixed(1)}
           change={8.7}
           icon={GraduationCap}
           color="indigo"
@@ -716,7 +789,7 @@ export const ExecutiveSummarySection = () => {
         
         <AnimatedMetricCard
           title="Avg Discount"
-          value={`${metrics.avgDiscountPercent.toFixed(1)}%`}
+          value={`${(metrics?.avgDiscountPercent || 0).toFixed(1)}%`}
           change={-5.1}
           icon={CreditCard}
           color="pink"
@@ -728,10 +801,10 @@ export const ExecutiveSummarySection = () => {
       <EditableSummary
         title="Revenue Performance"
         initialContent={[
-          `Strong revenue growth of ${metrics.monthlyGrowth.toFixed(1)}% month-over-month reaching ${formatCurrency(metrics.totalRevenue)}`,
-          `Average order value increased to ${formatCurrency(metrics.averageOrderValue)} with ${metrics.totalSales} total transactions`,
-          `Trainer-generated revenue contributes ${formatCurrency(metrics.trainerRevenue)} across ${metrics.totalTrainers} active trainers`,
-          `Total discounts of ${formatCurrency(metrics.totalDiscounts)} given to ${metrics.discountedSales} sales affecting margins`
+          `Strong revenue growth of ${(metrics?.monthlyGrowth || 0).toFixed(1)}% month-over-month reaching ${formatCurrency(metrics?.totalRevenue || 0)}`,
+          `Average order value increased to ${formatCurrency(metrics?.averageOrderValue || 0)} with ${metrics?.totalSales || 0} total transactions`,
+          `Trainer-generated revenue contributes ${formatCurrency(metrics?.trainerRevenue || 0)} across ${metrics?.totalTrainers || 0} active trainers`,
+          `Total discounts of ${formatCurrency(metrics?.totalDiscounts || 0)} given to ${metrics?.discountedSales || 0} sales affecting margins`
         ]}
         onSave={(content) => handleSummaryUpdate('revenue', content)}
       />
@@ -748,7 +821,7 @@ export const ExecutiveSummarySection = () => {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              {renderChart(metrics.trendData, 'revenue')}
+              {renderChart(metrics?.trendData || [], 'revenue')}
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -765,7 +838,7 @@ export const ExecutiveSummarySection = () => {
             <ResponsiveContainer width="100%" height={300}>
               <RechartsPieChart>
                 <Pie
-                  data={metrics.leadSourcesChart}
+                  data={metrics?.leadSourcesChart || []}
                   cx="50%"
                   cy="50%"
                   outerRadius={100}
@@ -773,7 +846,7 @@ export const ExecutiveSummarySection = () => {
                   dataKey="value"
                   label={({ name, percentage }) => `${name}: ${percentage}%`}
                 >
-                  {metrics.leadSourcesChart.map((entry, index) => (
+                  {(metrics?.leadSourcesChart || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -794,7 +867,7 @@ export const ExecutiveSummarySection = () => {
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={400}>
-            <RechartsBarChart data={metrics.locationMonthlyData}>
+            <RechartsBarChart data={metrics?.locationMonthlyData || []}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
               <XAxis dataKey="month" stroke="#64748b" />
               <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
@@ -828,8 +901,8 @@ export const ExecutiveSummarySection = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {metrics.topTrainers.map((trainer, index) => (
-                  <TableRow key={trainer.teacherName} className="hover:bg-slate-50">
+                {(metrics?.topTrainers || []).map((trainer, index) => (
+                  <TableRow key={`${trainer.teacherName}-${index}`} className="hover:bg-slate-50">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
@@ -869,11 +942,11 @@ export const ExecutiveSummarySection = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {Object.entries(metrics.salesBySoldBy)
+                {Object.entries(metrics?.salesBySoldBy || {})
                   .sort(([,a], [,b]) => b.revenue - a.revenue)
                   .slice(0, 5)
                   .map(([soldBy, data], index) => (
-                  <TableRow key={soldBy} className="hover:bg-slate-50">
+                  <TableRow key={`${soldBy}-${index}`} className="hover:bg-slate-50">
                     <TableCell className="font-medium">
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
@@ -907,19 +980,19 @@ export const ExecutiveSummarySection = () => {
             <div className="space-y-4">
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Total Discounts</span>
-                <span className="font-bold text-red-600">{formatCurrency(metrics.totalDiscounts)}</span>
+                <span className="font-bold text-red-600">{formatCurrency(metrics?.totalDiscounts || 0)}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Avg Discount %</span>
-                <span className="font-bold">{metrics.avgDiscountPercent.toFixed(1)}%</span>
+                <span className="font-bold">{(metrics?.avgDiscountPercent || 0).toFixed(1)}%</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Discounted Sales</span>
-                <span className="font-bold">{metrics.discountedSales}</span>
+                <span className="font-bold">{metrics?.discountedSales || 0}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Discount Rate</span>
-                <span className="font-bold">{((metrics.discountedSales / metrics.totalSales) * 100).toFixed(1)}%</span>
+                <span className="font-bold">{(((metrics?.discountedSales || 0) / (metrics?.totalSales || 1)) * 100).toFixed(1)}%</span>
               </div>
             </div>
           </CardContent>
@@ -935,7 +1008,7 @@ export const ExecutiveSummarySection = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(metrics.leadsByStage)
+              {Object.entries(metrics?.leadsByStage || {})
                 .sort(([,a], [,b]) => b - a)
                 .slice(0, 5)
                 .map(([stage, count]) => (
@@ -958,7 +1031,7 @@ export const ExecutiveSummarySection = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {Object.entries(metrics.topProducts)
+              {Object.entries(metrics?.topProducts || {})
                 .sort(([,a], [,b]) => b.revenue - a.revenue)
                 .slice(0, 5)
                 .map(([product, data]) => (
@@ -979,10 +1052,10 @@ export const ExecutiveSummarySection = () => {
       <EditableSummary
         title="Conversion & Retention Analysis"
         initialContent={[
-          `Lead conversion rate at ${metrics.leadConversionRate.toFixed(1)}% from ${metrics.totalLeads.toLocaleString()} total leads`,
-          `Client retention rate of ${metrics.retentionRate.toFixed(1)}% shows strong customer satisfaction and engagement`,
-          `Average class size of ${metrics.avgClassSize.toFixed(1)} attendees indicating optimal capacity utilization`,
-          `Discount strategy impact: ${formatCurrency(metrics.totalDiscounts)} in discounts across ${metrics.discountedSales} sales`
+          `Lead conversion rate at ${(metrics?.leadConversionRate || 0).toFixed(1)}% from ${(metrics?.totalLeads || 0).toLocaleString()} total leads`,
+          `Client retention rate of ${(metrics?.retentionRate || 0).toFixed(1)}% shows strong customer satisfaction and engagement`,
+          `Average class size of ${(metrics?.avgClassSize || 0).toFixed(1)} attendees indicating optimal capacity utilization`,
+          `Discount strategy impact: ${formatCurrency(metrics?.totalDiscounts || 0)} in discounts across ${metrics?.discountedSales || 0} sales`
         ]}
         onSave={(content) => handleSummaryUpdate('conversion', content)}
       />
@@ -1007,7 +1080,7 @@ export const ExecutiveSummarySection = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {metrics.topClasses.map((classData, index) => (
+              {(metrics?.topClasses || []).map((classData, index) => (
                 <TableRow key={`${classData.className}-${index}`} className="hover:bg-slate-50">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
@@ -1035,9 +1108,9 @@ export const ExecutiveSummarySection = () => {
         title="Strategic Business Insights"
         initialContent={[
           `Multi-location performance shows balanced growth with revenue distribution across all studio locations`,
-          `Top trainers drive ${formatCurrency(metrics.trainerRevenue)} in revenue with strong retention rates above industry average`,
+          `Top trainers drive ${formatCurrency(metrics?.trainerRevenue || 0)} in revenue with strong retention rates above industry average`,
           `Lead generation strategy effectiveness varies by source with highest conversion from referrals and social media`,
-          `Discount strategy requires optimization as ${metrics.avgDiscountPercent.toFixed(1)}% average discount impacts profit margins significantly`
+          `Discount strategy requires optimization as ${(metrics?.avgDiscountPercent || 0).toFixed(1)}% average discount impacts profit margins significantly`
         ]}
         onSave={(content) => handleSummaryUpdate('strategic', content)}
       />

@@ -16,7 +16,8 @@ import {
   Clock,
   MapPin,
   Star,
-  Award
+  Award,
+  AlertTriangle
 } from 'lucide-react';
 import { SessionData } from '@/hooks/useSessionsData';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
@@ -64,7 +65,8 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
           totalCapacity: 0,
           totalLateCancellations: 0,
           totalComplimentary: 0,
-          totalNonPaid: 0
+          totalNonPaid: 0,
+          totalEmptyClasses: 0
         };
       }
       
@@ -84,7 +86,8 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
           classAverage: 0,
           lateCancellations: 0,
           complimentary: 0,
-          nonPaid: 0
+          nonPaid: 0,
+          emptyClasses: 0
         });
       }
       
@@ -96,6 +99,12 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
       classGroup.lateCancellations += session.lateCancelledCount;
       classGroup.complimentary += session.complimentaryCount;
       classGroup.nonPaid += session.nonPaidCount;
+      
+      // Count empty classes (sessions with 0 check-ins)
+      if (session.checkedInCount === 0) {
+        classGroup.emptyClasses++;
+        acc[className].totalEmptyClasses++;
+      }
       
       acc[className].totalSessions++;
       acc[className].totalAttendees += session.checkedInCount;
@@ -119,6 +128,7 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
         classGroup.classAverage = classGroup.sessions > 0 ? classGroup.attendees / classGroup.sessions : 0;
         classGroup.fillRate = classGroup.capacity > 0 ? (classGroup.attendees / classGroup.capacity) * 100 : 0;
         classGroup.avgLateCancellations = classGroup.sessions > 0 ? classGroup.lateCancellations / classGroup.sessions : 0;
+        classGroup.emptyClassRate = classGroup.sessions > 0 ? (classGroup.emptyClasses / classGroup.sessions) * 100 : 0;
       });
       
       // Sort classes within format by class average and filter out sessions < 2
@@ -210,6 +220,12 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
                             <div className="text-left">
                               <h3 className="text-lg font-semibold text-gray-800">{format.className}</h3>
                               <p className="text-sm text-gray-600">{format.classesArray.length} schedules • {format.totalSessions} sessions</p>
+                              {format.totalEmptyClasses > 0 && (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                  <AlertTriangle className="w-3 h-3" />
+                                  {format.totalEmptyClasses} empty classes
+                                </p>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -241,6 +257,7 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
                       <Table>
                         <TableHeader>
                           <TableRow className="bg-gradient-to-r from-gray-50 to-purple-50">
+                            <TableHead className="font-semibold">Class Name</TableHead>
                             <TableHead className="font-semibold">Day</TableHead>
                             <TableHead className="font-semibold">Time</TableHead>
                             <TableHead className="font-semibold">Location</TableHead>
@@ -253,8 +270,20 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
                             </TableHead>
                             <TableHead className="text-center font-semibold">
                               <Tooltip>
+                                <TooltipTrigger>Check-ins</TooltipTrigger>
+                                <TooltipContent>Total check-ins across all sessions</TooltipContent>
+                              </Tooltip>
+                            </TableHead>
+                            <TableHead className="text-center font-semibold">
+                              <Tooltip>
                                 <TooltipTrigger>Class Average</TooltipTrigger>
                                 <TooltipContent>Average attendees per session</TooltipContent>
+                              </Tooltip>
+                            </TableHead>
+                            <TableHead className="text-center font-semibold">
+                              <Tooltip>
+                                <TooltipTrigger>Empty Classes</TooltipTrigger>
+                                <TooltipContent>Number of sessions with 0 attendance</TooltipContent>
                               </Tooltip>
                             </TableHead>
                             <TableHead className="text-center font-semibold">
@@ -280,6 +309,11 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
                         <TableBody>
                           {format.classesArray.map((classGroup: any, index: number) => (
                             <TableRow key={`${format.className}-${index}`} className="hover:bg-gray-50/80">
+                              <TableCell>
+                                <Badge variant="outline" className="bg-purple-50 text-purple-700 font-medium">
+                                  {classGroup.className}
+                                </Badge>
+                              </TableCell>
                               <TableCell>
                                 <Badge variant="outline" className="bg-blue-50 text-blue-700">
                                   {classGroup.dayOfWeek}
@@ -307,8 +341,26 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
                                   {classGroup.sessions}
                                 </Badge>
                               </TableCell>
+                              <TableCell className="text-center font-bold text-blue-600">
+                                <div className="flex items-center justify-center gap-1">
+                                  <Users className="w-4 h-4" />
+                                  {classGroup.attendees}
+                                </div>
+                              </TableCell>
                               <TableCell className="text-center font-bold text-green-600">
                                 {classGroup.classAverage.toFixed(1)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                {classGroup.emptyClasses > 0 ? (
+                                  <Badge variant="outline" className="bg-red-50 text-red-700">
+                                    <AlertTriangle className="w-3 h-3 mr-1" />
+                                    {classGroup.emptyClasses}
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-green-50 text-green-700">
+                                    0
+                                  </Badge>
+                                )}
                               </TableCell>
                               <TableCell className="text-center">
                                 <Badge 

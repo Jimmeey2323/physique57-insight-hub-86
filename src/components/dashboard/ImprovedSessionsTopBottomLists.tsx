@@ -12,7 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 interface ImprovedSessionsTopBottomListsProps {
   data: SessionData[];
@@ -33,7 +33,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('classAverage');
   const [showCount, setShowCount] = useState(initialCount);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [viewType, setViewType] = useState<'classes' | 'trainers'>(type);
 
   const processedData = useMemo(() => {
     const grouped: Record<string, {
@@ -51,7 +51,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
     }> = {};
 
     data.forEach(session => {
-      const key = type === 'classes' 
+      const key = viewType === 'classes' 
         ? `${session.cleanedClass}|${session.dayOfWeek}|${session.time}|${session.location}`
         : session.trainerName;
       
@@ -81,7 +81,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
     // Calculate averages
     Object.values(grouped).forEach(item => {
       const relatedSessions = data.filter(s => {
-        if (type === 'classes') {
+        if (viewType === 'classes') {
           return s.cleanedClass === item.cleanedClass && 
                  s.dayOfWeek === item.dayOfWeek && 
                  s.time === item.time && 
@@ -96,7 +96,14 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
       item.classAverage = item.sessions > 0 ? item.totalAttendance / item.sessions : 0;
     });
 
-    const sortedData = Object.values(grouped).sort((a, b) => {
+    // Filter out rows with less than 2 sessions or classes containing "Hosted"
+    const filteredData = Object.values(grouped).filter(item => {
+      if (item.sessions < 2) return false;
+      if (item.cleanedClass && item.cleanedClass.toLowerCase().includes('hosted')) return false;
+      return true;
+    });
+
+    const sortedData = filteredData.sort((a, b) => {
       let aValue: number, bValue: number;
       
       switch (selectedMetric) {
@@ -123,7 +130,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
     });
 
     return sortedData;
-  }, [data, type, selectedMetric, variant]);
+  }, [data, viewType, selectedMetric, variant]);
 
   const displayData = processedData.slice(0, showCount);
   const hasMore = processedData.length > showCount;
@@ -150,7 +157,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
   };
 
   const getDisplayName = (item: typeof processedData[0]) => {
-    if (type === 'classes') {
+    if (viewType === 'classes') {
       return `${item.cleanedClass} - ${item.dayOfWeek} ${item.time}`;
     } else {
       return item.trainerName;
@@ -171,7 +178,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
   return (
     <Card className="bg-white shadow-sm border border-gray-200">
       <CardHeader className="pb-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
             {variant === 'top' ? 
               <TrendingUp className="w-5 h-5 text-green-600" /> : 
@@ -186,7 +193,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
                 <ChevronDown className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="bg-white shadow-lg border" align="end">
+            <DropdownMenuContent className="bg-white shadow-lg border z-50" align="end">
               {metricOptions.map(option => (
                 <DropdownMenuItem
                   key={option.value}
@@ -200,10 +207,22 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+        
+        {/* Toggle between Classes and Trainers */}
+        <div className="flex justify-center">
+          <ToggleGroup type="single" value={viewType} onValueChange={(value) => value && setViewType(value as 'classes' | 'trainers')}>
+            <ToggleGroupItem value="classes" aria-label="Classes view">
+              Classes
+            </ToggleGroupItem>
+            <ToggleGroupItem value="trainers" aria-label="Trainers view">
+              Trainers
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </CardHeader>
       
       <CardContent className="p-0">
-        <div className="space-y-1 max-h-96 overflow-y-auto">
+        <div className="space-y-1 min-h-[600px] overflow-y-auto">
           {displayData.map((item, index) => (
             <div 
               key={item.name}
@@ -218,7 +237,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
                     {getDisplayName(item)}
                   </div>
                   <div className="flex flex-wrap gap-1 mb-1">
-                    {type === 'classes' && (
+                    {viewType === 'classes' && (
                       <>
                         <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
                           {item.location}
@@ -228,7 +247,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
                         </Badge>
                       </>
                     )}
-                    {type === 'trainers' && (
+                    {viewType === 'trainers' && (
                       <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-green-50 text-green-700 border-green-200">
                         {item.sessions} classes taught
                       </Badge>

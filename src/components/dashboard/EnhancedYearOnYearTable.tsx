@@ -299,7 +299,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                 key,
                 display,
                 year
-              }) => <th key={key} className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2">
+              }) => <th key={key} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2">
                     <div className="flex flex-col">
                       <span className="text-base">{display.split(' ')[0]}</span>
                       <span className="text-yellow-200 text-xs">

@@ -19,6 +19,7 @@ import {
   Star
 } from 'lucide-react';
 import { useNewClientData } from '@/hooks/useNewClientData';
+import { usePayrollData } from '@/hooks/usePayrollData';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
@@ -29,14 +30,18 @@ const LOCATION_MAPPING = [
 ];
 
 export const PremiumNewClientSection = () => {
-  const { data: rawData, loading, error } = useNewClientData();
+  const { data: newClientData, loading: newClientLoading, error: newClientError } = useNewClientData();
+  const { data: payrollData, loading: payrollLoading, error: payrollError } = usePayrollData();
   const [activeLocation, setActiveLocation] = useState<string>('all');
   const [selectedMetric, setSelectedMetric] = useState<string>('conversion');
 
+  const loading = newClientLoading || payrollLoading;
+  const error = newClientError || payrollError;
+
   const processedData = useMemo(() => {
-    if (!rawData || rawData.length === 0) return [];
+    if (!payrollData || payrollData.length === 0) return [];
     
-    let filtered = rawData;
+    let filtered = payrollData;
     
     if (activeLocation !== 'all') {
       const activeLocationName = LOCATION_MAPPING.find(loc => loc.id === activeLocation)?.fullName;
@@ -46,7 +51,7 @@ export const PremiumNewClientSection = () => {
     }
     
     return filtered;
-  }, [rawData, activeLocation]);
+  }, [payrollData, activeLocation]);
 
   const summaryMetrics = useMemo(() => {
     if (!processedData.length) return null;
@@ -84,10 +89,33 @@ export const PremiumNewClientSection = () => {
     };
   }, [processedData]);
 
+  const clientMetrics = useMemo(() => {
+    if (!newClientData || newClientData.length === 0) return null;
+
+    const totalClients = newClientData.length;
+    const newClients = newClientData.filter(client => client.isNew === 'Yes').length;
+    const convertedClients = newClientData.filter(client => client.conversionStatus === 'Converted').length;
+    const retainedClients = newClientData.filter(client => client.retentionStatus === 'Retained').length;
+    const totalLTV = newClientData.reduce((sum, client) => sum + (client.ltv || 0), 0);
+
+    return {
+      totalClients,
+      newClients,
+      convertedClients,
+      retainedClients,
+      totalLTV,
+      conversionRate: newClients > 0 ? (convertedClients / newClients) * 100 : 0,
+      retentionRate: totalClients > 0 ? (retainedClients / totalClients) * 100 : 0,
+      averageLTV: totalClients > 0 ? totalLTV / totalClients : 0
+    };
+  }, [newClientData]);
+
+  const displayMetrics = summaryMetrics || clientMetrics;
+
   const metricCards = [
     {
       title: 'New Clients',
-      value: formatNumber(summaryMetrics?.totalNew || 0),
+      value: formatNumber(displayMetrics?.totalNew || displayMetrics?.newClients || 0),
       change: 15.2,
       icon: Users,
       color: 'from-blue-500 to-cyan-500',
@@ -96,7 +124,7 @@ export const PremiumNewClientSection = () => {
     },
     {
       title: 'Conversion Rate',
-      value: `${summaryMetrics?.avgConversion.toFixed(1) || 0}%`,
+      value: `${(displayMetrics?.avgConversion || displayMetrics?.conversionRate || 0).toFixed(1)}%`,
       change: 8.7,
       icon: Target,
       color: 'from-green-500 to-emerald-500',
@@ -105,7 +133,7 @@ export const PremiumNewClientSection = () => {
     },
     {
       title: 'Retention Rate',
-      value: `${summaryMetrics?.avgRetention.toFixed(1) || 0}%`,
+      value: `${(displayMetrics?.avgRetention || displayMetrics?.retentionRate || 0).toFixed(1)}%`,
       change: 12.3,
       icon: Heart,
       color: 'from-pink-500 to-rose-500',
@@ -114,7 +142,7 @@ export const PremiumNewClientSection = () => {
     },
     {
       title: 'Revenue Impact',
-      value: formatCurrency(summaryMetrics?.totalRevenue || 0),
+      value: formatCurrency(displayMetrics?.totalRevenue || displayMetrics?.totalLTV || 0),
       change: 22.1,
       icon: TrendingUp,
       color: 'from-purple-500 to-violet-500',
@@ -141,7 +169,7 @@ export const PremiumNewClientSection = () => {
     return (
       <Card className="border-red-200 bg-red-50">
         <CardContent className="p-8 text-center">
-          <div className="text-red-600">Error loading client data: {error?.message || 'Unknown error'}</div>
+          <div className="text-red-600">Error loading client data: {typeof error === 'string' ? error : 'Unknown error'}</div>
           <Button variant="outline" className="mt-4" size="sm">
             <RefreshCw className="w-4 h-4 mr-2" />
             Retry

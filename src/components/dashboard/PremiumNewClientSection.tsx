@@ -31,7 +31,7 @@ const LOCATION_MAPPING = [
 
 export const PremiumNewClientSection = () => {
   const { data: newClientData, loading: newClientLoading, error: newClientError } = useNewClientData();
-  const { data: payrollData, loading: payrollLoading, error: payrollError } = usePayrollData();
+  const { data: payrollData, isLoading: payrollLoading, error: payrollError } = usePayrollData();
   const [activeLocation, setActiveLocation] = useState<string>('all');
   const [selectedMetric, setSelectedMetric] = useState<string>('conversion');
 
@@ -115,7 +115,11 @@ export const PremiumNewClientSection = () => {
   const metricCards = [
     {
       title: 'New Clients',
-      value: formatNumber(displayMetrics?.totalNew || displayMetrics?.newClients || 0),
+      value: formatNumber(
+        (summaryMetrics?.totalNew) || 
+        (clientMetrics?.newClients) || 
+        0
+      ),
       change: 15.2,
       icon: Users,
       color: 'from-blue-500 to-cyan-500',
@@ -124,7 +128,11 @@ export const PremiumNewClientSection = () => {
     },
     {
       title: 'Conversion Rate',
-      value: `${(displayMetrics?.avgConversion || displayMetrics?.conversionRate || 0).toFixed(1)}%`,
+      value: `${(
+        (summaryMetrics?.avgConversion) || 
+        (clientMetrics?.conversionRate) || 
+        0
+      ).toFixed(1)}%`,
       change: 8.7,
       icon: Target,
       color: 'from-green-500 to-emerald-500',
@@ -133,7 +141,11 @@ export const PremiumNewClientSection = () => {
     },
     {
       title: 'Retention Rate',
-      value: `${(displayMetrics?.avgRetention || displayMetrics?.retentionRate || 0).toFixed(1)}%`,
+      value: `${(
+        (summaryMetrics?.avgRetention) || 
+        (clientMetrics?.retentionRate) || 
+        0
+      ).toFixed(1)}%`,
       change: 12.3,
       icon: Heart,
       color: 'from-pink-500 to-rose-500',
@@ -142,7 +154,11 @@ export const PremiumNewClientSection = () => {
     },
     {
       title: 'Revenue Impact',
-      value: formatCurrency(displayMetrics?.totalRevenue || displayMetrics?.totalLTV || 0),
+      value: formatCurrency(
+        (summaryMetrics?.totalRevenue) || 
+        (clientMetrics?.totalLTV) || 
+        0
+      ),
       change: 22.1,
       icon: TrendingUp,
       color: 'from-purple-500 to-violet-500',

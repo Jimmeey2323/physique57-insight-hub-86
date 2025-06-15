@@ -10,7 +10,7 @@ import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
 import { DrillDownModal } from './DrillDownModal';
 import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
-import { SalesData, FilterOptions, MetricCardData } from '@/types/dashboard';
+import { SalesData, FilterOptions, MetricCardData, DataTableProps, InteractiveChartProps } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
@@ -320,36 +320,36 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     }
   }, []);
 
-  // Prepare data for Year-on-Year table with grouping
+  // Prepare data for Year-on-Year table with products grouped by category
   const yearOnYearData = useMemo(() => {
-    const dataByTrainer: Record<string, Record<string, number>> = {};
+    const dataByProduct: Record<string, Record<string, number>> = {};
     const months = new Set<string>();
-    const trainers = new Set<string>();
+    const products = new Set<string>();
 
     historicData.forEach(item => {
-      if (!item.soldBy || item.soldBy.trim() === '' || item.soldBy === '-') return;
+      if (!item.cleanedProduct || item.cleanedProduct.trim() === '' || item.cleanedProduct === '-') return;
       
-      const trainer = item.soldBy;
+      const product = item.cleanedProduct;
       const date = new Date(item.paymentDate);
       if (isNaN(date.getTime())) return;
       
       const monthKey = `${date.toLocaleDateString('en-US', { month: 'short' })}-${date.getFullYear()}`;
       
-      if (!dataByTrainer[trainer]) {
-        dataByTrainer[trainer] = {};
+      if (!dataByProduct[product]) {
+        dataByProduct[product] = {};
       }
       
-      if (!dataByTrainer[trainer][monthKey]) {
-        dataByTrainer[trainer][monthKey] = 0;
+      if (!dataByProduct[product][monthKey]) {
+        dataByProduct[product][monthKey] = 0;
       }
       
-      dataByTrainer[trainer][monthKey] += item.paymentValue;
+      dataByProduct[product][monthKey] += item.paymentValue;
       months.add(monthKey);
-      trainers.add(trainer);
+      products.add(product);
     });
 
     return {
-      data: dataByTrainer,
+      data: dataByProduct,
       months: Array.from(months).sort((a, b) => {
         const [monthA, yearA] = a.split('-');
         const [monthB, yearB] = b.split('-');
@@ -357,7 +357,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         const dateB = new Date(`${monthB} 1, ${yearB}`);
         return dateB.getTime() - dateA.getTime();
       }),
-      trainers: Array.from(trainers).sort()
+      products: Array.from(products).sort()
     };
   }, [historicData]);
 
@@ -479,10 +479,10 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               <EnhancedYearOnYearTable
                 data={yearOnYearData.data}
                 months={yearOnYearData.months}
-                trainers={yearOnYearData.trainers}
+                products={yearOnYearData.products}
                 activeMetric="Revenue"
-                onTrainerClick={(trainer, data) => {
-                  setDrillDownData({ name: trainer, ...data });
+                onProductClick={(product, data) => {
+                  setDrillDownData({ name: product, ...data });
                   setDrillDownType('product');
                 }}
                 collapsedGroups={collapsedGroups}
@@ -504,3 +504,4 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 };
 
 export default SalesAnalyticsSection;
+

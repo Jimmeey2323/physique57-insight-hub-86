@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { motion, useSpring, useTransform, AnimatePresence } from "framer-motion";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

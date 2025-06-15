@@ -313,6 +313,20 @@ export const TrainerPerformanceSection = () => {
     }));
   };
 
+  const getInsightsData = () => {
+    if (!filteredData.length) return [];
+
+    return filteredData.map(trainer => ({
+      name: trainer.teacherName,
+      totalValue: trainer.totalPaid || 0,
+      conversion: typeof trainer.conversion === 'string' 
+        ? parseFloat(trainer.conversion.replace('%', '') || '0') 
+        : (trainer.conversion || 0),
+      sessions: trainer.totalSessions || 0,
+      uniqueMembers: trainer.totalCustomers || 0
+    }));
+  };
+
   const getWordCloudData = () => {
     return filteredData.map(trainer => ({
       name: trainer.teacherName,
@@ -358,6 +372,7 @@ export const TrainerPerformanceSection = () => {
   const metricCards = getMetricCards();
   const { data: monthOnMonthData, months, trainers } = getMonthOnMonthData();
   const topBottomData = getTopBottomTrainers();
+  const insightsData = getInsightsData();
   const wordCloudData = getWordCloudData();
 
   console.log('Rendering with metric cards:', metricCards.length);
@@ -450,7 +465,7 @@ export const TrainerPerformanceSection = () => {
       {/* Insights and Word Cloud */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <TrainerInsights data={topBottomData} />
+          <TrainerInsights data={insightsData} />
         </div>
         <div className="lg:col-span-1">
           <TrainerWordCloud data={wordCloudData} />

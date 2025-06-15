@@ -145,7 +145,7 @@ export const LeadSourceMonthOnMonthTable: React.FC<LeadSourceMonthOnMonthTablePr
           {quickFilters.map(filter => <Button key={filter.value} variant={quickFilter === filter.value ? "default" : "outline"} size="sm" onClick={() => setQuickFilter(filter.value as any)} className={`gap-2 text-xs ${quickFilter === filter.value ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-blue-50'}`}>
               <Filter className="w-3 h-3" />
               {filter.label}
-              <Badge variant="outline" className="ml-1 text-xs text-gray-400 active:text-white">
+              <Badge variant="outline" className="ml-1 text-xs text-gray-400 active:text-white bg-zinc-900">
                 {filter.count}
               </Badge>
             </Button>)}

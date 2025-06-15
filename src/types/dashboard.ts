@@ -155,6 +155,8 @@ export interface MetricCardData {
   description: string;
   calculation: string;
   icon: string;
+  rawValue?: number;
+  breakdown?: Record<string, any>;
 }
 
 export interface ChartDataPoint {
@@ -185,3 +187,17 @@ export type TrainerMetricType =
   | 'barreSessions'
   | 'retainedMembers'
   | 'convertedMembers';
+
+// Data table props interface
+export interface DataTableProps {
+  title: string;
+  data: SalesData[];
+  type: 'monthly' | 'product' | 'category';
+  filters: FilterOptions;
+  onRowClick?: (row: any) => void;
+  collapsedGroups?: Set<string>;
+  onGroupToggle?: (groupKey: string) => void;
+}
+
+// Table view options
+export type TableViewOption = 'all' | 'lastMonth' | 'filtered';

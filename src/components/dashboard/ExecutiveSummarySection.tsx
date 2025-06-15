@@ -1,10 +1,9 @@
-
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Users, DollarSign, Calendar, BarChart3, Activity, Target, Zap, Clock, Star, Award } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, DollarSign, Calendar, BarChart3, Activity, Target, Zap, Clock, Star, Award, RefreshCw, Filter } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { useLeadsData } from '@/hooks/useLeadsData';
@@ -22,8 +21,8 @@ const ExecutiveSummarySection = () => {
   const payrollQuery = usePayrollData();
   const discountsQuery = useDiscountsData();
 
-  const isLoading = salesData.isLoading || sessionsQuery.isLoading || leadsQuery.isLoading || 
-                   newClientQuery.isLoading || payrollQuery.isLoading || discountsQuery.isLoading;
+  const isLoading = salesData.loading || sessionsQuery.loading || leadsQuery.loading || 
+                   newClientQuery.loading || payrollQuery.loading || discountsQuery.loading;
 
   // Process sales metrics
   const salesMetrics = useMemo(() => {
@@ -42,9 +41,9 @@ const ExecutiveSummarySection = () => {
     if (!sessionsQuery.data) return null;
     
     const totalSessions = sessionsQuery.data.length;
-    const totalAttendees = sessionsQuery.data.reduce((sum, session) => sum + (session.attendees || 0), 0);
+    const totalAttendees = sessionsQuery.data.reduce((sum, session) => sum + (session.attendance || 0), 0);
     const avgAttendance = totalAttendees / totalSessions || 0;
-    const activeTrainers = new Set(sessionsQuery.data.map(session => session.trainer)).size;
+    const activeTrainers = new Set(sessionsQuery.data.map(session => session.trainerId)).size;
     
     return { totalSessions, totalAttendees, avgAttendance, activeTrainers };
   }, [sessionsQuery.data]);
@@ -67,7 +66,7 @@ const ExecutiveSummarySection = () => {
     
     const totalNewClients = newClientQuery.data.length;
     const recentClients = newClientQuery.data.filter(client => {
-      const clientDate = new Date(client.date);
+      const clientDate = new Date(client.firstVisitDate);
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       return clientDate >= thirtyDaysAgo;
@@ -75,6 +74,43 @@ const ExecutiveSummarySection = () => {
     
     return { totalNewClients, recentClients };
   }, [newClientQuery.data]);
+
+  // Quick filter handlers
+  const handleQuickFilter = (filterType: string) => {
+    console.log(`Applied quick filter: ${filterType}`);
+    switch (filterType) {
+      case 'thismonth':
+        // Filter current month
+        break;
+      case 'lastquarter':
+        // Filter last quarter
+        break;
+      case 'highperformers':
+        // Show high performers
+        break;
+      case 'clearall':
+        // Clear all filters
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleRefresh = () => {
+    salesData.refetch();
+    sessionsQuery.refetch();
+    leadsQuery.refetch();
+    newClientQuery.refetch();
+    payrollQuery.refetch();
+    discountsQuery.refetch();
+  };
+
+  const quickFilters = [
+    { label: 'This Month', action: () => handleQuickFilter('thismonth') },
+    { label: 'Last Quarter', action: () => handleQuickFilter('lastquarter') },
+    { label: 'High Performers', action: () => handleQuickFilter('highperformers') },
+    { label: 'Clear All', action: () => handleQuickFilter('clearall') }
+  ];
 
   if (isLoading) {
     return (
@@ -98,6 +134,38 @@ const ExecutiveSummarySection = () => {
           Complete business overview with key performance indicators across all operations
         </p>
         <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
+      </div>
+
+      {/* Quick Controls */}
+      <div className="flex flex-col gap-4 mb-6">
+        <div className="flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Refresh All Data
+            </Button>
+          </div>
+        </div>
+
+        {/* Quick Filter Buttons */}
+        <div className="flex flex-wrap gap-2">
+          {quickFilters.map((filter, index) => (
+            <Button
+              key={index}
+              variant="outline"
+              size="sm"
+              onClick={filter.action}
+              className="text-xs hover:bg-blue-50 hover:text-blue-700 transition-colors"
+            >
+              {filter.label}
+            </Button>
+          ))}
+        </div>
       </div>
 
       {/* Key Performance Indicators */}

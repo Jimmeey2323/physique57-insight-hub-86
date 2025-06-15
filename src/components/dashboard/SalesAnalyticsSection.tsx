@@ -420,7 +420,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 type="category"
                 filters={filters}
                 onRowClick={handleTableRowClick}
-                grouped={false}
               />
               
               <EnhancedYearOnYearTable

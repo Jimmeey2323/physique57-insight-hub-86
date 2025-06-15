@@ -188,6 +188,18 @@ export type TrainerMetricType =
   | 'retainedMembers'
   | 'convertedMembers';
 
+// Year-on-year specific metric types
+export type YearOnYearMetricType = 
+  | 'revenue' 
+  | 'transactions' 
+  | 'members' 
+  | 'atv' 
+  | 'auv' 
+  | 'asv' 
+  | 'upt'
+  | 'vat'
+  | 'netRevenue';
+
 // Data table props interface
 export interface DataTableProps {
   title: string;
@@ -205,4 +217,3 @@ export interface InteractiveChartProps {
   data: SalesData[] | NewClientData[] | ChartDataPoint[];
   type: 'revenue' | 'performance' | 'sessions' | 'newClients';
 }
-

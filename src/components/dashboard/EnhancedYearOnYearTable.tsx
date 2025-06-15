@@ -3,16 +3,15 @@ import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, TrendingDown, Minus, ShoppingBag } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, TrendingDown, Minus, ShoppingBag, RefreshCw, Download, Eye } from 'lucide-react';
+import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
+import { YearOnYearMetricType, SalesData } from '@/types/dashboard';
 
 interface EnhancedYearOnYearTableProps {
-  data: Record<string, Record<string, number>>;
-  months: string[];
-  products: string[];
-  activeMetric: string;
+  data: SalesData[];
+  activeMetric: YearOnYearMetricType;
   onProductClick: (product: string, data: any) => void;
   collapsedGroups?: Set<string>;
   onGroupToggle?: (groupKey: string) => void;
@@ -20,8 +19,6 @@ interface EnhancedYearOnYearTableProps {
 
 export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = ({
   data,
-  months,
-  products,
   activeMetric,
   onProductClick,
   collapsedGroups = new Set(),
@@ -29,113 +26,116 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
 }) => {
   const [sortBy, setSortBy] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [selectedMetric, setSelectedMetric] = useState<YearOnYearMetricType>(activeMetric);
+  const [showLastMonthOnly, setShowLastMonthOnly] = useState(false);
 
-  // Get product avatar/icon
-  const getProductIcon = (productName: string) => {
-    const hash = productName.split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
-    const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500', 'bg-indigo-500'];
-    return colors[Math.abs(hash) % colors.length];
+  // Process data for year-on-year comparison using actual cleaned categories
+  const yearOnYearData = useMemo(() => {
+    if (!data?.length) return { processedData: [], months: [], products: [], categories: [] };
+
+    const dataByProduct: Record<string, Record<string, any>> = {};
+    const months = new Set<string>();
+    const products = new Set<string>();
+    const categories = new Set<string>();
+
+    data.forEach(item => {
+      if (!item.cleanedProduct || item.cleanedProduct.trim() === '' || item.cleanedProduct === '-') return;
+      if (!item.cleanedCategory || item.cleanedCategory.trim() === '' || item.cleanedCategory === '-') return;
+      
+      const product = item.cleanedProduct;
+      const category = item.cleanedCategory;
+      const date = new Date(item.paymentDate);
+      
+      if (isNaN(date.getTime())) return;
+      
+      const monthKey = `${date.toLocaleDateString('en-US', { month: 'short' })}-${date.getFullYear()}`;
+      
+      if (!dataByProduct[product]) {
+        dataByProduct[product] = { category, months: {} };
+      }
+      
+      if (!dataByProduct[product].months[monthKey]) {
+        dataByProduct[product].months[monthKey] = {
+          revenue: 0,
+          transactions: 0,
+          members: new Set(),
+          vat: 0,
+          units: 0
+        };
+      }
+      
+      dataByProduct[product].months[monthKey].revenue += item.paymentValue || 0;
+      dataByProduct[product].months[monthKey].transactions += 1;
+      dataByProduct[product].months[monthKey].members.add(item.memberId);
+      dataByProduct[product].months[monthKey].vat += item.paymentVAT || 0;
+      dataByProduct[product].months[monthKey].units += 1;
+      
+      months.add(monthKey);
+      products.add(product);
+      categories.add(category);
+    });
+
+    // Convert sets to numbers for calculations
+    Object.keys(dataByProduct).forEach(product => {
+      Object.keys(dataByProduct[product].months).forEach(month => {
+        const monthData = dataByProduct[product].months[month];
+        monthData.memberCount = monthData.members.size;
+        delete monthData.members;
+      });
+    });
+
+    const sortedMonths = Array.from(months).sort((a, b) => {
+      const [monthA, yearA] = a.split('-');
+      const [monthB, yearB] = b.split('-');
+      const dateA = new Date(`${monthA} 1, ${yearA}`);
+      const dateB = new Date(`${monthB} 1, ${yearB}`);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    return {
+      processedData: dataByProduct,
+      months: sortedMonths,
+      products: Array.from(products).sort(),
+      categories: Array.from(categories).sort()
+    };
+  }, [data]);
+
+  const getMetricValue = (monthData: any, metric: YearOnYearMetricType) => {
+    if (!monthData) return 0;
+    
+    switch (metric) {
+      case 'revenue':
+        return monthData.revenue || 0;
+      case 'transactions':
+        return monthData.transactions || 0;
+      case 'members':
+        return monthData.memberCount || 0;
+      case 'atv':
+        return monthData.transactions > 0 ? (monthData.revenue / monthData.transactions) : 0;
+      case 'auv':
+        return monthData.units > 0 ? (monthData.revenue / monthData.units) : 0;
+      case 'asv':
+        return monthData.memberCount > 0 ? (monthData.revenue / monthData.memberCount) : 0;
+      case 'upt':
+        return monthData.transactions > 0 ? (monthData.units / monthData.transactions) : 0;
+      case 'vat':
+        return monthData.vat || 0;
+      case 'netRevenue':
+        return (monthData.revenue || 0) - (monthData.vat || 0);
+      default:
+        return 0;
+    }
   };
 
-  // Group products by category
-  const groupedProducts = useMemo(() => {
-    const groups: Record<string, string[]> = {};
-
-    products.forEach(product => {
-      // Extract category from product name or use a default categorization
-      let category = 'Other';
-      
-      if (product.toLowerCase().includes('membership') || product.toLowerCase().includes('package')) {
-        category = 'Memberships & Packages';
-      } else if (product.toLowerCase().includes('class') || product.toLowerCase().includes('session')) {
-        category = 'Classes & Sessions';
-      } else if (product.toLowerCase().includes('retail') || product.toLowerCase().includes('merchandise')) {
-        category = 'Retail & Merchandise';
-      } else if (product.toLowerCase().includes('personal') || product.toLowerCase().includes('training')) {
-        category = 'Personal Training';
-      } else if (product.toLowerCase().includes('workshop') || product.toLowerCase().includes('event')) {
-        category = 'Workshops & Events';
-      }
-
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category].push(product);
-    });
-
-    // Sort products within each category by total revenue
-    Object.keys(groups).forEach(category => {
-      groups[category].sort((a, b) => {
-        const totalA = months.reduce((sum, month) => sum + (data[a]?.[month] || 0), 0);
-        const totalB = months.reduce((sum, month) => sum + (data[b]?.[month] || 0), 0);
-        return totalB - totalA;
-      });
-    });
-
-    return groups;
-  }, [products, data, months]);
-
-  // Process data for year-on-year comparison
-  const yearOnYearData = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const previousYear = currentYear - 1;
-    
-    // Group months by year
-    const monthsByYear = months.reduce((acc, month) => {
-      const year = parseInt(month.split('-')[1]);
-      if (!acc[year]) acc[year] = [];
-      acc[year].push(month);
-      return acc;
-    }, {} as Record<number, string[]>);
-
-    // Get all unique month names (Jan, Feb, etc.)
-    const uniqueMonths = [...new Set(months.map(m => m.split('-')[0]))].sort((a, b) => {
-      const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return monthOrder.indexOf(a) - monthOrder.indexOf(b);
-    });
-
-    return products.map(product => {
-      const productData: any = {
-        product,
-        months: {},
-        totalCurrent: 0,
-        totalPrevious: 0
-      };
-
-      uniqueMonths.forEach(monthName => {
-        // Find data for this month in both years
-        const currentYearMonth = `${monthName}-${currentYear}`;
-        const previousYearMonth = `${monthName}-${previousYear}`;
-        
-        const currentValue = data[product]?.[currentYearMonth] || 0;
-        const previousValue = data[product]?.[previousYearMonth] || 0;
-        
-        productData.months[monthName] = {
-          current: currentValue,
-          previous: previousValue,
-          change: previousValue > 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0
-        };
-
-        productData.totalCurrent += currentValue;
-        productData.totalPrevious += previousValue;
-      });
-
-      productData.totalChange = productData.totalPrevious > 0 
-        ? ((productData.totalCurrent - productData.totalPrevious) / productData.totalPrevious) * 100 
-        : 0;
-
-      return productData;
-    });
-  }, [data, months, products]);
-
   const formatValue = (value: number) => {
-    if (activeMetric.includes('Percentage') || activeMetric.includes('Rate')) {
-      return `${value.toFixed(1)}%`;
+    if (selectedMetric === 'revenue' || selectedMetric === 'vat' || selectedMetric === 'netRevenue' || 
+        selectedMetric === 'atv' || selectedMetric === 'auv' || selectedMetric === 'asv') {
+      return formatCurrency(value);
     }
-    return formatCurrency(value);
+    if (selectedMetric === 'upt') {
+      return value.toFixed(1);
+    }
+    return formatNumber(value);
   };
 
   const getTrendIcon = (change: number) => {
@@ -150,6 +150,40 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     return 'text-gray-600';
   };
 
+  // Group products by category
+  const groupedProducts = useMemo(() => {
+    const groups: Record<string, string[]> = {};
+
+    yearOnYearData.products.forEach(product => {
+      const productData = yearOnYearData.processedData[product];
+      const category = productData?.category || 'Uncategorized';
+      
+      if (!groups[category]) {
+        groups[category] = [];
+      }
+      groups[category].push(product);
+    });
+
+    // Sort products within each category by total revenue
+    Object.keys(groups).forEach(category => {
+      groups[category].sort((a, b) => {
+        const totalA = yearOnYearData.months.reduce((sum, month) => 
+          sum + getMetricValue(yearOnYearData.processedData[a]?.months[month], selectedMetric), 0);
+        const totalB = yearOnYearData.months.reduce((sum, month) => 
+          sum + getMetricValue(yearOnYearData.processedData[b]?.months[month], selectedMetric), 0);
+        return totalB - totalA;
+      });
+    });
+
+    return groups;
+  }, [yearOnYearData, selectedMetric]);
+
+  const handleGroupToggle = (groupName: string) => {
+    if (onGroupToggle) {
+      onGroupToggle(`yoy-${groupName}`);
+    }
+  };
+
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -159,14 +193,9 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     }
   };
 
-  const handleGroupToggle = (groupName: string) => {
-    if (onGroupToggle) {
-      onGroupToggle(`yoy-${groupName}`);
-    }
-  };
-
-  // Get unique months for column headers
-  const uniqueMonths = [...new Set(months.map(m => m.split('-')[0]))].sort((a, b) => {
+  // Get unique months for display
+  const displayMonths = showLastMonthOnly ? yearOnYearData.months.slice(0, 2) : yearOnYearData.months;
+  const uniqueMonthNames = [...new Set(displayMonths.map(m => m.split('-')[0]))].sort((a, b) => {
     const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return monthOrder.indexOf(a) - monthOrder.indexOf(b);
   });
@@ -174,7 +203,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
 
-  if (!products.length || uniqueMonths.length === 0) {
+  if (!yearOnYearData.products.length || uniqueMonthNames.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -192,11 +221,35 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ShoppingBag className="w-5 h-5 text-blue-600" />
-          Year-on-Year Product Performance Analysis ({currentYear} vs {previousYear})
-        </CardTitle>
+      <CardHeader className="space-y-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <ShoppingBag className="w-5 h-5 text-blue-600" />
+            Year-on-Year Analysis ({currentYear} vs {previousYear})
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowLastMonthOnly(!showLastMonthOnly)}
+              className="flex items-center gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              {showLastMonthOnly ? 'Show All' : 'Last Month Only'}
+            </Button>
+            <Button variant="outline" size="sm">
+              <RefreshCw className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm">
+              <Download className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        
+        <YearOnYearMetricTabs
+          value={selectedMetric}
+          onValueChange={setSelectedMetric}
+        />
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -205,13 +258,13 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
               <TableRow>
                 <TableHead className="sticky left-0 bg-white z-10 min-w-[250px]">
                   <Button variant="ghost" onClick={() => handleSort('product')}>
-                    Product
+                    Product / Category
                     {sortBy === 'product' && (
                       sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
                     )}
                   </Button>
                 </TableHead>
-                {uniqueMonths.map(month => (
+                {uniqueMonthNames.map(month => (
                   <TableHead key={month} className="text-center min-w-[200px]">
                     <div className="space-y-1">
                       <div className="font-bold">{month}</div>
@@ -222,16 +275,12 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                     </div>
                   </TableHead>
                 ))}
-                <TableHead className="text-center min-w-[120px]">Total Change</TableHead>
+                <TableHead className="text-center min-w-[120px]">YoY Change</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {Object.entries(groupedProducts).map(([groupName, groupProducts]) => {
                 const isCollapsed = collapsedGroups.has(`yoy-${groupName}`);
-                const groupTotal = groupProducts.reduce((sum, product) => {
-                  const productData = yearOnYearData.find(p => p.product === product);
-                  return sum + (productData?.totalCurrent || 0);
-                }, 0);
                 
                 return (
                   <React.Fragment key={groupName}>
@@ -248,14 +297,18 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                           {groupName} ({groupProducts.length})
                         </Button>
                       </TableCell>
-                      {uniqueMonths.map(month => {
+                      {uniqueMonthNames.map(month => {
+                        const currentYearMonth = `${month}-${currentYear}`;
+                        const previousYearMonth = `${month}-${previousYear}`;
+                        
                         const monthTotal = groupProducts.reduce((sum, product) => {
-                          const productData = yearOnYearData.find(p => p.product === product);
-                          return sum + (productData?.months[month]?.current || 0);
+                          const productData = yearOnYearData.processedData[product];
+                          return sum + getMetricValue(productData?.months[currentYearMonth], selectedMetric);
                         }, 0);
+                        
                         const monthPrevious = groupProducts.reduce((sum, product) => {
-                          const productData = yearOnYearData.find(p => p.product === product);
-                          return sum + (productData?.months[month]?.previous || 0);
+                          const productData = yearOnYearData.processedData[product];
+                          return sum + getMetricValue(productData?.months[previousYearMonth], selectedMetric);
                         }, 0);
                         
                         return (
@@ -273,14 +326,14 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                       })}
                       <TableCell className="text-center">
                         <Badge className="bg-slate-200 text-slate-700">
-                          {formatCurrency(groupTotal)}
+                          Category Total
                         </Badge>
                       </TableCell>
                     </TableRow>
 
                     {/* Group Members */}
                     {!isCollapsed && groupProducts.map((product) => {
-                      const productData = yearOnYearData.find(p => p.product === product);
+                      const productData = yearOnYearData.processedData[product];
                       if (!productData) return null;
 
                       return (
@@ -291,35 +344,40 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                         >
                           <TableCell className="sticky left-0 bg-white z-10 pl-8">
                             <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-full ${getProductIcon(product)} flex items-center justify-center text-white text-xs font-bold`}>
+                              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold">
                                 {product.charAt(0)}
                               </div>
                               <span className="font-medium">{product}</span>
                             </div>
                           </TableCell>
-                          {uniqueMonths.map(month => {
-                            const monthData = productData.months[month];
+                          {uniqueMonthNames.map(month => {
+                            const currentYearMonth = `${month}-${currentYear}`;
+                            const previousYearMonth = `${month}-${previousYear}`;
+                            
+                            const currentValue = getMetricValue(productData.months[currentYearMonth], selectedMetric);
+                            const previousValue = getMetricValue(productData.months[previousYearMonth], selectedMetric);
+                            const change = previousValue > 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0;
+                            
                             return (
                               <TableCell key={month} className="text-center">
                                 <div className="grid grid-cols-2 gap-2">
                                   <div className="p-2 bg-blue-50 rounded text-blue-700 font-mono text-sm">
-                                    {formatValue(monthData.previous)}
+                                    {formatValue(previousValue)}
                                   </div>
                                   <div className="p-2 bg-green-50 rounded text-green-700 font-mono text-sm">
-                                    {formatValue(monthData.current)}
+                                    {formatValue(currentValue)}
                                   </div>
                                 </div>
-                                <div className={`flex items-center justify-center gap-1 mt-1 text-xs ${getTrendColor(monthData.change)}`}>
-                                  {getTrendIcon(monthData.change)}
-                                  <span>{monthData.change > 0 ? '+' : ''}{monthData.change.toFixed(1)}%</span>
+                                <div className={`flex items-center justify-center gap-1 mt-1 text-xs ${getTrendColor(change)}`}>
+                                  {getTrendIcon(change)}
+                                  <span>{change > 0 ? '+' : ''}{change.toFixed(1)}%</span>
                                 </div>
                               </TableCell>
                             );
                           })}
                           <TableCell className="text-center">
-                            <div className={`flex items-center justify-center gap-1 text-sm ${getTrendColor(productData.totalChange)}`}>
-                              {getTrendIcon(productData.totalChange)}
-                              <span>{productData.totalChange > 0 ? '+' : ''}{productData.totalChange.toFixed(1)}%</span>
+                            <div className="text-sm text-slate-600">
+                              Product
                             </div>
                           </TableCell>
                         </TableRow>
@@ -335,4 +393,3 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     </Card>
   );
 };
-

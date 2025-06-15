@@ -10,7 +10,7 @@ import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
 import { DrillDownModal } from './DrillDownModal';
 import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
-import { SalesData, FilterOptions, MetricCardData, DataTableProps, InteractiveChartProps } from '@/types/dashboard';
+import { SalesData, FilterOptions, MetricCardData, YearOnYearMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +31,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const [activeYoyMetric, setActiveYoyMetric] = useState<YearOnYearMetricType>('revenue');
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: { start: '2025-01-01', end: '2025-05-31' },
     location: [],
@@ -195,7 +196,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Ticket Value',
-        value: `₹${Math.round(atv)}`,
+        value: formatCurrency(atv),
         change: -2.1,
         description: 'Average revenue per transaction, key indicator of pricing strategy effectiveness',
         calculation: 'Total Revenue / Total Transactions',
@@ -210,7 +211,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Unit Value',
-        value: `₹${Math.round(auv)}`,
+        value: formatCurrency(auv),
         change: 5.7,
         description: 'Average revenue per unit sold, reflecting product pricing efficiency',
         calculation: 'Total Revenue / Total Units Sold',
@@ -240,7 +241,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       },
       {
         title: 'Average Spend Value',
-        value: `₹${Math.round(asv)}`,
+        value: formatCurrency(asv),
         change: 7.4,
         description: 'Average spend per unique member, measuring customer lifetime value',
         calculation: 'Total Revenue / Unique Members',
@@ -319,47 +320,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       }
     }
   }, []);
-
-  // Prepare data for Year-on-Year table with products grouped by category
-  const yearOnYearData = useMemo(() => {
-    const dataByProduct: Record<string, Record<string, number>> = {};
-    const months = new Set<string>();
-    const products = new Set<string>();
-
-    historicData.forEach(item => {
-      if (!item.cleanedProduct || item.cleanedProduct.trim() === '' || item.cleanedProduct === '-') return;
-      
-      const product = item.cleanedProduct;
-      const date = new Date(item.paymentDate);
-      if (isNaN(date.getTime())) return;
-      
-      const monthKey = `${date.toLocaleDateString('en-US', { month: 'short' })}-${date.getFullYear()}`;
-      
-      if (!dataByProduct[product]) {
-        dataByProduct[product] = {};
-      }
-      
-      if (!dataByProduct[product][monthKey]) {
-        dataByProduct[product][monthKey] = 0;
-      }
-      
-      dataByProduct[product][monthKey] += item.paymentValue;
-      months.add(monthKey);
-      products.add(product);
-    });
-
-    return {
-      data: dataByProduct,
-      months: Array.from(months).sort((a, b) => {
-        const [monthA, yearA] = a.split('-');
-        const [monthB, yearB] = b.split('-');
-        const dateA = new Date(`${monthA} 1, ${yearA}`);
-        const dateB = new Date(`${monthB} 1, ${yearB}`);
-        return dateB.getTime() - dateA.getTime();
-      }),
-      products: Array.from(products).sort()
-    };
-  }, [historicData]);
 
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
@@ -477,10 +437,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               />
               
               <EnhancedYearOnYearTable
-                data={yearOnYearData.data}
-                months={yearOnYearData.months}
-                products={yearOnYearData.products}
-                activeMetric="Revenue"
+                data={historicData}
+                activeMetric={activeYoyMetric}
                 onProductClick={(product, data) => {
                   setDrillDownData({ name: product, ...data });
                   setDrillDownType('product');
@@ -504,4 +462,3 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 };
 
 export default SalesAnalyticsSection;
-

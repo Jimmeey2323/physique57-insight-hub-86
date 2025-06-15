@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
-import { TrendingUp, TrendingDown, Users, ShoppingCart, Calendar, MapPin, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, ShoppingCart, Calendar, MapPin, BarChart3, DollarSign, Activity } from 'lucide-react';
 
 interface DrillDownModalProps {
   isOpen: boolean;
@@ -29,34 +29,40 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   };
 
   const renderMetricDetails = () => {
-    const currentValue = typeof data.value === 'string' 
-      ? parseFloat(data.value.replace(/[₹,]/g, '')) || 0 
-      : data.value || 0;
+    const breakdown = data.breakdown || {};
+    const currentValue = data.rawValue || 0;
+    const change = data.change || 0;
 
     return (
       <div className="space-y-6">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-700">{formatCurrency(currentValue)}</div>
+              <div className="text-2xl font-bold text-blue-700">{data.value}</div>
               <div className="text-sm text-blue-600">Current Value</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-700">+{safeNumber(data.change, 12.5)}%</div>
+              <div className="text-2xl font-bold text-green-700">
+                {change > 0 ? '+' : ''}{change.toFixed(1)}%
+              </div>
               <div className="text-sm text-green-600">Growth Rate</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-purple-700">{formatCurrency(currentValue * 0.85)}</div>
+              <div className="text-2xl font-bold text-purple-700">
+                {formatCurrency((currentValue * (100 - Math.abs(change))) / 100)}
+              </div>
               <div className="text-sm text-purple-600">Previous Period</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-orange-700">{formatCurrency(currentValue * 1.15)}</div>
+              <div className="text-2xl font-bold text-orange-700">
+                {formatCurrency(currentValue * 1.15)}
+              </div>
               <div className="text-sm text-orange-600">Target</div>
             </CardContent>
           </Card>
@@ -71,21 +77,79 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
-                <span className="font-medium text-slate-700">Daily Average</span>
-                <span className="font-bold text-blue-600">{formatCurrency(currentValue / 30)}</span>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
-                <span className="font-medium text-slate-700">Weekly Trend</span>
-                <Badge className="bg-green-100 text-green-800 border-green-200">+{safeNumber(data.change, 12.5).toFixed(1)}%</Badge>
-              </div>
-              <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
-                <span className="font-medium text-slate-700">Monthly Projection</span>
-                <span className="font-bold text-purple-600">{formatCurrency(currentValue * 1.08)}</span>
-              </div>
+              {data.title === 'Gross Revenue' && (
+                <>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Net Revenue</span>
+                    <span className="font-bold text-blue-600">{formatCurrency(breakdown.net || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">VAT Amount</span>
+                    <span className="font-bold text-red-600">{formatCurrency(breakdown.vat || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Total Transactions</span>
+                    <span className="font-bold text-purple-600">{formatNumber(breakdown.transactions || 0)}</span>
+                  </div>
+                </>
+              )}
+              
+              {data.title === 'Total Transactions' && (
+                <>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Total Revenue</span>
+                    <span className="font-bold text-blue-600">{formatCurrency(breakdown.revenue || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Unique Members</span>
+                    <span className="font-bold text-green-600">{formatNumber(breakdown.uniqueMembers || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Average Value</span>
+                    <span className="font-bold text-purple-600">{formatCurrency(breakdown.avgValue || 0)}</span>
+                  </div>
+                </>
+              )}
+
+              {data.title === 'Average Ticket Value' && (
+                <>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Total Revenue</span>
+                    <span className="font-bold text-blue-600">{formatCurrency(breakdown.totalRevenue || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Total Transactions</span>
+                    <span className="font-bold text-green-600">{formatNumber(breakdown.totalTransactions || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Compare to AUV</span>
+                    <span className="font-bold text-purple-600">{formatCurrency(breakdown.comparison || 0)}</span>
+                  </div>
+                </>
+              )}
+
+              {data.title === 'Unique Members' && (
+                <>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Total Revenue</span>
+                    <span className="font-bold text-blue-600">{formatCurrency(breakdown.totalRevenue || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Total Transactions</span>
+                    <span className="font-bold text-green-600">{formatNumber(breakdown.totalTransactions || 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
+                    <span className="font-medium text-slate-700">Avg Spend per Member</span>
+                    <span className="font-bold text-purple-600">{formatCurrency(breakdown.avgSpend || 0)}</span>
+                  </div>
+                </>
+              )}
+
               <div className="flex justify-between items-center p-4 bg-white rounded-lg shadow-sm">
                 <span className="font-medium text-slate-700">Performance Score</span>
-                <Badge className="bg-blue-100 text-blue-800 border-blue-200">Excellent</Badge>
+                <Badge className={`${change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                  {change >= 15 ? 'Excellent' : change >= 5 ? 'Good' : change >= 0 ? 'Fair' : 'Needs Improvement'}
+                </Badge>
               </div>
             </div>
           </CardContent>
@@ -95,16 +159,16 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-indigo-800">
               <BarChart3 className="w-5 h-5" />
-              Advanced Insights
+              Calculation & Insights
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-sm text-indigo-700 space-y-2">
-              <p>• <strong>Calculation Method:</strong> {data.calculation || 'Sum of all payment values'}</p>
-              <p>• <strong>Data Quality:</strong> 98.7% complete records analyzed</p>
-              <p>• <strong>Trend Analysis:</strong> Showing consistent upward trajectory</p>
-              <p>• <strong>Seasonality:</strong> Peak performance in current period</p>
-              <p>• <strong>Recommendation:</strong> Maintain current strategy for optimal results</p>
+              <p>• <strong>Calculation:</strong> {data.calculation}</p>
+              <p>• <strong>Current Value:</strong> {formatCurrency(currentValue)}</p>
+              <p>• <strong>Growth Rate:</strong> {change > 0 ? '+' : ''}{change.toFixed(1)}%</p>
+              <p>• <strong>Trend:</strong> {change >= 5 ? 'Strong upward trend' : change >= 0 ? 'Positive momentum' : 'Declining performance'}</p>
+              <p>• <strong>Description:</strong> {data.description}</p>
             </div>
           </CardContent>
         </Card>
@@ -113,7 +177,9 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
   };
 
   const renderProductDetails = () => {
-    const grossRevenue = safeNumber(data.grossRevenue || data.totalValue, 0);
+    const grossRevenue = safeNumber(data.grossRevenue || data.totalValue || data.totalCurrent, 0);
+    const transactions = safeNumber(data.transactions || data.totalTransactions, 0);
+    const uniqueMembers = safeNumber(data.uniqueMembers || data.totalCustomers, 0);
     
     return (
       <div className="space-y-6">
@@ -121,7 +187,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
           <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <ShoppingCart className="w-4 h-4 text-blue-600" />
+                <DollarSign className="w-4 h-4 text-blue-600" />
                 <span className="text-sm font-medium text-blue-600">Revenue</span>
               </div>
               <div className="text-xl font-bold text-blue-700">{formatCurrency(grossRevenue)}</div>
@@ -133,25 +199,27 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
                 <Users className="w-4 h-4 text-green-600" />
                 <span className="text-sm font-medium text-green-600">Customers</span>
               </div>
-              <div className="text-xl font-bold text-green-700">{formatNumber(safeNumber(data.uniqueMembers, 0))}</div>
+              <div className="text-xl font-bold text-green-700">{formatNumber(uniqueMembers)}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Calendar className="w-4 h-4 text-purple-600" />
+                <ShoppingCart className="w-4 h-4 text-purple-600" />
                 <span className="text-sm font-medium text-purple-600">Transactions</span>
               </div>
-              <div className="text-xl font-bold text-purple-700">{formatNumber(safeNumber(data.transactions, 0))}</div>
+              <div className="text-xl font-bold text-purple-700">{formatNumber(transactions)}</div>
             </CardContent>
           </Card>
           <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
                 <TrendingUp className="w-4 h-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-600">ATV</span>
+                <span className="text-sm font-medium text-orange-600">Growth</span>
               </div>
-              <div className="text-xl font-bold text-orange-700">{formatCurrency(safeNumber(data.atv, 0))}</div>
+              <div className="text-xl font-bold text-orange-700">
+                {data.totalChange ? `${data.totalChange > 0 ? '+' : ''}${data.totalChange.toFixed(1)}%` : 'N/A'}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -159,7 +227,7 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
         <Tabs defaultValue="performance" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="performance">Performance</TabsTrigger>
-            <TabsTrigger value="trends">Trends</TabsTrigger>
+            <TabsTrigger value="trends">Monthly Trends</TabsTrigger>
             <TabsTrigger value="insights">Insights</TabsTrigger>
           </TabsList>
           
@@ -171,28 +239,26 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-slate-600">Gross Revenue</span>
+                    <span className="text-slate-600">Total Revenue</span>
                     <span className="font-bold text-blue-600">{formatCurrency(grossRevenue)}</span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-slate-600">Net Revenue</span>
-                    <span className="font-bold text-green-600">{formatCurrency(safeNumber(data.netRevenue, grossRevenue * 0.85))}</span>
+                    <span className="text-slate-600">Average per Transaction</span>
+                    <span className="font-bold text-green-600">
+                      {formatCurrency(transactions > 0 ? grossRevenue / transactions : 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-slate-600">Average Unit Value</span>
-                    <span className="font-bold text-purple-600">{formatCurrency(safeNumber(data.auv, 0))}</span>
+                    <span className="text-slate-600">Average per Customer</span>
+                    <span className="font-bold text-purple-600">
+                      {formatCurrency(uniqueMembers > 0 ? grossRevenue / uniqueMembers : 0)}
+                    </span>
                   </div>
                   <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-slate-600">Average Spend Value</span>
-                    <span className="font-bold text-orange-600">{formatCurrency(safeNumber(data.asv, 0))}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-slate-600">Units per Transaction</span>
-                    <span className="font-bold text-indigo-600">{safeNumber(data.upt, 0).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg">
-                    <span className="text-slate-600">Units Sold</span>
-                    <span className="font-bold text-slate-700">{formatNumber(safeNumber(data.unitsSold, 0))}</span>
+                    <span className="text-slate-600">Performance Rating</span>
+                    <Badge className={`${grossRevenue > 50000 ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}`}>
+                      {grossRevenue > 100000 ? 'Excellent' : grossRevenue > 50000 ? 'Good' : 'Average'}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>
@@ -202,27 +268,26 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
           <TabsContent value="trends" className="space-y-4">
             <Card className="bg-gradient-to-br from-slate-50 to-slate-100">
               <CardHeader>
-                <CardTitle className="text-slate-800">Trend Analysis</CardTitle>
+                <CardTitle className="text-slate-800">Monthly Breakdown</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg">
-                    <span className="font-medium text-green-800">7-day Growth</span>
-                    <Badge className="bg-green-200 text-green-800">+15.2%</Badge>
+                {data.months ? (
+                  <div className="space-y-3">
+                    {Object.entries(data.months).map(([month, monthData]: [string, any]) => (
+                      <div key={month} className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg">
+                        <span className="font-medium text-slate-800">{month}</span>
+                        <div className="flex items-center gap-4">
+                          <span className="text-blue-600">{formatCurrency(monthData.current || 0)}</span>
+                          <Badge className={`${monthData.change >= 0 ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800'}`}>
+                            {monthData.change > 0 ? '+' : ''}{monthData.change?.toFixed(1) || 0}%
+                          </Badge>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg">
-                    <span className="font-medium text-blue-800">30-day Growth</span>
-                    <Badge className="bg-blue-200 text-blue-800">+8.7%</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-lg">
-                    <span className="font-medium text-purple-800">90-day Growth</span>
-                    <Badge className="bg-purple-200 text-purple-800">+23.1%</Badge>
-                  </div>
-                  <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-lg">
-                    <span className="font-medium text-orange-800">Market Share</span>
-                    <Badge className="bg-orange-200 text-orange-800">18.5%</Badge>
-                  </div>
-                </div>
+                ) : (
+                  <p className="text-center text-slate-600">No monthly data available</p>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -230,24 +295,43 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
           <TabsContent value="insights" className="space-y-4">
             <Card className="bg-gradient-to-br from-slate-50 to-slate-100">
               <CardHeader>
-                <CardTitle className="text-slate-800">AI-Powered Insights</CardTitle>
+                <CardTitle className="text-slate-800">Performance Insights</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm text-slate-700">
                   <div className="p-3 bg-white rounded-lg border-l-4 border-blue-400">
-                    <strong className="text-blue-600">Performance:</strong> {data.name} shows exceptional growth with consistent customer acquisition
+                    <strong className="text-blue-600">Performance:</strong> 
+                    {grossRevenue > 100000 
+                      ? ' Exceptional performance with high revenue generation'
+                      : grossRevenue > 50000 
+                      ? ' Good performance showing steady growth'
+                      : ' Moderate performance with room for improvement'
+                    }
                   </div>
                   <div className="p-3 bg-white rounded-lg border-l-4 border-green-400">
-                    <strong className="text-green-600">Retention:</strong> Customer retention rate is 78.5% above industry average
+                    <strong className="text-green-600">Customer Engagement:</strong> 
+                    {uniqueMembers > 50 
+                      ? ' Strong customer base with good engagement'
+                      : uniqueMembers > 20 
+                      ? ' Moderate customer engagement'
+                      : ' Limited customer base - focus on acquisition'
+                    }
                   </div>
                   <div className="p-3 bg-white rounded-lg border-l-4 border-purple-400">
-                    <strong className="text-purple-600">Timing:</strong> Peak sales occur during weekends and early evenings
+                    <strong className="text-purple-600">Transaction Volume:</strong> 
+                    {transactions > 100 
+                      ? ' High transaction volume indicating strong sales activity'
+                      : transactions > 50 
+                      ? ' Moderate transaction activity'
+                      : ' Low transaction volume - consider promotional strategies'
+                    }
                   </div>
                   <div className="p-3 bg-white rounded-lg border-l-4 border-orange-400">
-                    <strong className="text-orange-600">Opportunity:</strong> Cross-selling potential with complementary products
-                  </div>
-                  <div className="p-3 bg-white rounded-lg border-l-4 border-indigo-400">
-                    <strong className="text-indigo-600">Recommendation:</strong> Increase inventory during high-demand periods for optimal conversion
+                    <strong className="text-orange-600">Recommendation:</strong> 
+                    {data.totalChange && data.totalChange > 0 
+                      ? ' Continue current strategies and consider scaling successful initiatives'
+                      : ' Review pricing strategy and focus on customer retention programs'
+                    }
                   </div>
                 </div>
               </CardContent>
@@ -263,12 +347,12 @@ export const DrillDownModal: React.FC<DrillDownModalProps> = ({
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto bg-gradient-to-br from-white via-slate-50/50 to-white">
         <DialogHeader className="pb-4 border-b">
           <DialogTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent">
-            {type === 'metric' ? `${data.title} - Advanced Analytics` : `${data.name} - Comprehensive Analysis`}
+            {type === 'metric' ? `${data.title} - Detailed Analysis` : `${data.name || data.trainer} - Performance Breakdown`}
           </DialogTitle>
           <p className="text-slate-600 mt-2">
             {type === 'metric' 
-              ? 'Deep dive into metric performance with predictive insights'
-              : 'Detailed breakdown of performance metrics and growth opportunities'
+              ? 'Comprehensive performance analysis with real-time data insights'
+              : 'Detailed breakdown of performance metrics and growth trends'
             }
           </p>
         </DialogHeader>

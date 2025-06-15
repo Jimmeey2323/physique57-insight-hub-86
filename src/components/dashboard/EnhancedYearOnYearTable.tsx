@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { ChevronDown, ChevronUp, ChevronRight, TrendingUp, TrendingDown, Minus, Users } from 'lucide-react';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 
 interface EnhancedYearOnYearTableProps {
@@ -14,6 +14,8 @@ interface EnhancedYearOnYearTableProps {
   trainers: string[];
   activeMetric: string;
   onTrainerClick: (trainer: string, data: any) => void;
+  collapsedGroups?: Set<string>;
+  onGroupToggle?: (groupKey: string) => void;
 }
 
 export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = ({
@@ -21,7 +23,9 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
   months,
   trainers,
   activeMetric,
-  onTrainerClick
+  onTrainerClick,
+  collapsedGroups = new Set(),
+  onGroupToggle
 }) => {
   const [sortBy, setSortBy] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
@@ -40,6 +44,40 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     ];
     return avatarUrls[avatarId];
   };
+
+  // Group trainers by department/category
+  const groupedTrainers = useMemo(() => {
+    const groups: Record<string, string[]> = {
+      'Senior Trainers': [],
+      'Junior Trainers': [],
+      'Freelance Trainers': [],
+      'Other Staff': []
+    };
+
+    trainers.forEach(trainer => {
+      // Simple grouping logic - can be enhanced based on actual trainer data
+      const totalRevenue = months.reduce((sum, month) => sum + (data[trainer]?.[month] || 0), 0);
+      
+      if (totalRevenue > 100000) {
+        groups['Senior Trainers'].push(trainer);
+      } else if (totalRevenue > 50000) {
+        groups['Junior Trainers'].push(trainer);
+      } else if (totalRevenue > 10000) {
+        groups['Freelance Trainers'].push(trainer);
+      } else {
+        groups['Other Staff'].push(trainer);
+      }
+    });
+
+    // Remove empty groups
+    Object.keys(groups).forEach(key => {
+      if (groups[key].length === 0) {
+        delete groups[key];
+      }
+    });
+
+    return groups;
+  }, [trainers, data, months]);
 
   // Process data for year-on-year comparison
   const yearOnYearData = useMemo(() => {
@@ -63,7 +101,9 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     return trainers.map(trainer => {
       const trainerData: any = {
         trainer,
-        months: {}
+        months: {},
+        totalCurrent: 0,
+        totalPrevious: 0
       };
 
       uniqueMonths.forEach(monthName => {
@@ -79,7 +119,14 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
           previous: previousValue,
           change: previousValue > 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0
         };
+
+        trainerData.totalCurrent += currentValue;
+        trainerData.totalPrevious += previousValue;
       });
+
+      trainerData.totalChange = trainerData.totalPrevious > 0 
+        ? ((trainerData.totalCurrent - trainerData.totalPrevious) / trainerData.totalPrevious) * 100 
+        : 0;
 
       return trainerData;
     });
@@ -92,7 +139,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     if (activeMetric.includes('Ltv')) {
       return formatCurrency(value);
     }
-    return formatNumber(value);
+    return formatCurrency(value);
   };
 
   const getTrendIcon = (change: number) => {
@@ -116,6 +163,12 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     }
   };
 
+  const handleGroupToggle = (groupName: string) => {
+    if (onGroupToggle) {
+      onGroupToggle(`yoy-${groupName}`);
+    }
+  };
+
   // Get unique months for column headers
   const uniqueMonths = [...new Set(months.map(m => m.split('-')[0]))].sort((a, b) => {
     const monthOrder = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -125,17 +178,36 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
 
+  if (!trainers.length || uniqueMonths.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-600" />
+            Year-on-Year Performance Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-center text-gray-500">No data available for year-on-year comparison</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Year-on-Year Performance Analysis</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="w-5 h-5 text-blue-600" />
+          Year-on-Year Performance Analysis ({currentYear} vs {previousYear})
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 bg-white z-10 min-w-[200px]">
+                <TableHead className="sticky left-0 bg-white z-10 min-w-[250px]">
                   <Button variant="ghost" onClick={() => handleSort('trainer')}>
                     Trainer
                     {sortBy === 'trainer' && (
@@ -154,45 +226,113 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                     </div>
                   </TableHead>
                 ))}
+                <TableHead className="text-center min-w-[120px]">Total Change</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {yearOnYearData.map((trainerData) => (
-                <TableRow 
-                  key={trainerData.trainer} 
-                  className="hover:bg-gray-50 cursor-pointer"
-                  onClick={() => onTrainerClick(trainerData.trainer, trainerData)}
-                >
-                  <TableCell className="sticky left-0 bg-white z-10">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-8 h-8">
-                        <AvatarImage src={getTrainerAvatar(trainerData.trainer)} />
-                        <AvatarFallback>{trainerData.trainer.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                      </Avatar>
-                      <span className="font-medium">{trainerData.trainer}</span>
-                    </div>
-                  </TableCell>
-                  {uniqueMonths.map(month => {
-                    const monthData = trainerData.months[month];
-                    return (
-                      <TableCell key={month} className="text-center">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div className="p-2 bg-blue-50 rounded text-blue-700 font-mono text-sm">
-                            {formatValue(monthData.previous)}
-                          </div>
-                          <div className="p-2 bg-green-50 rounded text-green-700 font-mono text-sm">
-                            {formatValue(monthData.current)}
-                          </div>
-                        </div>
-                        <div className={`flex items-center justify-center gap-1 mt-1 text-xs ${getTrendColor(monthData.change)}`}>
-                          {getTrendIcon(monthData.change)}
-                          <span>{monthData.change > 0 ? '+' : ''}{monthData.change.toFixed(1)}%</span>
-                        </div>
+              {Object.entries(groupedTrainers).map(([groupName, groupTrainers]) => {
+                const isCollapsed = collapsedGroups.has(`yoy-${groupName}`);
+                const groupTotal = groupTrainers.reduce((sum, trainer) => {
+                  const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                  return sum + (trainerData?.totalCurrent || 0);
+                }, 0);
+                
+                return (
+                  <React.Fragment key={groupName}>
+                    {/* Group Header */}
+                    <TableRow className="bg-gradient-to-r from-slate-100 to-slate-50 border-t-2 font-semibold">
+                      <TableCell className="sticky left-0 bg-gradient-to-r from-slate-100 to-slate-50 z-10">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleGroupToggle(groupName)}
+                          className="flex items-center gap-2 font-bold text-slate-700"
+                        >
+                          {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          {groupName} ({groupTrainers.length})
+                        </Button>
                       </TableCell>
-                    );
-                  })}
-                </TableRow>
-              ))}
+                      {uniqueMonths.map(month => {
+                        const monthTotal = groupTrainers.reduce((sum, trainer) => {
+                          const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                          return sum + (trainerData?.months[month]?.current || 0);
+                        }, 0);
+                        const monthPrevious = groupTrainers.reduce((sum, trainer) => {
+                          const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                          return sum + (trainerData?.months[month]?.previous || 0);
+                        }, 0);
+                        
+                        return (
+                          <TableCell key={month} className="text-center">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="p-1 bg-blue-100 rounded text-blue-700 font-mono text-xs">
+                                {formatValue(monthPrevious)}
+                              </div>
+                              <div className="p-1 bg-green-100 rounded text-green-700 font-mono text-xs">
+                                {formatValue(monthTotal)}
+                              </div>
+                            </div>
+                          </TableCell>
+                        );
+                      })}
+                      <TableCell className="text-center">
+                        <Badge className="bg-slate-200 text-slate-700">
+                          {formatCurrency(groupTotal)}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Group Members */}
+                    {!isCollapsed && groupTrainers.map((trainer) => {
+                      const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                      if (!trainerData) return null;
+
+                      return (
+                        <TableRow 
+                          key={trainer} 
+                          className="hover:bg-gray-50 cursor-pointer"
+                          onClick={() => onTrainerClick(trainer, trainerData)}
+                        >
+                          <TableCell className="sticky left-0 bg-white z-10 pl-8">
+                            <div className="flex items-center gap-3">
+                              <Avatar className="w-8 h-8">
+                                <AvatarImage src={getTrainerAvatar(trainer)} />
+                                <AvatarFallback>{trainer.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                              </Avatar>
+                              <span className="font-medium">{trainer}</span>
+                            </div>
+                          </TableCell>
+                          {uniqueMonths.map(month => {
+                            const monthData = trainerData.months[month];
+                            return (
+                              <TableCell key={month} className="text-center">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="p-2 bg-blue-50 rounded text-blue-700 font-mono text-sm">
+                                    {formatValue(monthData.previous)}
+                                  </div>
+                                  <div className="p-2 bg-green-50 rounded text-green-700 font-mono text-sm">
+                                    {formatValue(monthData.current)}
+                                  </div>
+                                </div>
+                                <div className={`flex items-center justify-center gap-1 mt-1 text-xs ${getTrendColor(monthData.change)}`}>
+                                  {getTrendIcon(monthData.change)}
+                                  <span>{monthData.change > 0 ? '+' : ''}{monthData.change.toFixed(1)}%</span>
+                                </div>
+                              </TableCell>
+                            );
+                          })}
+                          <TableCell className="text-center">
+                            <div className={`flex items-center justify-center gap-1 text-sm ${getTrendColor(trainerData.totalChange)}`}>
+                              {getTrendIcon(trainerData.totalChange)}
+                              <span>{trainerData.totalChange > 0 ? '+' : ''}{trainerData.totalChange.toFixed(1)}%</span>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </React.Fragment>
+                );
+              })}
             </TableBody>
           </Table>
         </div>

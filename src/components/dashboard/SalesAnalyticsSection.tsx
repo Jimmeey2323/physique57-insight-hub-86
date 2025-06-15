@@ -9,6 +9,7 @@ import { DataTable } from './DataTable';
 import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
 import { DrillDownModal } from './DrillDownModal';
+import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
 import { SalesData, FilterOptions, MetricCardData } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -29,6 +30,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: { start: '2025-01-01', end: '2025-05-31' },
     location: [],
@@ -39,7 +41,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   });
 
   // Helper function to filter data by date range and other filters
-  const applyFilters = (rawData: SalesData[]) => {
+  const applyFilters = (rawData: SalesData[], includeHistoric: boolean = false) => {
     let filtered = rawData;
 
     // Apply location filter first
@@ -53,8 +55,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       return locationMatch;
     });
 
-    // Apply date range filter with improved date parsing
-    if (filters.dateRange.start || filters.dateRange.end) {
+    // Apply date range filter - skip for historic data when includeHistoric is true
+    if (!includeHistoric && (filters.dateRange.start || filters.dateRange.end)) {
       const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
       const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
 
@@ -128,6 +130,11 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     return applyFilters(data);
   }, [data, activeLocation, filters]);
 
+  // Get historic data for year-on-year comparison (includes 2024 data)
+  const historicData = useMemo(() => {
+    return applyFilters(data, true);
+  }, [data, activeLocation]);
+
   const metrics = useMemo((): MetricCardData[] => {
     const totalRevenue = filteredData.reduce((sum, item) => sum + item.paymentValue, 0);
     const totalVAT = filteredData.reduce((sum, item) => sum + item.paymentVAT, 0);
@@ -147,7 +154,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: 12.5,
         description: 'Total revenue including VAT for the selected period with strong growth momentum',
         calculation: 'Sum of all Payment Values across all transactions',
-        icon: 'revenue'
+        icon: 'revenue',
+        rawValue: totalRevenue,
+        breakdown: {
+          current: totalRevenue,
+          vat: totalVAT,
+          net: netRevenue,
+          transactions: totalTransactions
+        }
       },
       {
         title: 'Net Revenue',
@@ -155,7 +169,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: 8.2,
         description: 'Revenue after deducting VAT, showing actual business income',
         calculation: 'Gross Revenue - Total VAT',
-        icon: 'net'
+        icon: 'net',
+        rawValue: netRevenue,
+        breakdown: {
+          current: netRevenue,
+          gross: totalRevenue,
+          vat: totalVAT,
+          transactions: totalTransactions
+        }
       },
       {
         title: 'Total Transactions',
@@ -163,7 +184,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: 15.3,
         description: 'Number of successful payment transactions indicating customer activity',
         calculation: 'Count of all payment records with succeeded status',
-        icon: 'transactions'
+        icon: 'transactions',
+        rawValue: totalTransactions,
+        breakdown: {
+          current: totalTransactions,
+          revenue: totalRevenue,
+          uniqueMembers: uniqueMembers,
+          avgValue: atv
+        }
       },
       {
         title: 'Average Ticket Value',
@@ -171,7 +199,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: -2.1,
         description: 'Average revenue per transaction, key indicator of pricing strategy effectiveness',
         calculation: 'Total Revenue / Total Transactions',
-        icon: 'atv'
+        icon: 'atv',
+        rawValue: atv,
+        breakdown: {
+          current: atv,
+          totalRevenue: totalRevenue,
+          totalTransactions: totalTransactions,
+          comparison: auv
+        }
       },
       {
         title: 'Average Unit Value',
@@ -179,7 +214,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: 5.7,
         description: 'Average revenue per unit sold, reflecting product pricing efficiency',
         calculation: 'Total Revenue / Total Units Sold',
-        icon: 'auv'
+        icon: 'auv',
+        rawValue: auv,
+        breakdown: {
+          current: auv,
+          totalRevenue: totalRevenue,
+          totalUnits: totalUnits,
+          comparison: atv
+        }
       },
       {
         title: 'Unique Members',
@@ -187,7 +229,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: 18.9,
         description: 'Number of unique customers indicating market reach and acquisition',
         calculation: 'Count of distinct Member IDs',
-        icon: 'members'
+        icon: 'members',
+        rawValue: uniqueMembers,
+        breakdown: {
+          current: uniqueMembers,
+          totalTransactions: totalTransactions,
+          avgSpend: asv,
+          totalRevenue: totalRevenue
+        }
       },
       {
         title: 'Average Spend Value',
@@ -195,7 +244,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: 7.4,
         description: 'Average spend per unique member, measuring customer lifetime value',
         calculation: 'Total Revenue / Unique Members',
-        icon: 'asv'
+        icon: 'asv',
+        rawValue: asv,
+        breakdown: {
+          current: asv,
+          totalRevenue: totalRevenue,
+          uniqueMembers: uniqueMembers,
+          comparison: atv
+        }
       },
       {
         title: 'Units per Transaction',
@@ -203,7 +259,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         change: 3.2,
         description: 'Average number of units per transaction, indicating cross-selling success',
         calculation: 'Total Units / Total Transactions',
-        icon: 'upt'
+        icon: 'upt',
+        rawValue: upt,
+        breakdown: {
+          current: upt,
+          totalUnits: totalUnits,
+          totalTransactions: totalTransactions,
+          totalRevenue: totalRevenue
+        }
       }
     ];
   }, [filteredData]);
@@ -220,14 +283,83 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   };
 
   const handleMetricClick = (metric: MetricCardData) => {
+    console.log('Metric clicked:', metric);
     setDrillDownData(metric);
     setDrillDownType('metric');
   };
 
   const handleTableRowClick = (row: any) => {
+    console.log('Table row clicked:', row);
     setDrillDownData(row);
     setDrillDownType('product');
   };
+
+  const handleGroupToggle = (groupKey: string) => {
+    const newCollapsed = new Set(collapsedGroups);
+    if (newCollapsed.has(groupKey)) {
+      newCollapsed.delete(groupKey);
+    } else {
+      newCollapsed.add(groupKey);
+    }
+    setCollapsedGroups(newCollapsed);
+    
+    // Persist to localStorage
+    localStorage.setItem('salesAnalytics_collapsedGroups', JSON.stringify([...newCollapsed]));
+  };
+
+  // Load collapsed groups from localStorage on mount
+  React.useEffect(() => {
+    const saved = localStorage.getItem('salesAnalytics_collapsedGroups');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setCollapsedGroups(new Set(parsed));
+      } catch (e) {
+        console.error('Failed to parse saved collapsed groups:', e);
+      }
+    }
+  }, []);
+
+  // Prepare data for Year-on-Year table with grouping
+  const yearOnYearData = useMemo(() => {
+    const dataByTrainer: Record<string, Record<string, number>> = {};
+    const months = new Set<string>();
+    const trainers = new Set<string>();
+
+    historicData.forEach(item => {
+      if (!item.soldBy || item.soldBy.trim() === '' || item.soldBy === '-') return;
+      
+      const trainer = item.soldBy;
+      const date = new Date(item.paymentDate);
+      if (isNaN(date.getTime())) return;
+      
+      const monthKey = `${date.toLocaleDateString('en-US', { month: 'short' })}-${date.getFullYear()}`;
+      
+      if (!dataByTrainer[trainer]) {
+        dataByTrainer[trainer] = {};
+      }
+      
+      if (!dataByTrainer[trainer][monthKey]) {
+        dataByTrainer[trainer][monthKey] = 0;
+      }
+      
+      dataByTrainer[trainer][monthKey] += item.paymentValue;
+      months.add(monthKey);
+      trainers.add(trainer);
+    });
+
+    return {
+      data: dataByTrainer,
+      months: Array.from(months).sort((a, b) => {
+        const [monthA, yearA] = a.split('-');
+        const [monthB, yearB] = b.split('-');
+        const dateA = new Date(`${monthA} 1, ${yearA}`);
+        const dateB = new Date(`${monthB} 1, ${yearB}`);
+        return dateB.getTime() - dateA.getTime();
+      }),
+      trainers: Array.from(trainers).sort()
+    };
+  }, [historicData]);
 
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
@@ -320,6 +452,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 type="monthly"
                 filters={filters}
                 onRowClick={handleTableRowClick}
+                collapsedGroups={collapsedGroups}
+                onGroupToggle={handleGroupToggle}
               />
               
               <DataTable
@@ -328,6 +462,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 type="product"
                 filters={filters}
                 onRowClick={handleTableRowClick}
+                collapsedGroups={collapsedGroups}
+                onGroupToggle={handleGroupToggle}
               />
               
               <DataTable
@@ -336,14 +472,21 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 type="category"
                 filters={filters}
                 onRowClick={handleTableRowClick}
+                collapsedGroups={collapsedGroups}
+                onGroupToggle={handleGroupToggle}
               />
               
-              <DataTable
-                title="Year-on-Year Growth Analysis"
-                data={filteredData}
-                type="yoy-analysis"
-                filters={filters}
-                onRowClick={handleTableRowClick}
+              <EnhancedYearOnYearTable
+                data={yearOnYearData.data}
+                months={yearOnYearData.months}
+                trainers={yearOnYearData.trainers}
+                activeMetric="Revenue"
+                onTrainerClick={(trainer, data) => {
+                  setDrillDownData({ name: trainer, ...data });
+                  setDrillDownType('product');
+                }}
+                collapsedGroups={collapsedGroups}
+                onGroupToggle={handleGroupToggle}
               />
             </div>
           </TabsContent>

@@ -14,11 +14,6 @@ import { DrillDownModal } from './DrillDownModal';
 import { SalesData, FilterOptions, MetricCardData } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
-import { DiscountMonthOnMonthTable } from './DiscountMonthOnMonthTable';
-import { DiscountRevenueAnalysis } from './DiscountRevenueAnalysis';
-import { DiscountImpactInsights } from './DiscountImpactInsights';
-import { DiscountYearOnYearTable } from './DiscountYearOnYearTable';
-import { DiscountTopBottomLists } from './DiscountTopBottomLists';
 
 const locations = [{
   id: 'kwality',
@@ -487,11 +482,76 @@ export const DiscountsSection: React.FC = () => {
                 ))}
               </div>
 
-              {/* Top/Bottom Lists */}
-              <DiscountTopBottomLists 
-                data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
-                onItemClick={handleTableRowClick} 
-              />
+              {/* Discount Insights Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Discounted Products */}
+                <Card className="bg-gradient-to-br from-white via-red-50/30 to-orange-50/20 border-0 shadow-xl animate-fade-in">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold bg-gradient-to-r from-red-700 to-orange-700 bg-clip-text text-transparent flex items-center gap-2">
+                      <Gift className="w-6 h-6 text-red-600" />
+                      Top Discounted Products
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {topDiscountedProducts.map((product, index) => (
+                        <div 
+                          key={product.product} 
+                          className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300 hover:scale-102"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-slate-800">{product.product}</p>
+                              <p className="text-xs text-slate-600">{product.transactions} transactions</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-red-600">{formatCurrency(product.totalDiscount)}</div>
+                            <div className="text-xs text-slate-600">{product.avgGrossDiscountPercent.toFixed(1)}% avg</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Discount Trends */}
+                <Card className="bg-gradient-to-br from-white via-orange-50/30 to-red-50/20 border-0 shadow-xl animate-fade-in">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold bg-gradient-to-r from-orange-700 to-red-700 bg-clip-text text-transparent flex items-center gap-2">
+                      <Zap className="w-6 h-6 text-orange-600" />
+                      Monthly Discount Trends
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {discountTrends.map((trend, index) => (
+                        <div 
+                          key={trend.month} 
+                          className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              {new Date(trend.month + '-01').toLocaleDateString('en-US', { month: 'short' })}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-slate-800">{trend.month}</p>
+                              <p className="text-xs text-slate-600">{trend.transactions} discounted transactions</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-orange-600">{formatCurrency(trend.totalDiscounts)}</div>
+                            <div className="text-xs text-slate-600">{trend.discountRate.toFixed(1)}% rate</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
 
               {/* Enhanced Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -507,28 +567,8 @@ export const DiscountsSection: React.FC = () => {
                 />
               </div>
 
-              {/* Enhanced Data Tables and Analysis */}
+              {/* Enhanced Data Tables */}
               <div className="space-y-8">
-                <DiscountMonthOnMonthTable 
-                  data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
-                  filters={filters} 
-                  onRowClick={handleTableRowClick} 
-                />
-                
-                <DiscountYearOnYearTable 
-                  data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
-                  filters={filters} 
-                  onRowClick={handleTableRowClick} 
-                />
-                
-                <DiscountRevenueAnalysis 
-                  data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
-                />
-                
-                <DiscountImpactInsights 
-                  data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
-                />
-                
                 <DataTable 
                   title="Monthly Discount Performance Analysis" 
                   data={filteredData.filter(item => (item.discountAmount || 0) > 0)} 

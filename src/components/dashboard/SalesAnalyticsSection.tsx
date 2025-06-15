@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AutoCloseFilterSection } from './AutoCloseFilterSection';
@@ -10,7 +10,7 @@ import { InteractiveChart } from './InteractiveChart';
 import { ThemeSelector } from './ThemeSelector';
 import { DrillDownModal } from './DrillDownModal';
 import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
-import { SalesData, FilterOptions, MetricCardData, TableViewOption } from '@/types/dashboard';
+import { SalesData, FilterOptions, MetricCardData } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
@@ -31,7 +31,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-  const [tableViewOption, setTableViewOption] = useState<TableViewOption>('filtered');
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: { start: '2025-01-01', end: '2025-05-31' },
     location: [],
@@ -41,20 +40,20 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     paymentMethod: []
   });
 
-  // Memoized location filtering for performance
-  const locationFilteredData = useMemo(() => {
-    const locationName = activeLocation === 'kwality' 
-      ? 'Kwality House, Kemps Corner'
-      : activeLocation === 'supreme'
-      ? 'Supreme HQ, Bandra'
-      : 'Kenkere House';
-    
-    return data.filter(item => item.calculatedLocation === locationName);
-  }, [data, activeLocation]);
-
   // Helper function to filter data by date range and other filters
-  const applyFilters = useCallback((rawData: SalesData[], includeHistoric: boolean = false) => {
+  const applyFilters = (rawData: SalesData[], includeHistoric: boolean = false) => {
     let filtered = rawData;
+
+    // Apply location filter first
+    filtered = filtered.filter(item => {
+      const locationMatch = activeLocation === 'kwality' 
+        ? item.calculatedLocation === 'Kwality House, Kemps Corner'
+        : activeLocation === 'supreme'
+        ? item.calculatedLocation === 'Supreme HQ, Bandra'
+        : item.calculatedLocation === 'Kenkere House';
+      
+      return locationMatch;
+    });
 
     // Apply date range filter - skip for historic data when includeHistoric is true
     if (!includeHistoric && (filters.dateRange.start || filters.dateRange.end)) {
@@ -125,42 +124,16 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     }
 
     return filtered;
-  }, [filters]);
+  };
 
   const filteredData = useMemo(() => {
-    return applyFilters(locationFilteredData);
-  }, [locationFilteredData, applyFilters]);
+    return applyFilters(data);
+  }, [data, activeLocation, filters]);
 
   // Get historic data for year-on-year comparison (includes 2024 data)
   const historicData = useMemo(() => {
-    return locationFilteredData; // Don't apply filters to historic data
-  }, [locationFilteredData]);
-
-  // Get last month data for table toggle
-  const lastMonthData = useMemo(() => {
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    const monthString = lastMonth.toISOString().slice(0, 7); // YYYY-MM format
-    
-    return locationFilteredData.filter(item => {
-      const itemDate = new Date(item.paymentDate);
-      return !isNaN(itemDate.getTime()) && 
-             itemDate.toISOString().slice(0, 7) === monthString;
-    });
-  }, [locationFilteredData]);
-
-  // Get the appropriate data based on table view option
-  const getTableData = useCallback(() => {
-    switch (tableViewOption) {
-      case 'all':
-        return locationFilteredData;
-      case 'lastMonth':
-        return lastMonthData;
-      case 'filtered':
-      default:
-        return filteredData;
-    }
-  }, [tableViewOption, locationFilteredData, lastMonthData, filteredData]);
+    return applyFilters(data, true);
+  }, [data, activeLocation]);
 
   const metrics = useMemo((): MetricCardData[] => {
     const totalRevenue = filteredData.reduce((sum, item) => sum + item.paymentValue, 0);
@@ -298,7 +271,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     ];
   }, [filteredData]);
 
-  const resetFilters = useCallback(() => {
+  const resetFilters = () => {
     setFilters({
       dateRange: { start: '2025-03-01', end: '2025-05-31' },
       location: [],
@@ -307,21 +280,21 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       soldBy: [],
       paymentMethod: []
     });
-  }, []);
+  };
 
-  const handleMetricClick = useCallback((metric: MetricCardData) => {
+  const handleMetricClick = (metric: MetricCardData) => {
     console.log('Metric clicked:', metric);
     setDrillDownData(metric);
     setDrillDownType('metric');
-  }, []);
+  };
 
-  const handleTableRowClick = useCallback((row: any) => {
+  const handleTableRowClick = (row: any) => {
     console.log('Table row clicked:', row);
     setDrillDownData(row);
     setDrillDownType('product');
-  }, []);
+  };
 
-  const handleGroupToggle = useCallback((groupKey: string) => {
+  const handleGroupToggle = (groupKey: string) => {
     const newCollapsed = new Set(collapsedGroups);
     if (newCollapsed.has(groupKey)) {
       newCollapsed.delete(groupKey);
@@ -332,7 +305,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     
     // Persist to localStorage
     localStorage.setItem('salesAnalytics_collapsedGroups', JSON.stringify([...newCollapsed]));
-  }, [collapsedGroups]);
+  };
 
   // Load collapsed groups from localStorage on mount
   React.useEffect(() => {
@@ -347,36 +320,36 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
     }
   }, []);
 
-  // Prepare data for Year-on-Year table with product grouping by category
+  // Prepare data for Year-on-Year table with grouping
   const yearOnYearData = useMemo(() => {
-    const dataByProduct: Record<string, Record<string, number>> = {};
+    const dataByTrainer: Record<string, Record<string, number>> = {};
     const months = new Set<string>();
-    const products = new Set<string>();
+    const trainers = new Set<string>();
 
     historicData.forEach(item => {
-      if (!item.cleanedProduct || item.cleanedProduct.trim() === '' || item.cleanedProduct === '-') return;
+      if (!item.soldBy || item.soldBy.trim() === '' || item.soldBy === '-') return;
       
-      const product = item.cleanedProduct;
+      const trainer = item.soldBy;
       const date = new Date(item.paymentDate);
       if (isNaN(date.getTime())) return;
       
       const monthKey = `${date.toLocaleDateString('en-US', { month: 'short' })}-${date.getFullYear()}`;
       
-      if (!dataByProduct[product]) {
-        dataByProduct[product] = {};
+      if (!dataByTrainer[trainer]) {
+        dataByTrainer[trainer] = {};
       }
       
-      if (!dataByProduct[product][monthKey]) {
-        dataByProduct[product][monthKey] = 0;
+      if (!dataByTrainer[trainer][monthKey]) {
+        dataByTrainer[trainer][monthKey] = 0;
       }
       
-      dataByProduct[product][monthKey] += item.paymentValue;
+      dataByTrainer[trainer][monthKey] += item.paymentValue;
       months.add(monthKey);
-      products.add(product);
+      trainers.add(trainer);
     });
 
     return {
-      data: dataByProduct,
+      data: dataByTrainer,
       months: Array.from(months).sort((a, b) => {
         const [monthA, yearA] = a.split('-');
         const [monthB, yearB] = b.split('-');
@@ -384,11 +357,9 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
         const dateB = new Date(`${monthB} 1, ${yearB}`);
         return dateB.getTime() - dateA.getTime();
       }),
-      trainers: Array.from(products).sort()
+      trainers: Array.from(trainers).sort()
     };
   }, [historicData]);
-
-  const currentTableData = getTableData();
 
   return (
     <div className={cn("space-y-6", isDarkMode && "dark")}>
@@ -454,7 +425,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
             </div>
 
             <UnifiedTopBottomSellers 
-              data={currentTableData} 
+              data={filteredData} 
               onRowClick={(row) => {
                 setDrillDownData(row);
                 setDrillDownType('product');
@@ -464,12 +435,12 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <InteractiveChart
                 title="Revenue Performance Trends"
-                data={currentTableData}
+                data={filteredData}
                 type="revenue"
               />
               <InteractiveChart
                 title="Category Performance Analysis"
-                data={currentTableData}
+                data={filteredData}
                 type="performance"
               />
             </div>
@@ -477,7 +448,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
             <div className="space-y-8">
               <DataTable
                 title="Month-on-Month Performance Matrix"
-                data={currentTableData}
+                data={filteredData}
                 type="monthly"
                 filters={filters}
                 onRowClick={handleTableRowClick}
@@ -487,7 +458,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               
               <DataTable
                 title="Product Performance Analysis"
-                data={currentTableData}
+                data={filteredData}
                 type="product"
                 filters={filters}
                 onRowClick={handleTableRowClick}
@@ -497,7 +468,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               
               <DataTable
                 title="Category Performance Breakdown"
-                data={currentTableData}
+                data={filteredData}
                 type="category"
                 filters={filters}
                 onRowClick={handleTableRowClick}

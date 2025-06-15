@@ -30,44 +30,42 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
   const [sortBy, setSortBy] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Get product avatar URL (placeholder function)
-  const getProductAvatar = (productName: string) => {
-    const hash = productName.split('').reduce((a, b) => {
+  // Get trainer avatar URL
+  const getTrainerAvatar = (trainerName: string) => {
+    const hash = trainerName.split('').reduce((a, b) => {
       a = ((a << 5) - a) + b.charCodeAt(0);
       return a & a;
     }, 0);
     const avatarId = Math.abs(hash) % 3;
     const avatarUrls = [
-      'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=150&h=150&fit=crop',
-      'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=150&h=150&fit=crop',
-      'https://images.unsplash.com/photo-1594736797933-d0e501ba2fe6?w=150&h=150&fit=crop'
+      'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=150&h=150&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?w=150&h=150&fit=crop&crop=face',
+      'https://images.unsplash.com/photo-1501286353178-1ec881214838?w=150&h=150&fit=crop&crop=face'
     ];
     return avatarUrls[avatarId];
   };
 
-  // Group products by category based on product names
-  const groupedProducts = useMemo(() => {
+  // Group trainers by department/category
+  const groupedTrainers = useMemo(() => {
     const groups: Record<string, string[]> = {
-      'Memberships': [],
-      'Classes & Sessions': [],
-      'Products & Retail': [],
-      'Personal Training': [],
-      'Other Services': []
+      'Senior Trainers': [],
+      'Junior Trainers': [],
+      'Freelance Trainers': [],
+      'Other Staff': []
     };
 
-    trainers.forEach(product => {
-      const productLower = product.toLowerCase();
+    trainers.forEach(trainer => {
+      // Simple grouping logic - can be enhanced based on actual trainer data
+      const totalRevenue = months.reduce((sum, month) => sum + (data[trainer]?.[month] || 0), 0);
       
-      if (productLower.includes('membership') || productLower.includes('unlimited') || productLower.includes('monthly')) {
-        groups['Memberships'].push(product);
-      } else if (productLower.includes('class') || productLower.includes('session') || productLower.includes('workout') || productLower.includes('pilates') || productLower.includes('yoga')) {
-        groups['Classes & Sessions'].push(product);
-      } else if (productLower.includes('product') || productLower.includes('retail') || productLower.includes('merchandise') || productLower.includes('supplement')) {
-        groups['Products & Retail'].push(product);
-      } else if (productLower.includes('personal') || productLower.includes('pt') || productLower.includes('training') || productLower.includes('1-on-1')) {
-        groups['Personal Training'].push(product);
+      if (totalRevenue > 100000) {
+        groups['Senior Trainers'].push(trainer);
+      } else if (totalRevenue > 50000) {
+        groups['Junior Trainers'].push(trainer);
+      } else if (totalRevenue > 10000) {
+        groups['Freelance Trainers'].push(trainer);
       } else {
-        groups['Other Services'].push(product);
+        groups['Other Staff'].push(trainer);
       }
     });
 
@@ -79,7 +77,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     });
 
     return groups;
-  }, [trainers]);
+  }, [trainers, data, months]);
 
   // Process data for year-on-year comparison
   const yearOnYearData = useMemo(() => {
@@ -100,9 +98,9 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
       return monthOrder.indexOf(a) - monthOrder.indexOf(b);
     });
 
-    return trainers.map(product => {
-      const productData: any = {
-        product,
+    return trainers.map(trainer => {
+      const trainerData: any = {
+        trainer,
         months: {},
         totalCurrent: 0,
         totalPrevious: 0
@@ -113,24 +111,24 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
         const currentYearMonth = `${monthName}-${currentYear}`;
         const previousYearMonth = `${monthName}-${previousYear}`;
         
-        const currentValue = data[product]?.[currentYearMonth] || 0;
-        const previousValue = data[product]?.[previousYearMonth] || 0;
+        const currentValue = data[trainer]?.[currentYearMonth] || 0;
+        const previousValue = data[trainer]?.[previousYearMonth] || 0;
         
-        productData.months[monthName] = {
+        trainerData.months[monthName] = {
           current: currentValue,
           previous: previousValue,
           change: previousValue > 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0
         };
 
-        productData.totalCurrent += currentValue;
-        productData.totalPrevious += previousValue;
+        trainerData.totalCurrent += currentValue;
+        trainerData.totalPrevious += previousValue;
       });
 
-      productData.totalChange = productData.totalPrevious > 0 
-        ? ((productData.totalCurrent - productData.totalPrevious) / productData.totalPrevious) * 100 
+      trainerData.totalChange = trainerData.totalPrevious > 0 
+        ? ((trainerData.totalCurrent - trainerData.totalPrevious) / trainerData.totalPrevious) * 100 
         : 0;
 
-      return productData;
+      return trainerData;
     });
   }, [data, months, trainers]);
 
@@ -186,7 +184,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="w-5 h-5 text-blue-600" />
-            Year-on-Year Product Performance Analysis
+            Year-on-Year Performance Analysis
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -201,7 +199,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="w-5 h-5 text-blue-600" />
-          Year-on-Year Product Performance Analysis ({currentYear} vs {previousYear})
+          Year-on-Year Performance Analysis ({currentYear} vs {previousYear})
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -210,9 +208,9 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
             <TableHeader>
               <TableRow>
                 <TableHead className="sticky left-0 bg-white z-10 min-w-[250px]">
-                  <Button variant="ghost" onClick={() => handleSort('product')}>
-                    Product
-                    {sortBy === 'product' && (
+                  <Button variant="ghost" onClick={() => handleSort('trainer')}>
+                    Trainer
+                    {sortBy === 'trainer' && (
                       sortDirection === 'asc' ? <ChevronUp className="w-4 h-4 ml-1" /> : <ChevronDown className="w-4 h-4 ml-1" />
                     )}
                   </Button>
@@ -232,11 +230,11 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
               </TableRow>
             </TableHeader>
             <TableBody>
-              {Object.entries(groupedProducts).map(([groupName, groupProducts]) => {
+              {Object.entries(groupedTrainers).map(([groupName, groupTrainers]) => {
                 const isCollapsed = collapsedGroups.has(`yoy-${groupName}`);
-                const groupTotal = groupProducts.reduce((sum, product) => {
-                  const productData = yearOnYearData.find(t => t.product === product);
-                  return sum + (productData?.totalCurrent || 0);
+                const groupTotal = groupTrainers.reduce((sum, trainer) => {
+                  const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                  return sum + (trainerData?.totalCurrent || 0);
                 }, 0);
                 
                 return (
@@ -251,17 +249,17 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                           className="flex items-center gap-2 font-bold text-slate-700"
                         >
                           {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          {groupName} ({groupProducts.length})
+                          {groupName} ({groupTrainers.length})
                         </Button>
                       </TableCell>
                       {uniqueMonths.map(month => {
-                        const monthTotal = groupProducts.reduce((sum, product) => {
-                          const productData = yearOnYearData.find(t => t.product === product);
-                          return sum + (productData?.months[month]?.current || 0);
+                        const monthTotal = groupTrainers.reduce((sum, trainer) => {
+                          const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                          return sum + (trainerData?.months[month]?.current || 0);
                         }, 0);
-                        const monthPrevious = groupProducts.reduce((sum, product) => {
-                          const productData = yearOnYearData.find(t => t.product === product);
-                          return sum + (productData?.months[month]?.previous || 0);
+                        const monthPrevious = groupTrainers.reduce((sum, trainer) => {
+                          const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                          return sum + (trainerData?.months[month]?.previous || 0);
                         }, 0);
                         
                         return (
@@ -285,27 +283,27 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                     </TableRow>
 
                     {/* Group Members */}
-                    {!isCollapsed && groupProducts.map((product) => {
-                      const productData = yearOnYearData.find(t => t.product === product);
-                      if (!productData) return null;
+                    {!isCollapsed && groupTrainers.map((trainer) => {
+                      const trainerData = yearOnYearData.find(t => t.trainer === trainer);
+                      if (!trainerData) return null;
 
                       return (
                         <TableRow 
-                          key={product} 
+                          key={trainer} 
                           className="hover:bg-gray-50 cursor-pointer"
-                          onClick={() => onTrainerClick(product, productData)}
+                          onClick={() => onTrainerClick(trainer, trainerData)}
                         >
                           <TableCell className="sticky left-0 bg-white z-10 pl-8">
                             <div className="flex items-center gap-3">
                               <Avatar className="w-8 h-8">
-                                <AvatarImage src={getProductAvatar(product)} />
-                                <AvatarFallback>{product.split(' ').map(n => n[0]).join('').slice(0, 2)}</AvatarFallback>
+                                <AvatarImage src={getTrainerAvatar(trainer)} />
+                                <AvatarFallback>{trainer.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                               </Avatar>
-                              <span className="font-medium">{product}</span>
+                              <span className="font-medium">{trainer}</span>
                             </div>
                           </TableCell>
                           {uniqueMonths.map(month => {
-                            const monthData = productData.months[month];
+                            const monthData = trainerData.months[month];
                             return (
                               <TableCell key={month} className="text-center">
                                 <div className="grid grid-cols-2 gap-2">
@@ -324,9 +322,9 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                             );
                           })}
                           <TableCell className="text-center">
-                            <div className={`flex items-center justify-center gap-1 text-sm ${getTrendColor(productData.totalChange)}`}>
-                              {getTrendIcon(productData.totalChange)}
-                              <span>{productData.totalChange > 0 ? '+' : ''}{productData.totalChange.toFixed(1)}%</span>
+                            <div className={`flex items-center justify-center gap-1 text-sm ${getTrendColor(trainerData.totalChange)}`}>
+                              {getTrendIcon(trainerData.totalChange)}
+                              <span>{trainerData.totalChange > 0 ? '+' : ''}{trainerData.totalChange.toFixed(1)}%</span>
                             </div>
                           </TableCell>
                         </TableRow>

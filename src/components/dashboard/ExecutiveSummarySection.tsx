@@ -34,7 +34,7 @@ const ExecutiveSummarySection = () => {
     // Session metrics
     const totalSessions = sessionsData.length;
     const totalCapacity = sessionsData.reduce((sum, session) => sum + (session.capacity || 0), 0);
-    const totalBooked = sessionsData.reduce((sum, session) => sum + (session.booked || 0), 0);
+    const totalBooked = sessionsData.reduce((sum, session) => sum + (session.bookedCount || 0), 0);
     const avgUtilization = totalCapacity > 0 ? (totalBooked / totalCapacity) * 100 : 0;
 
     // New client metrics

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +13,6 @@ import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
 import { SalesData, FilterOptions, MetricCardData, YearOnYearMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
-import { TrendingUp, DollarSign, Users, BarChart3 } from 'lucide-react';
 
 interface SalesAnalyticsSectionProps {
   data: SalesData[];
@@ -322,53 +322,15 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   }, []);
 
   return (
-    <div className={cn("space-y-8", isDarkMode && "dark")}>
-      {/* Enhanced Modern Header Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 text-white rounded-3xl">
-        <div className="absolute inset-0 bg-black/10" />
-        <div className="absolute inset-0 opacity-20">
-          <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full">
-            <g fill="none" fillRule="evenodd">
-              <g fill="#ffffff" fillOpacity="0.1">
-                <circle cx="60" cy="60" r="30"/>
-              </g>
-            </g>
-          </svg>
-        </div>
-        
-        <div className="relative px-8 py-12">
-          <div className="max-w-7xl mx-auto text-center space-y-6">
-            <div className="inline-flex items-center gap-3 glass rounded-full px-6 py-2 border border-white/20">
-              <DollarSign className="w-5 h-5" />
-              <span className="font-medium">Sales Performance Analytics</span>
-            </div>
-            
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-              Sales Analytics Dashboard
-            </h1>
-            
-            <p className="text-xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
-              Comprehensive sales performance insights with advanced analytics capabilities
-            </p>
-            
-            <div className="flex items-center justify-center gap-8 mt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">{formatCurrency(filteredData.reduce((sum, item) => sum + item.paymentValue, 0))}</div>
-                <div className="text-sm text-blue-200">Total Revenue</div>
-              </div>
-              <div className="w-px h-12 bg-white/30" />
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">{formatNumber(filteredData.length)}</div>
-                <div className="text-sm text-blue-200">Transactions</div>
-              </div>
-              <div className="w-px h-12 bg-white/30" />
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white">{formatNumber(new Set(filteredData.map(item => item.memberId)).size)}</div>
-                <div className="text-sm text-blue-200">Unique Members</div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className={cn("space-y-6", isDarkMode && "dark")}>
+      <div className="text-center mb-8">
+        <h2 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent animate-pulse mb-4">
+          Sales Analytics Dashboard
+        </h2>
+        <p className="text-xl text-slate-600 font-medium">
+          Comprehensive sales performance insights with advanced analytics capabilities
+        </p>
+        <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full animate-fade-in"></div>
       </div>
 
       <ThemeSelector
@@ -379,7 +341,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       />
 
       <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 glass-card p-2 rounded-2xl shadow-lg border border-white/20">
+        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-100 via-white to-slate-100 p-2 rounded-2xl shadow-lg">
           {locations.map((location) => (
             <TabsTrigger
               key={location.id}
@@ -468,7 +430,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 onRowClick={handleTableRowClick}
               />
               
-              <Card className="glass-card border-0 shadow-xl">
+              <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
                 <CardContent className="p-0">
                   <EnhancedYearOnYearTable
                     data={historicData}

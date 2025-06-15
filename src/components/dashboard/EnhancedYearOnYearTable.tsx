@@ -289,7 +289,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
 
       <CardContent className="p-0">
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border-t border-gray-200">
+          <table className="min-w-full bg-white border-t border-gray-200 rounded-lg">
             <thead className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 sticky top-0 z-20">
               <tr className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 rounded-md">
                 <th className="text-white font-semibold uppercase tracking-wider px-12 py-2 text-left text-sm">

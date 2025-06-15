@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   BarChart3, 
@@ -8,7 +7,8 @@ import {
   Calendar, 
   Tag,
   ChevronRight,
-  BarChart2
+  BarChart2,
+  Target
 } from "lucide-react";
 
 // Utility function for className merging
@@ -112,6 +112,16 @@ const defaultButtons: DashboardButton[] = [
     gradient: "from-purple-50 to-purple-100",
     hoverColor: "hover:border-purple-300",
     bgGradient: "from-purple-600 to-purple-700"
+  },
+  {
+    id: "powercycle-vs-barre",
+    label: "PowerCycle vs Barre",
+    description: "Comparative Analysis of Class Formats",
+    icon: <Target size={28} />,
+    color: "text-violet-700",
+    gradient: "from-violet-50 to-violet-100",
+    hoverColor: "hover:border-violet-300",
+    bgGradient: "from-violet-600 to-violet-700"
   }
 ];
 
@@ -148,7 +158,7 @@ export function DashboardGrid({
       </div>
       
       {/* Sleeker Dashboard Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
         {buttons.map((button) => (
           <button
             key={button.id}

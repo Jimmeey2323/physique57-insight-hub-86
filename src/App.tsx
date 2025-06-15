@@ -13,6 +13,7 @@ import TrainerPerformance from "./pages/TrainerPerformance";
 import ClassAttendance from "./pages/ClassAttendance";
 import DiscountsPromotions from "./pages/DiscountsPromotions";
 import Sessions from "./pages/Sessions";
+import PowerCycleVsBarre from "./pages/PowerCycleVsBarre";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/class-attendance" element={<ClassAttendance />} />
           <Route path="/discounts-promotions" element={<DiscountsPromotions />} />
           <Route path="/sessions" element={<Sessions />} />
+          <Route path="/powercycle-vs-barre" element={<PowerCycleVsBarre />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

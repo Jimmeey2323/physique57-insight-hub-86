@@ -1,128 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import Papa from 'papaparse';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Loader2, FileSpreadsheet, Download, Filter, Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { cn } from '@/lib/utils';
-
-interface CsvRow {
-  [key: string]: string;
-}
+import { useNewCsvData, NewClientData } from '@/hooks/useNewCsvData';
+import { Loader2, TrendingUp, Users, Target } from 'lucide-react';
+import { formatNumber } from '@/utils/formatters';
 
 export const NewCsvDataTable: React.FC = () => {
-  const [data, setData] = useState<CsvRow[]>([]);
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(50);
-
-  useEffect(() => {
-    const fetchCsvData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/New.csv');
-        if (!response.ok) {
-          throw new Error('Failed to fetch CSV file');
-        }
-        const csvText = await response.text();
-        Papa.parse(csvText, {
-          header: true,
-          skipEmptyLines: true,
-          complete: results => {
-            if (results.errors.length > 0) {
-              console.error('CSV parsing errors:', results.errors);
-            }
-            const parsedData = results.data as CsvRow[];
-            const csvHeaders = results.meta.fields || [];
-            setData(parsedData);
-            setHeaders(csvHeaders);
-            setError(null);
-          },
-          error: error => {
-            console.error('CSV parsing error:', error);
-            setError('Failed to parse CSV file');
-          }
-        });
-      } catch (err) {
-        console.error('Error fetching CSV:', err);
-        setError('Failed to load CSV file');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCsvData();
-  }, []);
-
-  // Filter data based on search term
-  const filteredData = React.useMemo(() => {
-    if (!searchTerm) return data;
-    return data.filter(row => 
-      Object.values(row).some(value => 
-        value?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    );
-  }, [data, searchTerm]);
-
-  // Paginate data
-  const paginatedData = React.useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredData.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredData, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-
-  const getCellValue = (value: string) => {
-    if (!value) return '-';
-
-    // Check if it's a number
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      // Format currency if it looks like a currency value
-      if (value.includes('$') || numValue > 1000) {
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(numValue);
-      }
-      // Format regular numbers
-      return numValue.toLocaleString();
-    }
-
-    // Check if it's a date
-    const dateValue = new Date(value);
-    if (!isNaN(dateValue.getTime()) && value.includes('-')) {
-      return dateValue.toLocaleDateString();
-    }
-    return value;
-  };
-
-  const getCellClassName = (value: string) => {
-    const numValue = parseFloat(value);
-    if (!isNaN(numValue)) {
-      if (numValue > 0) return 'text-green-600 font-semibold';
-      if (numValue < 0) return 'text-red-600 font-semibold';
-    }
-
-    // Status-based styling
-    if (value?.toLowerCase().includes('converted')) return 'text-green-600 font-medium';
-    if (value?.toLowerCase().includes('retained')) return 'text-blue-600 font-medium';
-    if (value?.toLowerCase().includes('lost')) return 'text-red-600 font-medium';
-    return 'text-slate-700';
-  };
+  const { data, loading, error } = useNewCsvData();
+  const [selectedMetric, setSelectedMetric] = useState<string>('overview');
 
   if (loading) {
     return (
-      <Card className="bg-white shadow-xl border-0">
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="flex items-center gap-3">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <span className="text-lg font-medium text-slate-700">Loading CSV data...</span>
-          </div>
+      <Card className="bg-white shadow-lg">
+        <CardContent className="flex items-center justify-center p-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <span className="ml-2">Loading client data...</span>
         </CardContent>
       </Card>
     );
@@ -130,125 +25,155 @@ export const NewCsvDataTable: React.FC = () => {
 
   if (error) {
     return (
-      <Card className="bg-white shadow-xl border-0">
-        <CardContent className="text-center py-12">
-          <div className="text-red-600 font-medium">{error}</div>
+      <Card className="bg-white shadow-lg">
+        <CardContent className="text-center p-12">
+          <p className="text-red-600">Error loading data: {error}</p>
         </CardContent>
       </Card>
     );
   }
 
-  return (
-    <Card className="bg-white shadow-xl border-0 overflow-hidden">
-      {/* Enhanced Header */}
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-white border-b border-slate-200 pb-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileSpreadsheet className="w-5 h-5 text-blue-600" />
-            </div>
-            <CardTitle className="text-xl font-bold text-slate-800">
-              Client Data Analysis
-            </CardTitle>
-          </div>
-          <Badge variant="secondary" className="px-3 py-1 text-sm font-medium">
-            {filteredData.length} records
-          </Badge>
-        </div>
-        
-        {/* Search and Filters */}
-        <div className="flex items-center gap-4 mt-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input
-              placeholder="Search all columns..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Filter className="w-4 h-4" />
-            Filters
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Download className="w-4 h-4" />
-            Export
-          </Button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-0">
-        <div className="overflow-auto max-h-[600px]">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gradient-to-r from-slate-50 to-slate-100 border-b-2 border-slate-200">
-                {headers.map((header, index) => (
-                  <TableHead 
-                    key={index} 
-                    className="font-bold text-slate-700 py-4 px-6 text-sm uppercase tracking-wide sticky top-0 bg-slate-50"
-                  >
-                    {header}
-                  </TableHead>
+  const renderMetricTable = (metric: keyof NewClientData, title: string, formatValue?: (value: any) => string) => {
+    return (
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-gradient-to-r from-blue-50 to-blue-100">
+              <TableHead className="font-bold text-blue-800 sticky left-0 bg-blue-50 z-10">Location</TableHead>
+              {data[0]?.months.map((month, index) => (
+                <TableHead key={month} className="font-bold text-blue-800 text-center min-w-[100px]">
+                  {month.replace('2025-', '').replace('2024-', '')}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((locationData, index) => (
+              <TableRow key={locationData.location} className="hover:bg-blue-50/50 h-8 max-h-8">
+                <TableCell className="font-medium sticky left-0 bg-white z-10 border-r py-2">
+                  {locationData.location.replace('Kwality House, Kemps Corner', 'Kwality House').replace('Supreme HQ, Bandra', 'Supreme HQ')}
+                </TableCell>
+                {(locationData[metric] as any[]).map((value, monthIndex) => (
+                  <TableCell key={monthIndex} className="text-center py-2">
+                    {formatValue ? formatValue(value) : value}
+                  </TableCell>
                 ))}
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedData.map((row, rowIndex) => (
-                <TableRow 
-                  key={rowIndex} 
-                  className="hover:bg-slate-50/50 transition-colors duration-200 border-b border-slate-100"
-                >
-                  {headers.map((header, cellIndex) => (
-                    <TableCell 
-                      key={cellIndex} 
-                      className={cn(
-                        "py-4 px-6 text-sm",
-                        getCellClassName(row[header])
-                      )}
-                    >
-                      {getCellValue(row[header])}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  };
 
-        {/* Enhanced Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between p-6 bg-gradient-to-r from-slate-50 to-white border-t border-slate-200">
-            <div className="text-sm text-slate-600 font-medium">
-              Showing <span className="font-bold text-slate-800">{(currentPage - 1) * itemsPerPage + 1}</span> to{' '}
-              <span className="font-bold text-slate-800">{Math.min(currentPage * itemsPerPage, filteredData.length)}</span> of{' '}
-              <span className="font-bold text-slate-800">{filteredData.length}</span> entries
+  const renderOverviewTable = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {data.map((locationData) => (
+          <Card key={locationData.location} className="bg-gradient-to-br from-white to-blue-50 shadow-lg">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-bold text-blue-800">
+                {locationData.location.replace('Kwality House, Kemps Corner', 'Kwality House').replace('Supreme HQ, Bandra', 'Supreme HQ')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-blue-600">{formatNumber(locationData.newMembers.reduce((a, b) => a + b, 0))}</div>
+                  <div className="text-xs text-blue-500">Total New Members</div>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-green-600">{formatNumber(locationData.retained.reduce((a, b) => a + b, 0))}</div>
+                  <div className="text-xs text-green-500">Total Retained</div>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-purple-600">{formatNumber(locationData.converted.reduce((a, b) => a + b, 0))}</div>
+                  <div className="text-xs text-purple-500">Total Converted</div>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <div className="text-2xl font-bold text-orange-600">{formatNumber(locationData.ltv.reduce((a, b) => a + b, 0))}</div>
+                  <div className="text-xs text-orange-500">Total LTV</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <Card className="bg-white shadow-xl border-0">
+      <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
+        <CardTitle className="flex items-center gap-3 text-2xl">
+          <Users className="w-6 h-6" />
+          Client Conversion & Retention Analytics
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <Tabs value={selectedMetric} onValueChange={setSelectedMetric} className="w-full">
+          <TabsList className="grid w-full grid-cols-7 bg-gradient-to-r from-blue-50 to-blue-100 mb-6">
+            <TabsTrigger value="overview" className="text-sm">Overview</TabsTrigger>
+            <TabsTrigger value="newMembers" className="text-sm">New Members</TabsTrigger>
+            <TabsTrigger value="retained" className="text-sm">Retained</TabsTrigger>
+            <TabsTrigger value="converted" className="text-sm">Converted</TabsTrigger>
+            <TabsTrigger value="retention" className="text-sm">Retention %</TabsTrigger>
+            <TabsTrigger value="conversion" className="text-sm">Conversion %</TabsTrigger>
+            <TabsTrigger value="ltv" className="text-sm">LTV</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            {renderOverviewTable()}
+          </TabsContent>
+
+          <TabsContent value="newMembers" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-blue-800">New Members by Month</h3>
             </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} 
-                disabled={currentPage === 1}
-                className="hover:bg-blue-50 border-blue-200"
-              >
-                Previous
-              </Button>
-              <span className="text-sm font-bold px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-md shadow-sm">
-                {currentPage} of {totalPages}
-              </span>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} 
-                disabled={currentPage === totalPages}
-                className="hover:bg-blue-50 border-blue-200"
-              >
-                Next
-              </Button>
+            {renderMetricTable('newMembers', 'New Members', (value) => formatNumber(value))}
+          </TabsContent>
+
+          <TabsContent value="retained" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Target className="w-5 h-5 text-green-600" />
+              <h3 className="text-lg font-semibold text-green-800">Retained Members by Month</h3>
             </div>
-          </div>
-        )}
+            {renderMetricTable('retained', 'Retained Members', (value) => formatNumber(value))}
+          </TabsContent>
+
+          <TabsContent value="converted" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Users className="w-5 h-5 text-purple-600" />
+              <h3 className="text-lg font-semibold text-purple-800">Converted Members by Month</h3>
+            </div>
+            {renderMetricTable('converted', 'Converted Members', (value) => formatNumber(value))}
+          </TabsContent>
+
+          <TabsContent value="retention" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Badge className="bg-green-100 text-green-800">Retention Rate</Badge>
+              <h3 className="text-lg font-semibold text-green-800">Monthly Retention Percentage</h3>
+            </div>
+            {renderMetricTable('retention', 'Retention %')}
+          </TabsContent>
+
+          <TabsContent value="conversion" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Badge className="bg-blue-100 text-blue-800">Conversion Rate</Badge>
+              <h3 className="text-lg font-semibold text-blue-800">Monthly Conversion Percentage</h3>
+            </div>
+            {renderMetricTable('conversion', 'Conversion %')}
+          </TabsContent>
+
+          <TabsContent value="ltv" className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Badge className="bg-orange-100 text-orange-800">Lifetime Value</Badge>
+              <h3 className="text-lg font-semibold text-orange-800">Customer Lifetime Value by Month</h3>
+            </div>
+            {renderMetricTable('ltv', 'LTV', (value) => `₹${formatNumber(value)}`)}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

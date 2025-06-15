@@ -15,20 +15,21 @@ const parseDate = (dateString: string | undefined | null) => {
   if (!dateString || dateString.trim() === '' || dateString === '-') return '';
   
   try {
-    // Handle various date formats
     let parsedDate;
+    const now = new Date();
     
-    // Try parsing different formats
+    // Handle various date formats
     if (dateString.includes('/')) {
-      // MM/DD/YYYY or DD/MM/YYYY format
+      // Handle DD/MM/YYYY or MM/DD/YYYY format
       const parts = dateString.split('/');
       if (parts.length === 3) {
+        const day = parseInt(parts[0]);
+        const month = parseInt(parts[1]);
         const year = parseInt(parts[2]);
-        const month = parseInt(parts[0]) - 1; // Month is 0-indexed
-        const day = parseInt(parts[1]);
         
         if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-          parsedDate = new Date(year, month, day);
+          // Assume DD/MM/YYYY format for consistency
+          parsedDate = new Date(year, month - 1, day);
         }
       }
     } else if (dateString.includes('-')) {
@@ -39,9 +40,15 @@ const parseDate = (dateString: string | undefined | null) => {
       parsedDate = new Date(dateString);
     }
     
-    // Validate the date
+    // Validate the date and ensure it's not in the future or too far in the past
     if (!parsedDate || isNaN(parsedDate.getTime())) {
       console.warn('Invalid date format:', dateString);
+      return '';
+    }
+    
+    // Exclude dates that are in the future or before 2020
+    if (parsedDate > now || parsedDate.getFullYear() < 2020) {
+      console.warn('Date outside valid range:', dateString, parsedDate);
       return '';
     }
     

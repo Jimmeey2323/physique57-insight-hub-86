@@ -76,14 +76,14 @@ export const LeadsFunnelVisualization: React.FC<LeadsFunnelVisualizationProps> =
                   <div>
                     <h3 className="font-semibold text-lg">{stage.stage}</h3>
                     <p className="text-sm text-gray-600">
-                      {formatNumber(stage.count)} leads ({formatPercentage(stage.percentage - 100)})
+                      {formatNumber(stage.count)} leads ({stage.percentage.toFixed(1)}%)
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="text-2xl font-bold">{formatNumber(stage.count)}</div>
                   <div className="text-sm text-gray-600">
-                    {index > 0 && `${formatPercentage(stage.conversionRate - 100)} conversion`}
+                    {index > 0 && `${stage.conversionRate.toFixed(1)}% conversion`}
                   </div>
                 </div>
               </div>
@@ -102,7 +102,7 @@ export const LeadsFunnelVisualization: React.FC<LeadsFunnelVisualizationProps> =
         <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg">
           <h4 className="font-semibold mb-2">Overall Conversion Rate</h4>
           <div className="text-3xl font-bold text-green-600">
-            {data.totalLeads > 0 ? formatPercentage((data.membershipsSold / data.totalLeads) * 100 - 100) : '0%'}
+            {data.totalLeads > 0 ? `${((data.membershipsSold / data.totalLeads) * 100).toFixed(1)}%` : '0%'}
           </div>
           <p className="text-sm text-gray-600">From lead to membership sale</p>
         </div>

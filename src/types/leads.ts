@@ -59,4 +59,10 @@ export type LeadsMetricType =
   | 'conversionSpan'
   | 'ltv'
   | 'successfulSources'
-  | 'popularStages';
+  | 'popularStages'
+  | 'averageLTV'
+  | 'totalRevenue'
+  | 'followUpRate'
+  | 'retentionRate'
+  | 'visitFrequency'
+  | 'purchaseFrequency';

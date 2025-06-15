@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -9,6 +8,9 @@ import { TrainerFilterSection } from './TrainerFilterSection';
 import { TopBottomSellers } from './TopBottomSellers';
 import { MonthOnMonthTrainerTable } from './MonthOnMonthTrainerTable';
 import { YearOnYearTrainerTable } from './YearOnYearTrainerTable';
+import { TrainerQuickFilters } from './TrainerQuickFilters';
+import { TrainerInsights } from './TrainerInsights';
+import { TrainerWordCloud } from './TrainerWordCloud';
 import { usePayrollData, PayrollData } from '@/hooks/usePayrollData';
 import { TrainerMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
@@ -25,6 +27,7 @@ export const TrainerPerformanceSection = () => {
   const [activeLocation, setActiveLocation] = useState<string>('all');
   const [activeMetric, setActiveMetric] = useState<TrainerMetricType>('totalSessions');
   const [isFilterCollapsed, setIsFilterCollapsed] = useState(false);
+  const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const [filters, setFilters] = useState({
     location: '',
     trainer: '',
@@ -310,6 +313,17 @@ export const TrainerPerformanceSection = () => {
     }));
   };
 
+  const getWordCloudData = () => {
+    return filteredData.map(trainer => ({
+      name: trainer.teacherName,
+      conversion: typeof trainer.conversion === 'string' 
+        ? parseFloat(trainer.conversion.replace('%', '') || '0') 
+        : (trainer.conversion || 0),
+      totalValue: trainer.totalPaid || 0,
+      sessions: trainer.totalSessions || 0
+    }));
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -344,6 +358,7 @@ export const TrainerPerformanceSection = () => {
   const metricCards = getMetricCards();
   const { data: monthOnMonthData, months, trainers } = getMonthOnMonthData();
   const topBottomData = getTopBottomTrainers();
+  const wordCloudData = getWordCloudData();
 
   console.log('Rendering with metric cards:', metricCards.length);
   console.log('Month on month data:', monthOnMonthData);
@@ -388,6 +403,17 @@ export const TrainerPerformanceSection = () => {
         </CardContent>
       </Card>
 
+      {/* Quick Filters */}
+      {processedData && (
+        <TrainerQuickFilters
+          activeFilters={quickFilters}
+          onFilterChange={setQuickFilters}
+          trainerCount={processedData.trainerCount}
+          totalRevenue={processedData.totalRevenue}
+          avgPerformance={processedData.avgConversion}
+        />
+      )}
+
       {/* Filter Section */}
       <TrainerFilterSection
         data={filteredData}
@@ -420,6 +446,16 @@ export const TrainerPerformanceSection = () => {
           ))}
         </div>
       )}
+
+      {/* Insights and Word Cloud */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <TrainerInsights data={topBottomData} />
+        </div>
+        <div className="lg:col-span-1">
+          <TrainerWordCloud data={wordCloudData} />
+        </div>
+      </div>
 
       {/* Top/Bottom Performers */}
       {topBottomData.length > 0 && (

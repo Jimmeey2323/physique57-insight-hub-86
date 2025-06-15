@@ -44,20 +44,20 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-white relative overflow-hidden">
-      {/* Refined Background with Barre Studio Image */}
+      {/* Updated Background with New Barre Studio Image */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Subtle Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-50/30 via-white to-gray-50/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-white/70 to-gray-50/40"></div>
         
-        {/* Blurred Barre Studio Background */}
-        <div className="absolute right-0 top-0 h-full w-2/5 opacity-20">
+        {/* New Barre Studio Background - Less Blurred */}
+        <div className="absolute right-0 top-0 h-full w-3/5 opacity-25">
           <img 
-            src="/lovable-uploads/ee9eb8c4-6dfd-4d4d-8f3d-ebfc0aef2843.png" 
+            src="/lovable-uploads/2ff13f7c-20bd-4e82-848c-601b777bbc76.png" 
             alt="Barre Studio Background" 
-            className="h-full w-full object-cover blur-sm"
+            className="h-full w-full object-cover blur-[2px]"
           />
-          {/* Additional overlay for better text readability */}
-          <div className="absolute inset-0 bg-white/40"></div>
+          {/* Lighter overlay for better text readability */}
+          <div className="absolute inset-0 bg-white/50"></div>
         </div>
         
         {/* Subtle Decorative Elements */}

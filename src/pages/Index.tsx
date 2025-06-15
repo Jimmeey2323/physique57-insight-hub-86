@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '@/components/ui/footer';
@@ -32,8 +31,8 @@ const Index = () => {
                 {/* Outer Ring - Subtle */}
                 <div className="absolute inset-0 w-32 h-32 border-2 border-slate-200 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
                 
-                {/* Inner Spinning 57 */}
-                <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center animate-spin shadow-lg" style={{ animationDuration: '2s' }}>
+                {/* Inner Spinning 57 - Perfectly Circular */}
+                <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center animate-spin shadow-lg" style={{ animationDuration: '2s' }}>
                   <span className="text-2xl font-bold text-white font-serif">57</span>
                 </div>
                 

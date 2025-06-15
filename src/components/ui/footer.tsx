@@ -6,9 +6,9 @@ export const Footer: React.FC = () => {
       
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 h-full flex items-center justify-center">
-        <div className="flex items-center gap-6 text-center">
+        <div className="flex items-center gap-8 text-center text-xs ">
           {/* Main Brand */}
-          <span className="text-lg font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-widest">
+          <span className="font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-widest text-sm">
             PHYSIQUE 57 INDIA
           </span>
           
@@ -16,7 +16,7 @@ export const Footer: React.FC = () => {
           <div className="w-px h-4 bg-slate-400"></div>
           
           {/* Copyright & Credits */}
-          <span className="text-sm text-slate-300 tracking-widest">
+          <span className="text-slate-300 tracking-widest text-xs">
             ALL RIGHTS RESERVED © 2025
           </span>
           
@@ -30,7 +30,7 @@ export const Footer: React.FC = () => {
           
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 tracking-widest">PROJECT BY</span>
-            <span className="text-slate-200 text-xs text-center bg-transparent tracking-widest ">
+            <span className="font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent tracking-widest text-sm">
               JIMMEEY
             </span>
           </div>

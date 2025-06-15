@@ -11,11 +11,11 @@ const ClassAttendance = () => {
   const { isLoading, setLoading } = useGlobalLoading();
 
   useEffect(() => {
-    setLoading(loading, 'Loading class attendance analytics...');
+    setLoading(loading, 'Processing class attendance analytics and trends...');
   }, [loading, setLoading]);
 
   if (isLoading) {
-    return <RefinedLoader subtitle="Loading class attendance analytics..." />;
+    return <RefinedLoader subtitle="Processing class attendance analytics and trends..." />;
   }
 
   return (

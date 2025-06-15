@@ -10,11 +10,11 @@ const TrainerPerformance = () => {
   const { isLoading: globalLoading, setLoading } = useGlobalLoading();
 
   useEffect(() => {
-    setLoading(isLoading, 'Loading trainer performance analytics...');
+    setLoading(isLoading, 'Analyzing trainer performance metrics and insights...');
   }, [isLoading, setLoading]);
 
   if (globalLoading) {
-    return <RefinedLoader subtitle="Loading trainer performance analytics..." />;
+    return <RefinedLoader subtitle="Analyzing trainer performance metrics and insights..." />;
   }
 
   return <TrainerPerformanceSection />;

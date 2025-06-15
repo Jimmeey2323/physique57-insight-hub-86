@@ -397,7 +397,7 @@ const LeadsSectionContent: React.FC = () => {
     return result;
   }, [filteredData, sourceMetric]);
   if (loading) {
-    return <RefinedLoader subtitle="Fetching lead performance metrics..." />;
+    return <RefinedLoader subtitle="Processing lead performance analytics and conversion metrics..." />;
   }
   if (error) {
     return <div className="min-h-screen bg-gray-50/30 flex items-center justify-center p-4">

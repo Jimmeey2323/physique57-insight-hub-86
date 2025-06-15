@@ -11,11 +11,11 @@ const ClientRetention = () => {
   const { isLoading, setLoading } = useGlobalLoading();
 
   useEffect(() => {
-    setLoading(loading, 'Loading client conversion & retention data...');
+    setLoading(loading, 'Analyzing client conversion and retention patterns...');
   }, [loading, setLoading]);
 
   if (isLoading) {
-    return <RefinedLoader subtitle="Loading client conversion & retention data..." />;
+    return <RefinedLoader subtitle="Analyzing client conversion and retention patterns..." />;
   }
 
   return (

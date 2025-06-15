@@ -24,7 +24,8 @@ import {
   Sparkles,
   TrendingDown,
   Eye,
-  Infinity
+  Infinity,
+  FileText
 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useDiscountsData } from '@/hooks/useDiscountsData';
@@ -174,7 +175,7 @@ const PerformanceSummary: React.FC<{ timeframe: string; metrics: any }> = ({ tim
   <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-lg">
     <CardHeader>
       <CardTitle className="flex items-center gap-3 text-blue-800">
-        <FileBarChart className="w-6 h-6" />
+        <FileText className="w-6 h-6" />
         {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} Performance Summary
       </CardTitle>
     </CardHeader>
@@ -256,7 +257,7 @@ export const ExecutiveSummarySection: React.FC = () => {
     }) || [];
 
     const filteredDiscounts = discountsData?.filter(item => {
-      const itemDate = new Date(item.date);
+      const itemDate = new Date(item.createdAt || item.date);
       return itemDate >= dateRange.start && itemDate <= dateRange.end;
     }) || [];
 
@@ -326,12 +327,12 @@ export const ExecutiveSummarySection: React.FC = () => {
   // Product performance
   const productPerformance = useMemo(() => {
     const productData = filteredData.sales.reduce((acc, item) => {
-      const product = item.saleItemName || 'Unknown';
+      const product = item.itemName || item.productName || 'Unknown';
       if (!acc[product]) {
         acc[product] = { name: product, revenue: 0, quantity: 0, avgPrice: 0 };
       }
       acc[product].revenue += item.paymentValue || 0;
-      acc[product].quantity += item.saleItemQuantity || 0;
+      acc[product].quantity += item.quantity || 1;
       return acc;
     }, {} as Record<string, any>);
 
@@ -344,7 +345,7 @@ export const ExecutiveSummarySection: React.FC = () => {
   // Category performance
   const categoryPerformance = useMemo(() => {
     const categoryData = filteredData.sales.reduce((acc, item) => {
-      const category = item.saleItemCategory || 'Unknown';
+      const category = item.category || item.itemCategory || 'Unknown';
       if (!acc[category]) {
         acc[category] = { name: category, revenue: 0, transactions: 0 };
       }
@@ -359,7 +360,7 @@ export const ExecutiveSummarySection: React.FC = () => {
   // Location performance
   const locationPerformance = useMemo(() => {
     const locationData = filteredData.sales.reduce((acc, item) => {
-      const location = item.calculatedLocation || 'Unknown';
+      const location = item.calculatedLocation || item.location || 'Unknown';
       if (!acc[location]) {
         acc[location] = { 
           name: location, 

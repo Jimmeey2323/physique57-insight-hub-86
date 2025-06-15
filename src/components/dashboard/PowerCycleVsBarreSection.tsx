@@ -132,7 +132,7 @@ export const PowerCycleVsBarreSection: React.FC = () => {
             <RefreshCw className="w-12 h-12 text-red-600 mx-auto" />
             <div>
               <p className="text-lg font-semibold text-gray-800">Connection Error</p>
-              <p className="text-sm text-gray-600 mt-2">{error}</p>
+              <p className="text-sm text-gray-600 mt-2">{error?.toString()}</p>
             </div>
           </CardContent>
         </Card>
@@ -220,72 +220,88 @@ export const PowerCycleVsBarreSection: React.FC = () => {
                   {/* Metric Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <MetricCard
-                      title="PowerCycle Sessions"
-                      value={formatNumber(powerCycleMetrics.totalSessions)}
-                      change={0}
-                      description="Total PowerCycle sessions"
-                      calculation="Total count of PowerCycle sessions"
-                      icon="sessions"
+                      data={{
+                        title: "PowerCycle Sessions",
+                        value: formatNumber(powerCycleMetrics.totalSessions),
+                        change: 0,
+                        description: "Total PowerCycle sessions",
+                        calculation: "Total count of PowerCycle sessions",
+                        icon: "sessions"
+                      }}
                     />
                     <MetricCard
-                      title="Barre Sessions"
-                      value={formatNumber(barreMetrics.totalSessions)}
-                      change={0}
-                      description="Total Barre sessions"
-                      calculation="Total count of Barre sessions"
-                      icon="sessions"
+                      data={{
+                        title: "Barre Sessions",
+                        value: formatNumber(barreMetrics.totalSessions),
+                        change: 0,
+                        description: "Total Barre sessions",
+                        calculation: "Total count of Barre sessions",
+                        icon: "sessions"
+                      }}
                     />
                     <MetricCard
-                      title="PowerCycle Fill Rate"
-                      value={`${Math.round(powerCycleMetrics.avgFillRate)}%`}
-                      change={0}
-                      description="Average PowerCycle fill rate"
-                      calculation="Average attendance vs capacity"
-                      icon="percentage"
+                      data={{
+                        title: "PowerCycle Fill Rate",
+                        value: `${Math.round(powerCycleMetrics.avgFillRate)}%`,
+                        change: 0,
+                        description: "Average PowerCycle fill rate",
+                        calculation: "Average attendance vs capacity",
+                        icon: "percentage"
+                      }}
                     />
                     <MetricCard
-                      title="Barre Fill Rate"
-                      value={`${Math.round(barreMetrics.avgFillRate)}%`}
-                      change={0}
-                      description="Average Barre fill rate"
-                      calculation="Average attendance vs capacity"
-                      icon="percentage"
+                      data={{
+                        title: "Barre Fill Rate",
+                        value: `${Math.round(barreMetrics.avgFillRate)}%`,
+                        change: 0,
+                        description: "Average Barre fill rate",
+                        calculation: "Average attendance vs capacity",
+                        icon: "percentage"
+                      }}
                     />
                   </div>
 
                   {/* Second Row of Metrics */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <MetricCard
-                      title="PowerCycle Attendance"
-                      value={formatNumber(powerCycleMetrics.totalAttendance)}
-                      change={0}
-                      description="Total PowerCycle attendance"
-                      calculation="Sum of all PowerCycle check-ins"
-                      icon="users"
+                      data={{
+                        title: "PowerCycle Attendance",
+                        value: formatNumber(powerCycleMetrics.totalAttendance),
+                        change: 0,
+                        description: "Total PowerCycle attendance",
+                        calculation: "Sum of all PowerCycle check-ins",
+                        icon: "users"
+                      }}
                     />
                     <MetricCard
-                      title="Barre Attendance"
-                      value={formatNumber(barreMetrics.totalAttendance)}
-                      change={0}
-                      description="Total Barre attendance"
-                      calculation="Sum of all Barre check-ins"
-                      icon="users"
+                      data={{
+                        title: "Barre Attendance",
+                        value: formatNumber(barreMetrics.totalAttendance),
+                        change: 0,
+                        description: "Total Barre attendance",
+                        calculation: "Sum of all Barre check-ins",
+                        icon: "users"
+                      }}
                     />
                     <MetricCard
-                      title="PowerCycle Avg Size"
-                      value={Math.round(powerCycleMetrics.avgSessionSize).toString()}
-                      change={0}
-                      description="Average PowerCycle session size"
-                      calculation="Average attendees per session"
-                      icon="average"
+                      data={{
+                        title: "PowerCycle Avg Size",
+                        value: Math.round(powerCycleMetrics.avgSessionSize).toString(),
+                        change: 0,
+                        description: "Average PowerCycle session size",
+                        calculation: "Average attendees per session",
+                        icon: "average"
+                      }}
                     />
                     <MetricCard
-                      title="Barre Avg Size"
-                      value={Math.round(barreMetrics.avgSessionSize).toString()}
-                      change={0}
-                      description="Average Barre session size"
-                      calculation="Average attendees per session"
-                      icon="average"
+                      data={{
+                        title: "Barre Avg Size",
+                        value: Math.round(barreMetrics.avgSessionSize).toString(),
+                        change: 0,
+                        description: "Average Barre session size",
+                        calculation: "Average attendees per session",
+                        icon: "average"
+                      }}
                     />
                   </div>
 

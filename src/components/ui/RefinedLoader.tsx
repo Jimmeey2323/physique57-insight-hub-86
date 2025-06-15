@@ -137,7 +137,7 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
       </div>
 
       {/* Ultra-Sophisticated Color Animation Styles */}
-      <style jsx>{`
+      <style>{`
         @keyframes color-change {
           0% { color: #3b82f6; text-shadow: 0 0 20px rgba(59, 130, 246, 0.4); }
           16% { color: #8b5cf6; text-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }

@@ -514,20 +514,7 @@ export const DataTable: React.FC<DataTableProps> = ({
 
       {/* Enhanced Table with Additional Features */}
       <div className="relative">
-        <div className="absolute top-4 right-4 z-20 flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <FileSpreadsheet className="w-4 h-4" />
-            Export
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowArchived(!showArchived)}>
-            <Archive className="w-4 h-4" />
-            {showArchived ? 'Hide' : 'Show'} Archived
-          </Button>
-        </div>
+        
 
         <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
           <Table>

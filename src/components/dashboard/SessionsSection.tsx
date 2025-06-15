@@ -14,34 +14,9 @@ import { SessionsTopBottomLists } from './SessionsTopBottomLists';
 import { formatNumber } from '@/utils/formatters';
 
 const locations = [
-  { 
-    id: 'all', 
-    name: 'All Locations', 
-    fullName: 'All Locations',
-    icon: <Building2 className="w-4 h-4" />,
-    gradient: 'from-blue-500 to-indigo-600'
-  },
-  { 
-    id: 'location1', 
-    name: 'Studio A', 
-    fullName: 'Main Studio Location A',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-emerald-500 to-teal-600'
-  },
-  { 
-    id: 'location2', 
-    name: 'Studio B', 
-    fullName: 'Premium Studio Location B',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-purple-500 to-violet-600'
-  },
-  { 
-    id: 'location3', 
-    name: 'Studio C', 
-    fullName: 'Boutique Studio Location C',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-orange-500 to-red-600'
-  }
+  { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
+  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
+  { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
 ];
 
 export const SessionsSection: React.FC = () => {

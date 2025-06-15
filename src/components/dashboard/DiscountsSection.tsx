@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,22 +14,36 @@ import { DrillDownModal } from './DrillDownModal';
 import { SalesData, FilterOptions, MetricCardData } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
-
-const locations = [
-  { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
-  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
-  { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
-];
-
+const locations = [{
+  id: 'kwality',
+  name: 'Kwality House, Kemps Corner',
+  fullName: 'Kwality House, Kemps Corner'
+}, {
+  id: 'supreme',
+  name: 'Supreme HQ, Bandra',
+  fullName: 'Supreme HQ, Bandra'
+}, {
+  id: 'kenkere',
+  name: 'Kenkere House',
+  fullName: 'Kenkere House'
+}];
 export const DiscountsSection: React.FC = () => {
-  const { data, loading, error, refetch } = useDiscountsData();
+  const {
+    data,
+    loading,
+    error,
+    refetch
+  } = useDiscountsData();
   const [activeLocation, setActiveLocation] = useState('kwality');
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
   const [filters, setFilters] = useState<FilterOptions>({
-    dateRange: { start: '2025-03-01', end: '2025-05-31' },
+    dateRange: {
+      start: '2025-03-01',
+      end: '2025-05-31'
+    },
     location: [],
     category: [],
     product: [],
@@ -44,12 +57,7 @@ export const DiscountsSection: React.FC = () => {
 
     // Apply location filter first
     filtered = filtered.filter(item => {
-      const locationMatch = activeLocation === 'kwality' 
-        ? item.calculatedLocation === 'Kwality House, Kemps Corner'
-        : activeLocation === 'supreme'
-        ? item.calculatedLocation === 'Supreme HQ, Bandra'
-        : item.calculatedLocation === 'Kenkere House';
-      
+      const locationMatch = activeLocation === 'kwality' ? item.calculatedLocation === 'Kwality House, Kemps Corner' : activeLocation === 'supreme' ? item.calculatedLocation === 'Supreme HQ, Bandra' : item.calculatedLocation === 'Kenkere House';
       return locationMatch;
     });
 
@@ -57,13 +65,12 @@ export const DiscountsSection: React.FC = () => {
     if (filters.dateRange.start || filters.dateRange.end) {
       const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
       const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
-
       filtered = filtered.filter(item => {
         if (!item.paymentDate) return false;
-        
+
         // Enhanced date parsing to handle multiple formats
         let itemDate: Date | null = null;
-        
+
         // Try DD/MM/YYYY format first
         const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
         if (ddmmyyyy) {
@@ -71,12 +78,7 @@ export const DiscountsSection: React.FC = () => {
           itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
         } else {
           // Try other formats
-          const formats = [
-            new Date(item.paymentDate),
-            new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')),
-            new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3'))
-          ];
-          
+          const formats = [new Date(item.paymentDate), new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1')), new Date(item.paymentDate.replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$2/$1/$3'))];
           for (const date of formats) {
             if (!isNaN(date.getTime()) && date.getFullYear() > 1900 && date.getFullYear() < 2100) {
               itemDate = date;
@@ -84,160 +86,124 @@ export const DiscountsSection: React.FC = () => {
             }
           }
         }
-        
         if (!itemDate || isNaN(itemDate.getTime())) return false;
-        
         if (startDate && itemDate < startDate) return false;
         if (endDate && itemDate > endDate) return false;
-        
         return true;
       });
     }
 
     // Apply other filters
     if (filters.category?.length) {
-      filtered = filtered.filter(item => 
-        filters.category!.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase()))
-      );
+      filtered = filtered.filter(item => filters.category!.some(cat => item.cleanedCategory?.toLowerCase().includes(cat.toLowerCase())));
     }
-
     if (filters.paymentMethod?.length) {
-      filtered = filtered.filter(item => 
-        filters.paymentMethod!.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase()))
-      );
+      filtered = filtered.filter(item => filters.paymentMethod!.some(method => item.paymentMethod?.toLowerCase().includes(method.toLowerCase())));
     }
-
     if (filters.soldBy?.length) {
-      filtered = filtered.filter(item => 
-        filters.soldBy!.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase()))
-      );
+      filtered = filtered.filter(item => filters.soldBy!.some(seller => item.soldBy?.toLowerCase().includes(seller.toLowerCase())));
     }
-
     return filtered;
   };
-
   const filteredData = useMemo(() => {
     if (!data || !Array.isArray(data)) return [];
     return applyFilters(data);
   }, [data, activeLocation, filters]);
-
   const discountMetrics = useMemo((): MetricCardData[] => {
     const totalRevenue = filteredData.reduce((sum, item) => sum + (item.grossRevenue || 0), 0);
     const totalDiscounts = filteredData.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
     const discountedTransactions = filteredData.filter(item => (item.discountAmount || 0) > 0).length;
     const totalTransactions = filteredData.length;
-    const avgDiscountPercent = discountedTransactions > 0 ? 
-      filteredData.filter(item => (item.discountAmount || 0) > 0)
-        .reduce((sum, item) => sum + (item.grossDiscountPercent || 0), 0) / discountedTransactions : 0;
-    const discountPenetration = totalTransactions > 0 ? (discountedTransactions / totalTransactions) * 100 : 0;
+    const avgDiscountPercent = discountedTransactions > 0 ? filteredData.filter(item => (item.discountAmount || 0) > 0).reduce((sum, item) => sum + (item.grossDiscountPercent || 0), 0) / discountedTransactions : 0;
+    const discountPenetration = totalTransactions > 0 ? discountedTransactions / totalTransactions * 100 : 0;
     const netRevenue = totalRevenue - totalDiscounts;
     const avgDiscountPerTransaction = discountedTransactions > 0 ? totalDiscounts / discountedTransactions : 0;
-
-    return [
-      {
-        title: 'Total Discounts Given',
-        value: formatCurrency(totalDiscounts),
-        change: -8.2,
-        description: 'Total discount amount provided to customers',
-        calculation: 'Sum of all discount amounts',
-        icon: 'trending-down'
-      },
-      {
-        title: 'Discount Rate',
-        value: totalRevenue > 0 ? `${((totalDiscounts / totalRevenue) * 100).toFixed(1)}%` : '0%',
-        change: -3.1,
-        description: 'Percentage of revenue given as discounts',
-        calculation: 'Total Discounts / Total Revenue × 100',
-        icon: 'percent'
-      },
-      {
-        title: 'Avg Discount %',
-        value: `${avgDiscountPercent.toFixed(1)}%`,
-        change: -2.1,
-        description: 'Average discount percentage per discounted transaction',
-        calculation: 'Average of all discount percentages',
-        icon: 'percent'
-      },
-      {
-        title: 'Discounted Transactions',
-        value: formatNumber(discountedTransactions),
-        change: 5.7,
-        description: 'Number of transactions with discounts applied',
-        calculation: 'Count of transactions with discount > 0',
-        icon: 'transactions'
-      },
-      {
-        title: 'Discount Penetration',
-        value: `${discountPenetration.toFixed(1)}%`,
-        change: 4.3,
-        description: 'Percentage of transactions that received discounts',
-        calculation: 'Discounted Transactions / Total Transactions × 100',
-        icon: 'percent'
-      },
-      {
-        title: 'Avg Discount Amount',
-        value: formatCurrency(avgDiscountPerTransaction),
-        change: -1.8,
-        description: 'Average discount amount per discounted transaction',
-        calculation: 'Total Discounts / Discounted Transactions',
-        icon: 'auv'
-      },
-      {
-        title: 'Revenue Impact',
-        value: formatCurrency(totalRevenue - totalDiscounts),
-        change: 8.9,
-        description: 'Net revenue after discount deductions',
-        calculation: 'Gross Revenue - Total Discounts',
-        icon: 'net'
-      },
-      {
-        title: 'Discount Efficiency',
-        value: discountedTransactions > 0 ? `${(totalRevenue / discountedTransactions).toFixed(0)}` : '0',
-        change: 12.4,
-        description: 'Average revenue per discounted transaction',
-        calculation: 'Total Revenue / Discounted Transactions',
-        icon: 'revenue'
-      }
-    ];
+    return [{
+      title: 'Total Discounts Given',
+      value: formatCurrency(totalDiscounts),
+      change: -8.2,
+      description: 'Total discount amount provided to customers',
+      calculation: 'Sum of all discount amounts',
+      icon: 'trending-down'
+    }, {
+      title: 'Discount Rate',
+      value: totalRevenue > 0 ? `${(totalDiscounts / totalRevenue * 100).toFixed(1)}%` : '0%',
+      change: -3.1,
+      description: 'Percentage of revenue given as discounts',
+      calculation: 'Total Discounts / Total Revenue × 100',
+      icon: 'percent'
+    }, {
+      title: 'Avg Discount %',
+      value: `${avgDiscountPercent.toFixed(1)}%`,
+      change: -2.1,
+      description: 'Average discount percentage per discounted transaction',
+      calculation: 'Average of all discount percentages',
+      icon: 'percent'
+    }, {
+      title: 'Discounted Transactions',
+      value: formatNumber(discountedTransactions),
+      change: 5.7,
+      description: 'Number of transactions with discounts applied',
+      calculation: 'Count of transactions with discount > 0',
+      icon: 'transactions'
+    }, {
+      title: 'Discount Penetration',
+      value: `${discountPenetration.toFixed(1)}%`,
+      change: 4.3,
+      description: 'Percentage of transactions that received discounts',
+      calculation: 'Discounted Transactions / Total Transactions × 100',
+      icon: 'percent'
+    }, {
+      title: 'Avg Discount Amount',
+      value: formatCurrency(avgDiscountPerTransaction),
+      change: -1.8,
+      description: 'Average discount amount per discounted transaction',
+      calculation: 'Total Discounts / Discounted Transactions',
+      icon: 'auv'
+    }, {
+      title: 'Revenue Impact',
+      value: formatCurrency(totalRevenue - totalDiscounts),
+      change: 8.9,
+      description: 'Net revenue after discount deductions',
+      calculation: 'Gross Revenue - Total Discounts',
+      icon: 'net'
+    }, {
+      title: 'Discount Efficiency',
+      value: discountedTransactions > 0 ? `${(totalRevenue / discountedTransactions).toFixed(0)}` : '0',
+      change: 12.4,
+      description: 'Average revenue per discounted transaction',
+      calculation: 'Total Revenue / Discounted Transactions',
+      icon: 'revenue'
+    }];
   }, [filteredData]);
-
   const getTopDiscountedProducts = () => {
-    const productDiscounts = filteredData
-      .filter(item => (item.discountAmount || 0) > 0)
-      .reduce((acc, item) => {
-        const product = item.cleanedProduct || 'Unknown Product';
-        if (!acc[product]) {
-          acc[product] = {
-            product,
-            totalDiscount: 0,
-            transactions: 0,
-            avgDiscount: 0,
-            totalRevenue: 0
-          };
-        }
-        acc[product].totalDiscount += item.discountAmount || 0;
-        acc[product].transactions += 1;
-        acc[product].totalRevenue += item.grossRevenue || 0;
-        return acc;
-      }, {} as Record<string, any>);
-
-    return Object.values(productDiscounts)
-      .map((item: any) => ({
-        ...item,
-        avgDiscount: item.totalDiscount / item.transactions,
-        discountRate: (item.totalDiscount / item.totalRevenue) * 100
-      }))
-      .sort((a, b) => b.totalDiscount - a.totalDiscount)
-      .slice(0, 10);
+    const productDiscounts = filteredData.filter(item => (item.discountAmount || 0) > 0).reduce((acc, item) => {
+      const product = item.cleanedProduct || 'Unknown Product';
+      if (!acc[product]) {
+        acc[product] = {
+          product,
+          totalDiscount: 0,
+          transactions: 0,
+          avgDiscount: 0,
+          totalRevenue: 0
+        };
+      }
+      acc[product].totalDiscount += item.discountAmount || 0;
+      acc[product].transactions += 1;
+      acc[product].totalRevenue += item.grossRevenue || 0;
+      return acc;
+    }, {} as Record<string, any>);
+    return Object.values(productDiscounts).map((item: any) => ({
+      ...item,
+      avgDiscount: item.totalDiscount / item.transactions,
+      discountRate: item.totalDiscount / item.totalRevenue * 100
+    })).sort((a, b) => b.totalDiscount - a.totalDiscount).slice(0, 10);
   };
-
   const getDiscountTrends = () => {
     const monthlyData = filteredData.reduce((acc, item) => {
       if (!item.paymentDate || (item.discountAmount || 0) === 0) return acc;
-      
       const date = new Date(item.paymentDate);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      
       if (!acc[monthKey]) {
         acc[monthKey] = {
           month: monthKey,
@@ -246,26 +212,23 @@ export const DiscountsSection: React.FC = () => {
           revenue: 0
         };
       }
-      
       acc[monthKey].totalDiscounts += item.discountAmount || 0;
       acc[monthKey].transactions += 1;
       acc[monthKey].revenue += item.grossRevenue || 0;
-      
       return acc;
     }, {} as Record<string, any>);
-
-    return Object.values(monthlyData)
-      .map((item: any) => ({
-        ...item,
-        avgDiscount: item.totalDiscounts / item.transactions,
-        discountRate: (item.totalDiscounts / item.revenue) * 100
-      }))
-      .sort((a, b) => a.month.localeCompare(b.month));
+    return Object.values(monthlyData).map((item: any) => ({
+      ...item,
+      avgDiscount: item.totalDiscounts / item.transactions,
+      discountRate: item.totalDiscounts / item.revenue * 100
+    })).sort((a, b) => a.month.localeCompare(b.month));
   };
-
   const resetFilters = () => {
     setFilters({
-      dateRange: { start: '2025-03-01', end: '2025-05-31' },
+      dateRange: {
+        start: '2025-03-01',
+        end: '2025-05-31'
+      },
       location: [],
       category: [],
       product: [],
@@ -273,20 +236,16 @@ export const DiscountsSection: React.FC = () => {
       paymentMethod: []
     });
   };
-
   const handleMetricClick = (metric: MetricCardData) => {
     setDrillDownData(metric);
     setDrillDownType('metric');
   };
-
   const handleTableRowClick = (row: any) => {
     setDrillDownData(row);
     setDrillDownType('product');
   };
-
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center">
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center">
         <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-xl border-0">
           <CardContent className="flex items-center gap-4">
             <Loader2 className="w-8 h-8 animate-spin text-red-600" />
@@ -296,13 +255,10 @@ export const DiscountsSection: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100 flex items-center justify-center p-4">
+    return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100 flex items-center justify-center p-4">
         <Card className="p-8 bg-white/90 backdrop-blur-sm shadow-xl max-w-md border-0">
           <CardContent className="text-center space-y-4">
             <RefreshCw className="w-12 h-12 text-red-600 mx-auto" />
@@ -316,15 +272,11 @@ export const DiscountsSection: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   const topDiscountedProducts = getTopDiscountedProducts();
   const discountTrends = getDiscountTrends();
-
-  return (
-    <div className={cn("min-h-screen bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/20", isDarkMode && "dark")}>
+  return <div className={cn("min-h-screen bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/20", isDarkMode && "dark")}>
       {/* Enhanced Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-red-900/90 to-orange-900/80">
         <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-orange-600/20 to-red-600/20" />
@@ -341,17 +293,14 @@ export const DiscountsSection: React.FC = () => {
               <span className="font-semibold text-white">Discount Analytics</span>
             </div>
             
-            <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-white via-red-100 to-orange-200 bg-clip-text text-transparent">
-              Discount Performance
-            </h1>
+            <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-white via-red-100 to-orange-200 bg-clip-text text-transparent">Discounts & Promotions</h1>
             
             <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
               Comprehensive analysis of discount strategies, promotional effectiveness, and revenue impact across all studio locations
             </p>
             
             {/* Key Discount Insights */}
-            {discountMetrics.length > 0 && (
-              <div className="flex items-center justify-center gap-12 mt-12">
+            {discountMetrics.length > 0 && <div className="flex items-center justify-center gap-12 mt-12">
                 <div className="text-center">
                   <div className="text-4xl font-bold text-white mb-2">
                     {discountMetrics[0]?.value || '₹0'}
@@ -372,34 +321,17 @@ export const DiscountsSection: React.FC = () => {
                   </div>
                   <div className="text-sm text-slate-300 font-medium">Penetration Rate</div>
                 </div>
-              </div>
-            )}
+              </div>}
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <ThemeSelector
-          currentTheme={currentTheme}
-          isDarkMode={isDarkMode}
-          onThemeChange={setCurrentTheme}
-          onModeChange={setIsDarkMode}
-        />
+        <ThemeSelector currentTheme={currentTheme} isDarkMode={isDarkMode} onThemeChange={setCurrentTheme} onModeChange={setIsDarkMode} />
 
         <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
           <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-100 via-white to-slate-100 p-2 rounded-2xl shadow-lg">
-            {locations.map((location) => (
-              <TabsTrigger
-                key={location.id}
-                value={location.id}
-                className={cn(
-                  "relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500",
-                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-orange-600",
-                  "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105",
-                  "hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 hover:scale-102",
-                  "focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                )}
-              >
+            {locations.map(location => <TabsTrigger key={location.id} value={location.id} className={cn("relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500", "data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-orange-600", "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105", "hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 hover:scale-102", "focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2")}>
                 <span className="relative z-10 flex items-center gap-2">
                   <MapPin className="w-4 h-4" />
                   <div className="text-center">
@@ -407,32 +339,20 @@ export const DiscountsSection: React.FC = () => {
                     <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
                   </div>
                 </span>
-                {activeLocation === location.id && (
-                  <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-orange-400/20 animate-pulse" />
-                )}
-              </TabsTrigger>
-            ))}
+                {activeLocation === location.id && <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-orange-400/20 animate-pulse" />}
+              </TabsTrigger>)}
           </TabsList>
 
-          {locations.map((location) => (
-            <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-              <AutoCloseFilterSection
-                filters={filters}
-                onFiltersChange={setFilters}
-                onReset={resetFilters}
-              />
+          {locations.map(location => <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
+              <AutoCloseFilterSection filters={filters} onFiltersChange={setFilters} onReset={resetFilters} />
 
               {/* Enhanced Metric Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {discountMetrics.map((metric, index) => (
-                  <div key={metric.title} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
-                    <MetricCard
-                      data={metric}
-                      delay={index * 100}
-                      onClick={() => handleMetricClick(metric)}
-                    />
-                  </div>
-                ))}
+                {discountMetrics.map((metric, index) => <div key={metric.title} className="animate-fade-in" style={{
+              animationDelay: `${index * 100}ms`
+            }}>
+                    <MetricCard data={metric} delay={index * 100} onClick={() => handleMetricClick(metric)} />
+                  </div>)}
               </div>
 
               {/* Discount Insights Cards */}
@@ -447,8 +367,7 @@ export const DiscountsSection: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {topDiscountedProducts.map((product, index) => (
-                        <div key={product.product} className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300 hover:scale-102">
+                      {topDiscountedProducts.map((product, index) => <div key={product.product} className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300 hover:scale-102">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
                               {index + 1}
@@ -462,8 +381,7 @@ export const DiscountsSection: React.FC = () => {
                             <div className="text-sm font-bold text-red-600">{formatCurrency(product.totalDiscount)}</div>
                             <div className="text-xs text-slate-600">{product.discountRate.toFixed(1)}% rate</div>
                           </div>
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </CardContent>
                 </Card>
@@ -478,11 +396,12 @@ export const DiscountsSection: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3 max-h-80 overflow-y-auto">
-                      {discountTrends.map((trend, index) => (
-                        <div key={trend.month} className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300">
+                      {discountTrends.map((trend, index) => <div key={trend.month} className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                              {new Date(trend.month + '-01').toLocaleDateString('en-US', { month: 'short' })}
+                              {new Date(trend.month + '-01').toLocaleDateString('en-US', {
+                          month: 'short'
+                        })}
                             </div>
                             <div>
                               <p className="font-medium text-sm text-slate-800">{trend.month}</p>
@@ -493,8 +412,7 @@ export const DiscountsSection: React.FC = () => {
                             <div className="text-sm font-bold text-orange-600">{formatCurrency(trend.totalDiscounts)}</div>
                             <div className="text-xs text-slate-600">{trend.discountRate.toFixed(1)}% rate</div>
                           </div>
-                        </div>
-                      ))}
+                        </div>)}
                     </div>
                   </CardContent>
                 </Card>
@@ -502,63 +420,24 @@ export const DiscountsSection: React.FC = () => {
 
               {/* Enhanced Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <InteractiveChart
-                  title="Discount Impact on Revenue"
-                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
-                  type="revenue"
-                />
-                <InteractiveChart
-                  title="Discount Penetration by Category"
-                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
-                  type="performance"
-                />
+                <InteractiveChart title="Discount Impact on Revenue" data={filteredData.filter(item => (item.discountAmount || 0) > 0)} type="revenue" />
+                <InteractiveChart title="Discount Penetration by Category" data={filteredData.filter(item => (item.discountAmount || 0) > 0)} type="performance" />
               </div>
 
               {/* Enhanced Data Tables */}
               <div className="space-y-8">
-                <DataTable
-                  title="Monthly Discount Performance Analysis"
-                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
-                  type="monthly"
-                  filters={filters}
-                  onRowClick={handleTableRowClick}
-                />
+                <DataTable title="Monthly Discount Performance Analysis" data={filteredData.filter(item => (item.discountAmount || 0) > 0)} type="monthly" filters={filters} onRowClick={handleTableRowClick} />
                 
-                <DataTable
-                  title="Product-wise Discount Breakdown"
-                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
-                  type="product"
-                  filters={filters}
-                  onRowClick={handleTableRowClick}
-                />
+                <DataTable title="Product-wise Discount Breakdown" data={filteredData.filter(item => (item.discountAmount || 0) > 0)} type="product" filters={filters} onRowClick={handleTableRowClick} />
                 
-                <DataTable
-                  title="Category Discount Analysis"
-                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
-                  type="category"
-                  filters={filters}
-                  onRowClick={handleTableRowClick}
-                />
+                <DataTable title="Category Discount Analysis" data={filteredData.filter(item => (item.discountAmount || 0) > 0)} type="category" filters={filters} onRowClick={handleTableRowClick} />
                 
-                <DataTable
-                  title="Staff Discount Distribution"
-                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
-                  type="yearly"
-                  filters={filters}
-                  onRowClick={handleTableRowClick}
-                />
+                <DataTable title="Staff Discount Distribution" data={filteredData.filter(item => (item.discountAmount || 0) > 0)} type="yearly" filters={filters} onRowClick={handleTableRowClick} />
               </div>
-            </TabsContent>
-          ))}
+            </TabsContent>)}
         </Tabs>
 
-        <DrillDownModal
-          isOpen={!!drillDownData}
-          onClose={() => setDrillDownData(null)}
-          data={drillDownData}
-          type={drillDownType}
-        />
+        <DrillDownModal isOpen={!!drillDownData} onClose={() => setDrillDownData(null)} data={drillDownData} type={drillDownType} />
       </div>
-    </div>
-  );
+    </div>;
 };

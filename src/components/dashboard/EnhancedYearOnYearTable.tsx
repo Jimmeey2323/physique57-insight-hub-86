@@ -292,7 +292,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
           <table className="min-w-full bg-white border-t border-gray-200">
             <thead className="bg-gradient-to-r from-blue-50 to-blue-100 sticky top-0 z-20">
               <tr>
-                <th className="bg-gradient-to-r from-pink-700 via-pink-800 to-pink-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2">
+                <th className="bg-gradient-to-r from-indigo-700 to-purple-800 text-white font-semibold uppercase tracking-wider px-12 py-2 text-left">
                   Product/Category
                 </th>
                 {monthlyData.map(({
@@ -301,8 +301,8 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                 year
               }) => <th key={key} className="bg-gradient-to-r from-pink-700 via-pink-800 to-pink-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2\n">
                     <div className="flex flex-col">
-                      <span>{display.split(' ')[0]}</span>
-                      <span className={`text-xs ${year === 2025 ? 'text-blue-600' : 'text-purple-600'}`}>
+                      <span className="text-base">{display.split(' ')[0]}</span>
+                      <span className="text-yellow-200 text-xs">
                         {display.split(' ')[1]}
                       </span>
                     </div>
@@ -312,11 +312,11 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
             <tbody>
               {processedData.map(categoryGroup => <React.Fragment key={categoryGroup.category}>
                   <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-200 group transition-colors duration-200" onClick={() => onGroupToggle(categoryGroup.category)}>
-                    <td className="px-6 py-4 font-semibold text-gray-900 group-hover:text-blue-700 sticky left-0 bg-gray-50 group-hover:bg-gray-100 z-10 transition-colors duration-200">
+                    <td className="px-6 py-4 font-semibold text-gray-800 group-hover:text-red-900 bg-gray-50 group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out">
                       <div className="flex items-center">
                         {collapsedGroups.has(categoryGroup.category) ? <ChevronRight className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" /> : <ChevronDown className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" />}
                         {categoryGroup.category}
-                        <Badge variant="secondary" className="ml-5 text-xs bg-gray-800 text-white min-w-32 rounded-none ">
+                        <Badge variant="secondary" className="ml-5 text-xs bg-purple-900 text-white min-w-32 rounded-2xl">
                           {categoryGroup.products.length} products
                         </Badge>
                       </div>

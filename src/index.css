@@ -29,9 +29,40 @@
   }
 }
 
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes pulse-slow {
   0%, 100% {
     opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes pulse-gentle {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 0.3;
   }
   50% {
     opacity: 0.5;
@@ -44,6 +75,20 @@
   }
   100% {
     background-position: 200% 0;
+  }
+}
+
+@keyframes shimmer-line {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
   }
 }
 
@@ -65,6 +110,15 @@
   }
 }
 
+@keyframes float-delayed {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
 @keyframes text-shimmer {
   0% {
     background-position: 0% 50%;
@@ -74,6 +128,39 @@
   }
   100% {
     background-position: 0% 50%;
+  }
+}
+
+@keyframes text-shimmer-slow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes gradient-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes border-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 
@@ -101,12 +188,28 @@
   animation: fade-in 1s ease-out;
 }
 
+.animate-fade-in-up {
+  animation: fade-in-up 1.5s ease-out;
+}
+
 .animate-pulse-slow {
   animation: pulse-slow 3s infinite;
 }
 
+.animate-pulse-gentle {
+  animation: pulse-gentle 4s infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s infinite;
+}
+
 .animate-shimmer {
   animation: shimmer 2s infinite;
+}
+
+.animate-shimmer-line {
+  animation: shimmer-line 3s infinite;
 }
 
 .animate-glow {
@@ -117,10 +220,30 @@
   animation: float 3s ease-in-out infinite;
 }
 
+.animate-float-delayed {
+  animation: float-delayed 3s ease-in-out infinite 1.5s;
+}
+
 .animate-text-shimmer {
   background: linear-gradient(110deg, #1e293b 45%, #3b82f6 55%, #1e293b);
   background-size: 200% 100%;
   animation: text-shimmer 2s infinite;
+}
+
+.animate-text-shimmer-slow {
+  background: linear-gradient(110deg, #1e293b 30%, #475569 50%, #1e293b 70%);
+  background-size: 200% 100%;
+  animation: text-shimmer-slow 4s infinite;
+}
+
+.animate-gradient-flow {
+  background: linear-gradient(45deg, #2563eb, #3b82f6, #8b5cf6, #7c3aed);
+  background-size: 300% 300%;
+  animation: gradient-flow 3s ease infinite;
+}
+
+.animate-border-rotate {
+  animation: border-rotate 10s linear infinite;
 }
 
 .text-gradient-animated {

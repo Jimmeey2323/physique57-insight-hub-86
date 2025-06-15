@@ -82,62 +82,62 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12">
-          {/* Beautiful animated title with sophisticated styling */}
-          <div className="relative mb-8">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="flex items-center gap-4 text-slate-300 opacity-50">
-                <BarChart3 className="w-8 h-8 animate-pulse" />
-                <Calendar className="w-8 h-8 animate-pulse animation-delay-1000" />
-                <TrendingUp className="w-8 h-8 animate-pulse animation-delay-2000" />
-                <Target className="w-8 h-8 animate-pulse animation-delay-3000" />
-              </div>
+          {/* Ultra-modern sophisticated title */}
+          <div className="relative mb-8 group">
+            {/* Background effects */}
+            <div className="absolute inset-0 -z-10">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-full blur-3xl animate-pulse-gentle"></div>
             </div>
             
-            <div className="relative text-center animate-fade-in">
-              <div className="mb-4">
-                <div className="relative inline-block group">
-                  {/* Glowing background effect */}
-                  <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity duration-700 animate-pulse-slow"></div>
-                  
-                  {/* Main text container */}
-                  <div className="relative px-8 py-4 bg-gradient-to-r from-white/80 via-white/90 to-white/80 backdrop-blur-sm rounded-2xl border border-white/30 shadow-2xl">
-                    <div className="flex items-center justify-center space-x-4">
-                      {/* Physique text */}
-                      <span className="text-5xl md:text-7xl font-light bg-gradient-to-r from-slate-700 via-blue-700 to-slate-800 bg-clip-text text-transparent tracking-wide relative">
+            {/* Main title container */}
+            <div className="relative">
+              {/* Glassmorphism container */}
+              <div className="relative p-12 rounded-3xl bg-white/60 backdrop-blur-xl border border-white/30 shadow-2xl overflow-hidden group-hover:shadow-3xl transition-all duration-700">
+                {/* Animated border gradient */}
+                <div className="absolute inset-0 rounded-3xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 animate-border-rotate"></div>
+                <div className="absolute inset-[1px] rounded-3xl bg-white/80 backdrop-blur-xl"></div>
+                
+                {/* Content */}
+                <div className="relative z-10">
+                  {/* Physique 57 */}
+                  <div className="flex items-center justify-center gap-6 mb-4">
+                    <div className="relative">
+                      <h1 className="text-6xl md:text-7xl lg:text-8xl font-extralight tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-slate-800 via-slate-600 to-slate-800 animate-text-shimmer-slow">
                         Physique
-                        <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-60"></div>
-                      </span>
-                      
-                      {/* 57 text with special styling */}
-                      <div className="relative">
-                        <span className="text-6xl md:text-8xl font-bold bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent relative">
-                          57
-                        </span>
-                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-20 animate-pulse-slow"></div>
-                      </div>
+                      </h1>
+                      <div className="absolute -bottom-2 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-400 to-transparent animate-shimmer-line"></div>
                     </div>
                     
-                    {/* India text */}
-                    <div className="mt-2">
-                      <span className="text-3xl md:text-4xl font-light italic bg-gradient-to-r from-slate-600 via-slate-700 to-slate-600 bg-clip-text text-transparent tracking-wider">
-                        India
+                    {/* 57 with special treatment */}
+                    <div className="relative">
+                      <div className="absolute inset-0 blur-lg bg-gradient-to-r from-blue-600 to-purple-600 opacity-30 animate-pulse-soft"></div>
+                      <span className="relative text-7xl md:text-8xl lg:text-9xl font-bold bg-gradient-to-br from-blue-600 via-blue-700 to-purple-600 bg-clip-text text-transparent animate-gradient-flow">
+                        57
                       </span>
                     </div>
                   </div>
                   
-                  {/* Floating elements */}
-                  <div className="absolute -top-4 -right-4 w-3 h-3 bg-blue-500 rounded-full animate-bounce animation-delay-1000 opacity-60"></div>
-                  <div className="absolute -bottom-4 -left-4 w-2 h-2 bg-purple-500 rounded-full animate-bounce animation-delay-2000 opacity-60"></div>
-                  <div className="absolute top-1/2 -right-8 w-1.5 h-1.5 bg-pink-500 rounded-full animate-ping animation-delay-3000 opacity-60"></div>
+                  {/* India */}
+                  <div className="relative">
+                    <p className="text-3xl md:text-4xl lg:text-5xl font-light italic tracking-[0.2em] text-slate-700 opacity-90 animate-fade-in-up">
+                      India
+                    </p>
+                    <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-16 h-[1px] bg-gradient-to-r from-transparent via-slate-400 to-transparent"></div>
+                  </div>
                 </div>
+                
+                {/* Floating decorative elements */}
+                <div className="absolute top-6 right-6 w-2 h-2 bg-blue-500 rounded-full animate-float opacity-60"></div>
+                <div className="absolute bottom-6 left-6 w-1.5 h-1.5 bg-purple-500 rounded-full animate-float-delayed opacity-60"></div>
+                <div className="absolute top-1/3 right-12 w-1 h-1 bg-pink-500 rounded-full animate-pulse opacity-40"></div>
               </div>
             </div>
           </div>
           
-          <p className="text-xl text-slate-600 font-medium animate-fade-in">
+          <p className="text-xl text-slate-600 font-medium animate-fade-in opacity-80">
             Advanced Analytics Dashboard
           </p>
-          <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full animate-fade-in"></div>
+          <div className="w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full animate-shimmer"></div>
         </header>
 
         <DashboardNavigation

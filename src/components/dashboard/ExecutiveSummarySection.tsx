@@ -250,7 +250,7 @@ export const ExecutiveSummarySection: React.FC = () => {
     }) || [];
 
     const filteredLeads = leadsData?.filter(item => {
-      const itemDate = new Date(item.createdAt);
+      const itemDate = new Date(item.dateCreated || item.createdAt);
       return itemDate >= dateRange.start && itemDate <= dateRange.end;
     }) || [];
 
@@ -265,7 +265,7 @@ export const ExecutiveSummarySection: React.FC = () => {
     }) || [];
 
     const filteredDiscounts = discountsData?.filter(item => {
-      const itemDate = new Date(item.createdAt);
+      const itemDate = new Date(item.dateCreated || item.createdAt);
       return itemDate >= dateRange.start && itemDate <= dateRange.end;
     }) || [];
 
@@ -335,12 +335,12 @@ export const ExecutiveSummarySection: React.FC = () => {
   // Product performance - using correct property names
   const productPerformance = useMemo(() => {
     const productData = filteredData.sales.reduce((acc, item) => {
-      const product = item.saleItemName || 'Unknown';
+      const product = item.itemName || item.productName || 'Unknown';
       if (!acc[product]) {
         acc[product] = { name: product, revenue: 0, quantity: 0, avgPrice: 0 };
       }
       acc[product].revenue += item.paymentValue || 0;
-      acc[product].quantity += item.saleItemQuantity || 1;
+      acc[product].quantity += item.quantity || 1;
       return acc;
     }, {} as Record<string, any>);
 
@@ -353,7 +353,7 @@ export const ExecutiveSummarySection: React.FC = () => {
   // Category performance - using correct property names
   const categoryPerformance = useMemo(() => {
     const categoryData = filteredData.sales.reduce((acc, item) => {
-      const category = item.saleItemCategory || 'Unknown';
+      const category = item.category || item.itemCategory || 'Unknown';
       if (!acc[category]) {
         acc[category] = { name: category, revenue: 0, transactions: 0 };
       }
@@ -368,7 +368,7 @@ export const ExecutiveSummarySection: React.FC = () => {
   // Location performance - using correct property names
   const locationPerformance = useMemo(() => {
     const locationData = filteredData.sales.reduce((acc, item) => {
-      const location = item.calculatedLocation || 'Unknown';
+      const location = item.location || item.studioLocation || 'Unknown';
       if (!acc[location]) {
         acc[location] = { 
           name: location, 

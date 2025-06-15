@@ -14,6 +14,9 @@ import { DrillDownModal } from './DrillDownModal';
 import { SalesData, FilterOptions, MetricCardData } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
+import { DiscountMonthOnMonthTable } from './DiscountMonthOnMonthTable';
+import { DiscountRevenueAnalysis } from './DiscountRevenueAnalysis';
+import { DiscountImpactInsights } from './DiscountImpactInsights';
 
 const locations = [{
   id: 'kwality',
@@ -567,8 +570,22 @@ export const DiscountsSection: React.FC = () => {
                 />
               </div>
 
-              {/* Enhanced Data Tables */}
+              {/* Enhanced Data Tables and Analysis */}
               <div className="space-y-8">
+                <DiscountMonthOnMonthTable 
+                  data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
+                  filters={filters} 
+                  onRowClick={handleTableRowClick} 
+                />
+                
+                <DiscountRevenueAnalysis 
+                  data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
+                />
+                
+                <DiscountImpactInsights 
+                  data={filteredData.filter(item => (item.discountAmount || 0) >= 0)} 
+                />
+                
                 <DataTable 
                   title="Monthly Discount Performance Analysis" 
                   data={filteredData.filter(item => (item.discountAmount || 0) > 0)} 

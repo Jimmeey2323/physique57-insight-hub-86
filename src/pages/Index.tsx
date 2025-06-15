@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Footer } from '@/components/ui/footer';
@@ -18,56 +19,70 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center relative">
-        {/* Subtle Background Gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-white to-gray-50/30"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-blue-200/20 to-purple-200/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-pink-200/20 to-indigo-200/20 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-slate-100/30 to-gray-100/30 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
+        </div>
 
         {/* Main Loader Container */}
-        <div className="relative z-10 text-center space-y-8">
-          {/* Enhanced Spinning 57 */}
-          <div className="relative">
-            <div className="w-32 h-32 mx-auto flex items-center justify-center">
-              <div className="relative">
-                {/* Outer Ring - Subtle */}
-                <div className="absolute inset-0 w-32 h-32 border-2 border-slate-200 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
-                
-                {/* Inner Spinning 57 - Enhanced */}
-                <div className="w-24 h-24 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 rounded-full flex items-center justify-center animate-spin shadow-xl border-2 border-slate-600/20" style={{ animationDuration: '2s' }}>
-                  <div className="relative flex items-center justify-center">
-                    {/* Glowing background effect */}
-                    <div className="absolute inset-0 w-full h-full bg-white/10 rounded-full blur-sm"></div>
-                    {/* The 57 text */}
-                    <span className="relative text-2xl font-bold text-white font-serif tracking-tight" style={{ lineHeight: '1', transform: 'translateY(-1px)' }}>57</span>
-                  </div>
-                </div>
-                
-                {/* Cute Floating Dots with better positioning */}
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-bounce shadow-sm"></div>
-                <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-purple-400 rounded-full animate-bounce animation-delay-1000 shadow-sm"></div>
-                <div className="absolute top-1/2 -left-3 w-2 h-2 bg-indigo-400 rounded-full animate-bounce animation-delay-2000 shadow-sm"></div>
-                
-                {/* Additional sparkle effects */}
-                <div className="absolute top-6 right-2 w-1 h-1 bg-pink-300 rounded-full animate-pulse"></div>
-                <div className="absolute bottom-8 right-6 w-1 h-1 bg-cyan-300 rounded-full animate-pulse animation-delay-1000"></div>
-              </div>
+        <div className="relative z-10 text-center space-y-12">
+          {/* Beautiful Modern Loader */}
+          <div className="relative flex items-center justify-center">
+            {/* Outer rotating rings */}
+            <div className="absolute w-40 h-40">
+              <div className="absolute inset-0 border-2 border-gradient-to-r from-blue-400/30 to-purple-400/30 rounded-full animate-spin border-t-blue-500/60 border-r-purple-500/60" style={{ animationDuration: '3s' }}></div>
             </div>
+            <div className="absolute w-32 h-32">
+              <div className="absolute inset-0 border-2 border-gradient-to-r from-pink-400/30 to-indigo-400/30 rounded-full animate-spin border-t-pink-500/60 border-l-indigo-500/60" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+            </div>
+            
+            {/* Center circle with 57 */}
+            <div className="relative w-20 h-20 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 rounded-full flex items-center justify-center shadow-2xl animate-pulse">
+              {/* Inner glow */}
+              <div className="absolute inset-2 bg-gradient-to-br from-white/20 to-transparent rounded-full"></div>
+              
+              {/* 57 Text */}
+              <div className="relative">
+                <span className="text-2xl font-bold text-white font-serif tracking-tight drop-shadow-lg">57</span>
+              </div>
+              
+              {/* Subtle border */}
+              <div className="absolute inset-0 rounded-full border border-white/20"></div>
+            </div>
+            
+            {/* Floating particles */}
+            <div className="absolute w-2 h-2 bg-blue-400 rounded-full animate-bounce shadow-lg" style={{ top: '-10px', right: '20px', animationDelay: '0s' }}></div>
+            <div className="absolute w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce shadow-lg" style={{ bottom: '-8px', left: '25px', animationDelay: '0.5s' }}></div>
+            <div className="absolute w-1 h-1 bg-pink-400 rounded-full animate-bounce shadow-lg" style={{ top: '30px', left: '-15px', animationDelay: '1s' }}></div>
+            <div className="absolute w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce shadow-lg" style={{ bottom: '35px', right: '-12px', animationDelay: '1.5s' }}></div>
           </div>
 
-          {/* Minimalist Brand Text */}
-          <div className="space-y-3">
-            <h1 className="text-2xl font-light text-slate-800 tracking-wide font-serif">
-              Physique <span className="font-bold animate-color-cycle">57</span>
+          {/* Elegant Brand Text */}
+          <div className="space-y-4">
+            <h1 className="text-3xl font-light text-slate-800 tracking-wide font-serif">
+              <span className="font-extralight">Physique</span>{' '}
+              <span className="font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent animate-pulse">57</span>
             </h1>
-            <p className="text-sm text-slate-500 font-light">
+            <p className="text-lg text-slate-600/80 font-light">
               Loading your dashboard...
             </p>
           </div>
 
-          {/* Simple Progress Dots */}
-          <div className="flex justify-center space-x-2">
-            <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
-            <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse animation-delay-1000"></div>
-            <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse animation-delay-2000"></div>
+          {/* Animated dots */}
+          <div className="flex justify-center space-x-3">
+            <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full animate-bounce shadow-lg"></div>
+            <div className="w-3 h-3 bg-gradient-to-r from-purple-400 to-purple-500 rounded-full animate-bounce shadow-lg animation-delay-1000"></div>
+            <div className="w-3 h-3 bg-gradient-to-r from-pink-400 to-pink-500 rounded-full animate-bounce shadow-lg animation-delay-2000"></div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="w-64 mx-auto">
+            <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-full animate-pulse"></div>
+            </div>
           </div>
         </div>
       </div>

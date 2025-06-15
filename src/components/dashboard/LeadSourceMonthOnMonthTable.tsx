@@ -236,16 +236,16 @@ export const LeadSourceMonthOnMonthTable: React.FC<LeadSourceMonthOnMonthTablePr
               ))}
             </TableBody>
             <TableFooter className="sticky bottom-0 z-20">
-              <TableRow className="bg-gradient-to-r from-slate-800 via-slate-900 to-black text-white hover:bg-gradient-to-r hover:from-slate-800 hover:to-black">
-                <TableCell className="font-bold text-white sticky left-0 bg-gradient-to-r from-slate-800 to-slate-900 z-30 min-w-[250px] w-[250px] max-w-[250px] p-4">
-                  <span className="text-sm">TOTALS</span>
+              <TableRow className="bg-black text-white border-t-4 border-slate-600">
+                <TableCell className="font-bold text-white sticky left-0 bg-black z-30 min-w-[250px] w-[250px] max-w-[250px] p-4">
+                  <span className="text-lg font-bold">TOTALS</span>
                 </TableCell>
                 {monthlyTotals.map(monthTotal => (
                   <TableCell 
                     key={monthTotal.month} 
                     className="text-center align-middle font-bold text-white min-w-[100px] w-[100px] p-3"
                   >
-                    <span className="text-sm">{formatValue(monthTotal.total)}</span>
+                    <span className="text-base">{formatValue(monthTotal.total)}</span>
                   </TableCell>
                 ))}
               </TableRow>

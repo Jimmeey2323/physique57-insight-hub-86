@@ -30,7 +30,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
   const [drillDownData, setDrillDownData] = useState<any>(null);
   const [drillDownType, setDrillDownType] = useState<'metric' | 'product' | 'category' | 'member'>('metric');
   const [filters, setFilters] = useState<FilterOptions>({
-    dateRange: { start: '2025-03-01', end: '2025-05-31' },
+    dateRange: { start: '2025-01-01', end: '2025-05-31' },
     location: [],
     category: [],
     product: [],

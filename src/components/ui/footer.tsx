@@ -30,7 +30,7 @@ export const Footer: React.FC = () => {
           
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 tracking-widest">PROJECT BY</span>
-            <span className="text-white text-xs text-center bg-transparent">
+            <span className="text-slate-200 text-xs text-center bg-transparent tracking-widest ">
               JIMMEEY
             </span>
           </div>

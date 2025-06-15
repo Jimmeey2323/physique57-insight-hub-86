@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -417,14 +418,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 title="Product Performance Analysis"
                 data={filteredData}
                 type="product"
-                filters={filters}
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Category Performance Breakdown"
-                data={filteredData}
-                type="category"
                 filters={filters}
                 onRowClick={handleTableRowClick}
               />

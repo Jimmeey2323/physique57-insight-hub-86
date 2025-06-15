@@ -540,10 +540,11 @@ const LeadsSectionContent: React.FC = () => {
                     className={`
                       relative group overflow-hidden rounded-2xl px-6 py-4 font-bold text-sm 
                       transition-all duration-500 ease-out hover:scale-105 hover:shadow-lg
-                      data-[state=active]:bg-gradient-to-br data-[state=active]:${location.gradient}
+                      data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-800 data-[state=active]:to-slate-900
                       data-[state=active]:text-white data-[state=active]:shadow-2xl
                       data-[state=active]:border-0 hover:bg-white/80 animate-fade-in
                       border-2 border-transparent data-[state=active]:border-white/20
+                      text-slate-700 data-[state=active]:text-white
                     `}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
@@ -558,7 +559,6 @@ const LeadsSectionContent: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    {/* Animated background effect */}
                     <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </TabsTrigger>
                 ))}

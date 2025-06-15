@@ -14,6 +14,8 @@ interface TrainerWordCloudProps {
 
 export const TrainerWordCloud = ({ data }: TrainerWordCloudProps) => {
   const processedTrainers = useMemo(() => {
+    if (!data || data.length === 0) return [];
+    
     const maxConversion = Math.max(...data.map(d => d.conversion));
     const minConversion = Math.min(...data.map(d => d.conversion));
     
@@ -30,7 +32,7 @@ export const TrainerWordCloud = ({ data }: TrainerWordCloudProps) => {
     }).sort((a, b) => b.conversion - a.conversion);
   }, [data]);
 
-  if (!data.length) {
+  if (!data || data.length === 0) {
     return (
       <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
         <CardContent className="p-6 text-center text-slate-600">
@@ -82,7 +84,7 @@ export const TrainerWordCloud = ({ data }: TrainerWordCloudProps) => {
           </div>
           <div className="flex items-center gap-1">
             <div className="w-3 h-3 bg-red-500 rounded"></div>
-            <span className="text-slate-600">Low (<25%)</span>
+            <span className="text-slate-600">Low (&lt;25%)</span>
           </div>
         </div>
       </CardContent>

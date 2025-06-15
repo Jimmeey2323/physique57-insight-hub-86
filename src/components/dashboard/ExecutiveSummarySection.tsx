@@ -31,23 +31,68 @@ import { useDiscountsData } from '@/hooks/useDiscountsData';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { useLeadsData } from '@/hooks/useLeadsData';
 import { useNewClientData } from '@/hooks/useNewClientData';
-import { InteractiveChart } from './InteractiveChart';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
-interface KPICardProps {
+interface CircularKPICardProps {
   title: string;
   value: string;
+  percentage: number;
   change: number;
   icon: React.ReactNode;
   color: string;
   description?: string;
 }
 
-const KPICard: React.FC<KPICardProps> = ({ title, value, change, icon, color, description }) => (
-  <Card className={`bg-gradient-to-br ${color} border-0 shadow-lg hover:shadow-xl transition-all duration-300 group transform hover:-translate-y-1`}>
-    <CardContent className="p-6">
-      <div className="flex items-center justify-between">
+const CircularKPICard: React.FC<CircularKPICardProps> = ({ 
+  title, 
+  value, 
+  percentage, 
+  change, 
+  icon, 
+  color, 
+  description 
+}) => {
+  const circumference = 2 * Math.PI * 45;
+  const strokeDasharray = circumference;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <Card className={`bg-gradient-to-br ${color} border-0 shadow-xl hover:shadow-2xl transition-all duration-500 group transform hover:-translate-y-2`}>
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="text-white/90 group-hover:scale-110 transition-transform duration-300">
+            {icon}
+          </div>
+          <div className="relative w-16 h-16">
+            <svg className="w-16 h-16 transform -rotate-90" viewBox="0 0 100 100">
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="rgba(255,255,255,0.2)"
+                strokeWidth="6"
+                fill="none"
+              />
+              <circle
+                cx="50"
+                cy="50"
+                r="45"
+                stroke="white"
+                strokeWidth="6"
+                fill="none"
+                strokeDasharray={strokeDasharray}
+                strokeDashoffset={strokeDashoffset}
+                className="transition-all duration-1000 ease-out"
+                strokeLinecap="round"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-white text-xs font-bold">{percentage.toFixed(0)}%</span>
+            </div>
+          </div>
+        </div>
+        
         <div className="space-y-2">
           <p className="text-white/80 text-sm font-medium">{title}</p>
           <p className="text-2xl font-bold text-white">{value}</p>
@@ -55,30 +100,28 @@ const KPICard: React.FC<KPICardProps> = ({ title, value, change, icon, color, de
             <p className="text-white/70 text-xs">{description}</p>
           )}
         </div>
-        <div className="text-white/90 group-hover:scale-110 transition-transform">
-          {icon}
+        
+        <div className="mt-4 flex items-center gap-1">
+          {change >= 0 ? (
+            <ArrowUpRight className="w-4 h-4 text-green-200" />
+          ) : (
+            <ArrowDownRight className="w-4 h-4 text-red-200" />
+          )}
+          <span className={cn(
+            "text-sm font-medium",
+            change >= 0 ? "text-green-200" : "text-red-200"
+          )}>
+            {Math.abs(change)}%
+          </span>
+          <span className="text-white/70 text-sm">vs last period</span>
         </div>
-      </div>
-      <div className="mt-4 flex items-center gap-1">
-        {change >= 0 ? (
-          <ArrowUpRight className="w-4 h-4 text-green-200" />
-        ) : (
-          <ArrowDownRight className="w-4 h-4 text-red-200" />
-        )}
-        <span className={cn(
-          "text-sm font-medium",
-          change >= 0 ? "text-green-200" : "text-red-200"
-        )}>
-          {Math.abs(change)}%
-        </span>
-        <span className="text-white/70 text-sm">vs last period</span>
-      </div>
-    </CardContent>
-  </Card>
-);
+      </CardContent>
+    </Card>
+  );
+};
 
 const AnimatedHeader = () => (
-  <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 text-white rounded-2xl">
+  <div className="relative overflow-hidden bg-gradient-to-r from-slate-900 via-purple-900 to-slate-900 text-white rounded-2xl mb-8">
     <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-700/20" />
     <div className="absolute inset-0">
       <div className="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-blob"></div>
@@ -96,6 +139,13 @@ const AnimatedHeader = () => (
         <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent animate-fade-in">
           Executive Dashboard
         </h1>
+        
+        <div className="text-4xl md:text-5xl font-bold animate-fade-in">
+          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
+            Physique 57
+          </span>
+          <span className="text-white italic ml-3">India</span>
+        </div>
         
         <p className="text-xl text-purple-100 max-w-3xl mx-auto leading-relaxed animate-fade-in">
           Intelligent insights for modern fitness management. <span className="font-semibold text-white">Data-driven decisions</span> made simple.
@@ -118,6 +168,29 @@ const AnimatedHeader = () => (
       </div>
     </div>
   </div>
+);
+
+const PerformanceSummary: React.FC<{ timeframe: string; metrics: any }> = ({ timeframe, metrics }) => (
+  <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-0 shadow-lg">
+    <CardHeader>
+      <CardTitle className="flex items-center gap-3 text-blue-800">
+        <FileBarChart className="w-6 h-6" />
+        {timeframe.charAt(0).toUpperCase() + timeframe.slice(1)} Performance Summary
+      </CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div className="prose prose-blue max-w-none">
+        <p className="text-blue-700 leading-relaxed">
+          This {timeframe}, Physique 57 India achieved a total revenue of <strong>{formatCurrency(metrics.totalRevenue)}</strong> 
+          with a {metrics.conversionRate >= 15 ? 'strong' : 'moderate'} lead conversion rate of <strong>{metrics.conversionRate.toFixed(1)}%</strong>. 
+          Our retention strategy maintained <strong>{metrics.retentionRate.toFixed(1)}%</strong> client retention, 
+          {metrics.retentionRate >= 80 ? ' exceeding' : ' approaching'} industry benchmarks. 
+          Session attendance averaged <strong>{metrics.avgSessionAttendance.toFixed(1)} attendees</strong> per class, 
+          indicating {metrics.avgSessionAttendance >= 10 ? 'excellent' : 'good'} member engagement across all locations.
+        </p>
+      </div>
+    </CardContent>
+  </Card>
 );
 
 export const ExecutiveSummarySection: React.FC = () => {
@@ -182,18 +255,24 @@ export const ExecutiveSummarySection: React.FC = () => {
       return itemDate >= dateRange.start && itemDate <= dateRange.end;
     }) || [];
 
+    const filteredDiscounts = discountsData?.filter(item => {
+      const itemDate = new Date(item.date);
+      return itemDate >= dateRange.start && itemDate <= dateRange.end;
+    }) || [];
+
     return {
       sales: filteredSales,
       leads: filteredLeads,
       sessions: filteredSessions,
-      clients: filteredClients
+      clients: filteredClients,
+      discounts: filteredDiscounts
     };
-  }, [salesData, leadsData, sessionsData, clientsData, timeframe]);
+  }, [salesData, leadsData, sessionsData, clientsData, discountsData, timeframe]);
 
   // Calculate key metrics based on filtered data
   const metrics = useMemo(() => {
     const totalRevenue = filteredData.sales.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-    const totalDiscounts = filteredData.sales.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
+    const totalDiscounts = filteredData.discounts.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
     const totalSessions = filteredData.sessions.length;
     const totalLeads = filteredData.leads.length;
     const totalClients = filteredData.clients.length;
@@ -243,6 +322,39 @@ export const ExecutiveSummarySection: React.FC = () => {
       bottom: sources.sort((a: any, b: any) => a.count - b.count).slice(0, 5)
     };
   }, [filteredData.leads]);
+
+  // Product performance
+  const productPerformance = useMemo(() => {
+    const productData = filteredData.sales.reduce((acc, item) => {
+      const product = item.saleItemName || 'Unknown';
+      if (!acc[product]) {
+        acc[product] = { name: product, revenue: 0, quantity: 0, avgPrice: 0 };
+      }
+      acc[product].revenue += item.paymentValue || 0;
+      acc[product].quantity += item.saleItemQuantity || 0;
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(productData).map((product: any) => ({
+      ...product,
+      avgPrice: product.quantity > 0 ? product.revenue / product.quantity : 0
+    })).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 10);
+  }, [filteredData.sales]);
+
+  // Category performance
+  const categoryPerformance = useMemo(() => {
+    const categoryData = filteredData.sales.reduce((acc, item) => {
+      const category = item.saleItemCategory || 'Unknown';
+      if (!acc[category]) {
+        acc[category] = { name: category, revenue: 0, transactions: 0 };
+      }
+      acc[category].revenue += item.paymentValue || 0;
+      acc[category].transactions += 1;
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(categoryData).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 10);
+  }, [filteredData.sales]);
 
   // Location performance
   const locationPerformance = useMemo(() => {
@@ -342,42 +454,49 @@ export const ExecutiveSummarySection: React.FC = () => {
         </Tabs>
       </div>
 
-      {/* Key Performance Indicators */}
+      {/* Performance Summary */}
+      <PerformanceSummary timeframe={timeframe} metrics={metrics} />
+
+      {/* Key Performance Indicators with Circular Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KPICard
+        <CircularKPICard
           title="Total Revenue"
           value={formatCurrency(metrics.totalRevenue)}
+          percentage={Math.min((metrics.totalRevenue / 1000000) * 100, 100)}
           change={12.5}
           icon={<DollarSign className="w-8 h-8" />}
           color="from-green-500 to-emerald-600"
-          description={`Gross revenue (${timeframe})`}
+          description={`Net: ${formatCurrency(metrics.netRevenue)}`}
         />
         
-        <KPICard
+        <CircularKPICard
           title="Lead Conversion"
           value={`${metrics.conversionRate.toFixed(1)}%`}
+          percentage={metrics.conversionRate}
           change={5.2}
           icon={<Target className="w-8 h-8" />}
           color="from-purple-500 to-violet-600"
           description={`${filteredData.leads.filter(l => l.conversionStatus === 'Converted').length} converted`}
         />
         
-        <KPICard
+        <CircularKPICard
           title="Client Retention"
           value={`${metrics.retentionRate.toFixed(1)}%`}
+          percentage={metrics.retentionRate}
           change={-2.1}
           icon={<Users className="w-8 h-8" />}
           color="from-orange-500 to-red-600"
           description={`${filteredData.clients.filter(c => c.retentionStatus === 'Active').length} active clients`}
         />
         
-        <KPICard
+        <CircularKPICard
           title="Session Attendance"
           value={metrics.avgSessionAttendance.toFixed(1)}
+          percentage={Math.min((metrics.avgSessionAttendance / 20) * 100, 100)}
           change={8.7}
           icon={<Calendar className="w-8 h-8" />}
           color="from-blue-500 to-cyan-600"
-          description={`Avg per session (${metrics.totalSessions} total)`}
+          description={`${metrics.totalSessions} total sessions`}
         />
       </div>
 
@@ -432,21 +551,6 @@ export const ExecutiveSummarySection: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <InteractiveChart
-          title="Revenue & Discount Analysis"
-          data={filteredData.sales}
-          type="revenue"
-        />
-        
-        <InteractiveChart
-          title="Lead Conversion Trends"
-          data={filteredData.leads}
-          type="conversion"
-        />
       </div>
 
       {/* Combined Metrics Table */}
@@ -521,7 +625,78 @@ export const ExecutiveSummarySection: React.FC = () => {
               </div>
             </TabsContent>
 
-            {/* Add other tabs content as needed */}
+            <TabsContent value="products" className="mt-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="pb-3 font-semibold text-gray-700">Product</th>
+                      <th className="pb-3 font-semibold text-gray-700">Revenue</th>
+                      <th className="pb-3 font-semibold text-gray-700">Quantity Sold</th>
+                      <th className="pb-3 font-semibold text-gray-700">Avg Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {productPerformance.map((product: any, index) => (
+                      <tr key={product.name} className="border-b border-gray-100">
+                        <td className="py-3 font-medium text-gray-800">{product.name}</td>
+                        <td className="py-3 font-semibold text-green-600">{formatCurrency(product.revenue)}</td>
+                        <td className="py-3 text-gray-600">{formatNumber(product.quantity)}</td>
+                        <td className="py-3 text-gray-600">{formatCurrency(product.avgPrice)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="categories" className="mt-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="pb-3 font-semibold text-gray-700">Category</th>
+                      <th className="pb-3 font-semibold text-gray-700">Revenue</th>
+                      <th className="pb-3 font-semibold text-gray-700">Transactions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {categoryPerformance.map((category: any, index) => (
+                      <tr key={category.name} className="border-b border-gray-100">
+                        <td className="py-3 font-medium text-gray-800">{category.name}</td>
+                        <td className="py-3 font-semibold text-green-600">{formatCurrency(category.revenue)}</td>
+                        <td className="py-3 text-gray-600">{formatNumber(category.transactions)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="sources" className="mt-6">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="pb-3 font-semibold text-gray-700">Source</th>
+                      <th className="pb-3 font-semibold text-gray-700">Total Leads</th>
+                      <th className="pb-3 font-semibold text-gray-700">Converted</th>
+                      <th className="pb-3 font-semibold text-gray-700">Conversion Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...leadSources.top, ...leadSources.bottom].map((source: any, index) => (
+                      <tr key={source.name} className="border-b border-gray-100">
+                        <td className="py-3 font-medium text-gray-800">{source.name}</td>
+                        <td className="py-3 text-gray-600">{formatNumber(source.count)}</td>
+                        <td className="py-3 text-gray-600">{source.converted}</td>
+                        <td className="py-3 font-semibold text-blue-600">{source.conversionRate.toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </TabsContent>
           </Tabs>
         </CardContent>
       </Card>

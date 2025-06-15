@@ -1,5 +1,6 @@
 
 import React, { useEffect } from 'react';
+import { SectionLayout } from '@/components/layout/SectionLayout';
 import { TrainerPerformanceSection } from '@/components/dashboard/TrainerPerformanceSection';
 import { RefinedLoader } from '@/components/ui/RefinedLoader';
 import { usePayrollData } from '@/hooks/usePayrollData';
@@ -17,7 +18,11 @@ const TrainerPerformance = () => {
     return <RefinedLoader subtitle="Analyzing trainer performance metrics and insights..." />;
   }
 
-  return <TrainerPerformanceSection />;
+  return (
+    <SectionLayout title="Trainer Performance & Analytics">
+      <TrainerPerformanceSection />
+    </SectionLayout>
+  );
 };
 
 export default TrainerPerformance;

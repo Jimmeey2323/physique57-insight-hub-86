@@ -82,7 +82,7 @@ const DashboardTitle = () => {
       }
     }
   };
-  return <div className="flex items-center justify-center p-8">
+  return <div className="flex items-center justify-center p-1 my-0 px-0 py-px">
       <motion.div variants={containerVariants} initial="hidden" animate="visible" className="text-center max-w-6xl mx-auto">
         {/* Decorative border */}
         <motion.div variants={itemVariants} className="w-24 h-px bg-gradient-to-r from-transparent via-border to-transparent mx-auto mb-4" />
@@ -100,7 +100,7 @@ const DashboardTitle = () => {
         }} />
 
           {/* Title text */}
-          <motion.h1 variants={itemVariants} className="relative text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-2 tracking-tight">
+          <motion.h1 variants={itemVariants} className="relative text-7xl md:text-6xl lg:text-8xl font-bold text-foreground mb-2 -tracking-tighter ">
             <span className="inline-block">Physique{' '}</span>
             <motion.span className={`inline-block transition-colors duration-500 ${colors[colorIndex]}`} animate={{
             textShadow: ["0 0 20px rgba(59, 130, 246, 0.5)", "0 0 30px rgba(147, 51, 234, 0.5)", "0 0 20px rgba(236, 72, 153, 0.5)"]
@@ -108,7 +108,7 @@ const DashboardTitle = () => {
             duration: 1.5,
             repeat: Infinity,
             repeatType: "reverse"
-          }}>  57</motion.span>
+          }}> 57</motion.span>
             <span className="inline-block">, India</span>
           </motion.h1>
           
@@ -132,7 +132,7 @@ const DashboardTitle = () => {
         </div>
 
         {/* Stats section */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
+        <motion.div variants={itemVariants} className="grid grid-cols-3 md:grid-cols-3 gap-1 mt-2">
           <motion.div className="p-6 rounded-lg bg-card border border-border" whileHover={{
           scale: 1.02
         }} transition={{
@@ -148,12 +148,12 @@ const DashboardTitle = () => {
             <div className="text-sm text-muted-foreground">Conversions</div>
           </motion.div>
 
-          <motion.div className="p-6 rounded-lg bg-card border border-border" whileHover={{
+          <motion.div whileHover={{
           scale: 1.02
         }} transition={{
           type: "spring",
           stiffness: 300
-        }}>
+        }} className="p-6 rounded-lg bg-card border border-border">
             <div className="flex items-center justify-center mb-2">
               <Percent className="w-5 h-5 text-purple-400" />
             </div>

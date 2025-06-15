@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -62,6 +61,7 @@ const LeadsSectionContent: React.FC = () => {
   const [activeMetric, setActiveMetric] = useState<LeadsMetricType>('totalLeads');
   const [stageMetric, setStageMetric] = useState<LeadsMetricType>('totalLeads');
   const [sourceMetric, setSourceMetric] = useState<LeadsMetricType>('totalLeads');
+  const [pivotMetric, setPivotMetric] = useState<LeadsMetricType>('totalLeads');
   const [yoyMetric, setYoyMetric] = useState<TrainerMetricType>('totalCustomers');
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -223,6 +223,68 @@ const LeadsSectionContent: React.FC = () => {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
   }, [filteredData]);
+
+  // Pivot table data for source vs stage performance
+  const pivotTableData = useMemo(() => {
+    const pivotStats = filteredData.reduce((acc, item) => {
+      const source = item.source || 'Unknown';
+      const stage = item.stage || 'Unknown';
+      
+      if (!acc[source]) {
+        acc[source] = {};
+      }
+      if (!acc[source][stage]) {
+        acc[source][stage] = {
+          totalLeads: 0,
+          trialsCompleted: 0,
+          membershipsSold: 0,
+          ltvSum: 0,
+          visits: 0
+        };
+      }
+      
+      acc[source][stage].totalLeads++;
+      if (item.stage === 'Trial Completed') {
+        acc[source][stage].trialsCompleted++;
+      }
+      if (item.conversionStatus === 'Converted') {
+        acc[source][stage].membershipsSold++;
+      }
+      acc[source][stage].ltvSum += item.ltv || 0;
+      acc[source][stage].visits += item.visits || 0;
+      
+      return acc;
+    }, {} as Record<string, Record<string, any>>);
+
+    // Convert to the format expected by LeadPivotTable
+    const result: Record<string, Record<string, number>> = {};
+    Object.entries(pivotStats).forEach(([source, stages]) => {
+      result[source] = {};
+      Object.entries(stages).forEach(([stage, stats]) => {
+        switch (pivotMetric) {
+          case 'totalLeads':
+            result[source][stage] = stats.totalLeads;
+            break;
+          case 'leadToTrialConversion':
+            result[source][stage] = stats.totalLeads > 0 ? (stats.trialsCompleted / stats.totalLeads) * 100 : 0;
+            break;
+          case 'trialToMembershipConversion':
+            result[source][stage] = stats.trialsCompleted > 0 ? (stats.membershipsSold / stats.trialsCompleted) * 100 : 0;
+            break;
+          case 'ltv':
+            result[source][stage] = stats.totalLeads > 0 ? stats.ltvSum / stats.totalLeads : 0;
+            break;
+          case 'visitFrequency':
+            result[source][stage] = stats.totalLeads > 0 ? stats.visits / stats.totalLeads : 0;
+            break;
+          default:
+            result[source][stage] = stats.totalLeads;
+        }
+      });
+    });
+
+    return result;
+  }, [filteredData, pivotMetric]);
 
   // Stage performance data for month-on-month view
   const stagePerformanceData = useMemo(() => {
@@ -616,7 +678,13 @@ const LeadsSectionContent: React.FC = () => {
                   </div>
 
                   <div className="space-y-8">
-                    <LeadPivotTable data={filteredData} />
+                    <LeadPivotTable 
+                      data={pivotTableData}
+                      rowLabels={availableSources}
+                      columnLabels={availableStages}
+                      activeMetric={pivotMetric}
+                      onMetricChange={setPivotMetric}
+                    />
                     
                     <LeadDataTable
                       title="Lead Performance Analysis"

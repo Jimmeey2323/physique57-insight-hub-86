@@ -3,12 +3,14 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MetricCard } from './MetricCard';
 import { InteractiveChart } from './InteractiveChart';
+import { UnifiedTopBottomSellers } from './UnifiedTopBottomSellers';
+import { DataTable } from './DataTable';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { useLeadsData } from '@/hooks/useLeadsData';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
-import { SalesData, NewClientData, SessionData } from '@/types/dashboard';
+import { SalesData, NewClientData, SessionData, ChartDataPoint } from '@/types/dashboard';
 import { TrendingUp, Users, Calendar, Target, DollarSign, BarChart3 } from 'lucide-react';
 
 const ExecutiveSummarySection = () => {
@@ -34,7 +36,7 @@ const ExecutiveSummarySection = () => {
     // Session metrics
     const totalSessions = sessionsData.length;
     const totalCapacity = sessionsData.reduce((sum, session) => sum + (session.capacity || 0), 0);
-    const totalBooked = sessionsData.reduce((sum, session) => sum + (session.bookedCount || 0), 0);
+    const totalBooked = sessionsData.reduce((sum, session) => sum + (session.booked || 0), 0);
     const avgUtilization = totalCapacity > 0 ? (totalBooked / totalCapacity) * 100 : 0;
 
     // New client metrics
@@ -64,7 +66,7 @@ const ExecutiveSummarySection = () => {
       },
       {
         title: 'Session Utilization',
-        value: formatPercentage(avgUtilization),
+        value: formatPercentage(avgUtilization / 100),
         change: 5.7,
         description: 'Average class fill rate',
         calculation: 'Booked / Capacity across all sessions',
@@ -105,15 +107,27 @@ const ExecutiveSummarySection = () => {
     ];
   }, [salesData, newClientData, sessionsData]);
 
-  // Performance trends data
-  const performanceTrends = useMemo(() => {
+  // Performance trends data with proper date parsing
+  const performanceTrends = useMemo((): ChartDataPoint[] => {
     if (!salesData?.length) return [];
 
     const monthlyData = salesData.reduce((acc, item) => {
-      const date = new Date(item.paymentDate);
-      if (isNaN(date.getTime())) return acc;
+      // Enhanced date parsing to handle DD/MM/YYYY format
+      let itemDate: Date | null = null;
       
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (item.paymentDate) {
+        const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (ddmmyyyy) {
+          const [, day, month, year] = ddmmyyyy;
+          itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          itemDate = new Date(item.paymentDate);
+        }
+      }
+      
+      if (!itemDate || isNaN(itemDate.getTime())) return acc;
+      
+      const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
       
       if (!acc[monthKey]) {
         acc[monthKey] = { revenue: 0, transactions: 0 };
@@ -131,6 +145,46 @@ const ExecutiveSummarySection = () => {
       .map(([date, data]) => ({
         date,
         value: data.revenue,
+        category: 'Revenue'
+      }));
+  }, [salesData]);
+
+  // Revenue chart data
+  const revenueChartData = useMemo((): ChartDataPoint[] => {
+    if (!salesData?.length) return [];
+
+    const monthlyRevenue = salesData.reduce((acc, item) => {
+      let itemDate: Date | null = null;
+      
+      if (item.paymentDate) {
+        const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (ddmmyyyy) {
+          const [, day, month, year] = ddmmyyyy;
+          itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else {
+          itemDate = new Date(item.paymentDate);
+        }
+      }
+      
+      if (!itemDate || isNaN(itemDate.getTime())) return acc;
+      
+      const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!acc[monthKey]) {
+        acc[monthKey] = 0;
+      }
+      
+      acc[monthKey] += item.paymentValue || 0;
+      
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(monthlyRevenue)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-6)
+      .map(([date, value]) => ({
+        date,
+        value,
         category: 'Revenue'
       }));
   }, [salesData]);
@@ -189,13 +243,52 @@ const ExecutiveSummarySection = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <InteractiveChart
           title="Revenue Performance Trends"
-          data={performanceTrends}
+          data={revenueChartData}
           type="revenue"
         />
         <InteractiveChart
           title="Business Growth Overview"
           data={performanceTrends}
           type="performance"
+        />
+      </div>
+
+      {/* Top/Bottom Performers */}
+      <UnifiedTopBottomSellers 
+        data={salesData || []} 
+        onRowClick={(row) => console.log('Row clicked:', row)}
+      />
+
+      {/* Data Tables */}
+      <div className="space-y-8">
+        <DataTable
+          title="Executive Performance Summary"
+          data={salesData || []}
+          type="monthly"
+          filters={{
+            dateRange: { start: '', end: '' },
+            location: [],
+            category: [],
+            product: [],
+            soldBy: [],
+            paymentMethod: []
+          }}
+          onRowClick={(row) => console.log('Table row clicked:', row)}
+        />
+        
+        <DataTable
+          title="Category Performance Overview"
+          data={salesData || []}
+          type="category"
+          filters={{
+            dateRange: { start: '', end: '' },
+            location: [],
+            category: [],
+            product: [],
+            soldBy: [],
+            paymentMethod: []
+          }}
+          onRowClick={(row) => console.log('Category row clicked:', row)}
         />
       </div>
 

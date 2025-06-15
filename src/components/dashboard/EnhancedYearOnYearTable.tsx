@@ -1,5 +1,7 @@
-import React, { useMemo } from 'react';
+
+import React, { useMemo, useState } from 'react';
 import { SalesData, FilterOptions, YearOnYearMetricType, EnhancedYearOnYearTableProps } from '@/types/dashboard';
+import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
@@ -23,12 +25,35 @@ const groupDataByCategory = (data: SalesData[]) => {
 
 export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = ({
   data,
-  filters = { dateRange: { start: '', end: '' }, location: [], category: [], product: [], soldBy: [], paymentMethod: [] },
+  filters = { 
+    dateRange: { start: '', end: '' }, 
+    location: [], 
+    category: [], 
+    product: [], 
+    soldBy: [], 
+    paymentMethod: [] 
+  },
   onRowClick,
   collapsedGroups = new Set(),
   onGroupToggle = () => {},
-  selectedMetric = 'revenue'
+  selectedMetric: initialMetric = 'revenue'
 }) => {
+  const [selectedMetric, setSelectedMetric] = useState<YearOnYearMetricType>(initialMetric);
+
+  const parseDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    
+    // Handle DD/MM/YYYY format
+    const ddmmyyyy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (ddmmyyyy) {
+      const [, day, month, year] = ddmmyyyy;
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    
+    // Try other formats
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  };
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
     if (!items.length) return 0;
@@ -57,6 +82,10 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
         return totalTransactions > 0 ? totalItems / totalTransactions : 0;
       case 'vat':
         return items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
+      case 'netRevenue':
+        const gross = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+        const vat = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
+        return gross - vat;
       default:
         return 0;
     }
@@ -69,6 +98,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
       case 'asv':
       case 'atv':
       case 'vat':
+      case 'netRevenue':
         return formatCurrency(value);
       case 'transactions':
       case 'members':
@@ -84,7 +114,9 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     if (!Array.isArray(data)) return [];
     
     return data.filter(item => {
-      const paymentDate = new Date(item.paymentDate);
+      const paymentDate = parseDate(item.paymentDate);
+      if (!paymentDate) return false;
+
       const startDate = filters?.dateRange?.start ? new Date(filters.dateRange.start) : null;
       const endDate = filters?.dateRange?.end ? new Date(filters.dateRange.end) : null;
 
@@ -104,6 +136,25 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     });
   }, [data, filters]);
 
+  // Generate monthly data from Jan 2024 to Jan 2025
+  const monthlyData = useMemo(() => {
+    const months = [];
+    for (let year = 2024; year <= 2025; year++) {
+      const startMonth = year === 2024 ? 1 : 1;
+      const endMonth = year === 2025 ? 1 : 12;
+      
+      for (let month = startMonth; month <= endMonth; month++) {
+        months.push({
+          key: `${year}-${String(month).padStart(2, '0')}`,
+          display: `${new Date(year, month - 1).toLocaleString('default', { month: 'short' })} ${year}`,
+          year,
+          month
+        });
+      }
+    }
+    return months.reverse(); // Start with Jan 2025
+  }, []);
+
   const processedData = useMemo(() => {
     const grouped = groupDataByCategory(filteredData);
     
@@ -111,62 +162,72 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
       const categoryData = {
         category,
         products: Object.entries(products).map(([product, items]) => {
-          const currentYearItems = (items as SalesData[]).filter(item => {
-            const year = new Date(item.paymentDate).getFullYear();
-            return year === 2024;
-          });
+          const monthlyValues: Record<string, number> = {};
           
-          const lastYearItems = (items as SalesData[]).filter(item => {
-            const year = new Date(item.paymentDate).getFullYear();
-            return year === 2023;
+          // Calculate values for each month
+          monthlyData.forEach(({ key, year, month }) => {
+            const monthItems = (items as SalesData[]).filter(item => {
+              const itemDate = parseDate(item.paymentDate);
+              return itemDate && 
+                     itemDate.getFullYear() === year && 
+                     itemDate.getMonth() + 1 === month;
+            });
+            
+            monthlyValues[key] = getMetricValue(monthItems, selectedMetric);
           });
-
-          const currentValue = getMetricValue(currentYearItems, selectedMetric);
-          const lastYearValue = getMetricValue(lastYearItems, selectedMetric);
-          const change = lastYearValue !== 0 ? ((currentValue - lastYearValue) / lastYearValue) * 100 : 0;
 
           return {
             product,
-            currentYear: currentValue,
-            lastYear: lastYearValue,
-            change,
+            monthlyValues,
             rawData: items
           };
         })
       };
 
-      // Calculate category totals
-      const categoryCurrentYear = categoryData.products.reduce((sum, p) => sum + p.currentYear, 0);
-      const categoryLastYear = categoryData.products.reduce((sum, p) => sum + p.lastYear, 0);
-      const categoryChange = categoryLastYear !== 0 ? ((categoryCurrentYear - categoryLastYear) / categoryLastYear) * 100 : 0;
+      // Calculate category totals for each month
+      const categoryMonthlyValues: Record<string, number> = {};
+      monthlyData.forEach(({ key }) => {
+        categoryMonthlyValues[key] = categoryData.products.reduce(
+          (sum, p) => sum + (p.monthlyValues[key] || 0), 
+          0
+        );
+      });
 
       return {
         ...categoryData,
-        currentYear: categoryCurrentYear,
-        lastYear: categoryLastYear,
-        change: categoryChange
+        monthlyValues: categoryMonthlyValues
       };
     });
-  }, [filteredData, selectedMetric]);
+  }, [filteredData, selectedMetric, monthlyData]);
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col gap-4">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Year-on-Year Performance Analysis
+          </h3>
+        </div>
+        
+        <YearOnYearMetricTabs
+          value={selectedMetric}
+          onValueChange={setSelectedMetric}
+          className="w-full"
+        />
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full bg-white border border-gray-200 rounded-lg shadow-sm">
           <thead className="bg-gradient-to-r from-blue-50 to-blue-100">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-bold text-blue-800 uppercase tracking-wider border-b border-blue-200">
+              <th className="px-6 py-4 text-left text-xs font-bold text-blue-800 uppercase tracking-wider border-b border-blue-200 sticky left-0 bg-gradient-to-r from-blue-50 to-blue-100 z-10">
                 Product/Category
               </th>
-              <th className="px-6 py-4 text-right text-xs font-bold text-blue-800 uppercase tracking-wider border-b border-blue-200">
-                2024
-              </th>
-              <th className="px-6 py-4 text-right text-xs font-bold text-blue-800 uppercase tracking-wider border-b border-blue-200">
-                2023
-              </th>
-              <th className="px-6 py-4 text-right text-xs font-bold text-blue-800 uppercase tracking-wider border-b border-blue-200">
-                Change %
-              </th>
+              {monthlyData.map(({ key, display }) => (
+                <th key={key} className="px-4 py-4 text-center text-xs font-bold text-blue-800 uppercase tracking-wider border-b border-blue-200 min-w-[100px]">
+                  {display}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
@@ -176,7 +237,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                   className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-200 group"
                   onClick={() => onGroupToggle(categoryGroup.category)}
                 >
-                  <td className="px-6 py-4 font-semibold text-gray-900 group-hover:text-blue-700">
+                  <td className="px-6 py-4 font-semibold text-gray-900 group-hover:text-blue-700 sticky left-0 bg-gray-50 z-10">
                     <div className="flex items-center">
                       {collapsedGroups.has(categoryGroup.category) ? (
                         <ChevronRight className="w-4 h-4 mr-2 text-gray-500" />
@@ -186,17 +247,11 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                       {categoryGroup.category}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right font-semibold text-gray-900">
-                    {formatMetricValue(categoryGroup.currentYear, selectedMetric)}
-                  </td>
-                  <td className="px-6 py-4 text-right font-semibold text-gray-900">
-                    {formatMetricValue(categoryGroup.lastYear, selectedMetric)}
-                  </td>
-                  <td className="px-6 py-4 text-right font-semibold">
-                    <span className={`${categoryGroup.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {categoryGroup.change > 0 ? '+' : ''}{formatPercentage(categoryGroup.change / 100)}
-                    </span>
-                  </td>
+                  {monthlyData.map(({ key }) => (
+                    <td key={key} className="px-4 py-4 text-center font-semibold text-gray-900">
+                      {formatMetricValue(categoryGroup.monthlyValues[key] || 0, selectedMetric)}
+                    </td>
+                  ))}
                 </tr>
 
                 {!collapsedGroups.has(categoryGroup.category) && categoryGroup.products.map((product) => (
@@ -205,20 +260,14 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                     className="hover:bg-blue-50 cursor-pointer border-b border-gray-100"
                     onClick={() => onRowClick(product.rawData)}
                   >
-                    <td className="px-8 py-3 text-sm text-gray-700 hover:text-blue-700">
+                    <td className="px-8 py-3 text-sm text-gray-700 hover:text-blue-700 sticky left-0 bg-white z-10">
                       {product.product}
                     </td>
-                    <td className="px-6 py-3 text-right text-sm text-gray-900">
-                      {formatMetricValue(product.currentYear, selectedMetric)}
-                    </td>
-                    <td className="px-6 py-3 text-right text-sm text-gray-900">
-                      {formatMetricValue(product.lastYear, selectedMetric)}
-                    </td>
-                    <td className="px-6 py-3 text-right text-sm">
-                      <span className={`${product.change >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {product.change > 0 ? '+' : ''}{formatPercentage(product.change / 100)}
-                      </span>
-                    </td>
+                    {monthlyData.map(({ key }) => (
+                      <td key={key} className="px-4 py-3 text-center text-sm text-gray-900">
+                        {formatMetricValue(product.monthlyValues[key] || 0, selectedMetric)}
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </React.Fragment>

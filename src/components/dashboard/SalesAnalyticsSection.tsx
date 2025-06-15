@@ -411,8 +411,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 type="monthly"
                 filters={filters}
                 onRowClick={handleTableRowClick}
-                collapsedGroups={collapsedGroups}
-                onGroupToggle={handleGroupToggle}
               />
               
               <DataTable
@@ -421,8 +419,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 type="product"
                 filters={filters}
                 onRowClick={handleTableRowClick}
-                collapsedGroups={collapsedGroups}
-                onGroupToggle={handleGroupToggle}
               />
               
               <DataTable
@@ -431,8 +427,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 type="category"
                 filters={filters}
                 onRowClick={handleTableRowClick}
-                collapsedGroups={collapsedGroups}
-                onGroupToggle={handleGroupToggle}
               />
               
               <EnhancedYearOnYearTable

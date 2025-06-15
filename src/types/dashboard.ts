@@ -214,7 +214,7 @@ export interface DataTableProps {
 // Enhanced Year-on-Year table props interface
 export interface EnhancedYearOnYearTableProps {
   data: SalesData[];
-  filters: FilterOptions;
+  filters?: FilterOptions;
   onRowClick: (row: any) => void;
   collapsedGroups?: Set<string>;
   onGroupToggle?: (groupKey: string) => void;

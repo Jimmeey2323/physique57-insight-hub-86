@@ -29,7 +29,7 @@ export const PowerCycleVsBarreSection: React.FC = () => {
   const [currentTheme, setCurrentTheme] = useState('classic');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [drillDownData, setDrillDownData] = useState<any>(null);
-  const [drillDownType, setDrillDownType] = useState<'metric' | 'trainer' | 'class'>('metric');
+  const [drillDownType, setDrillDownType] = useState<'metric' | 'category' | 'product' | 'member'>('metric');
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: { start: '2025-01-01', end: '2025-05-31' },
     location: [],
@@ -39,7 +39,7 @@ export const PowerCycleVsBarreSection: React.FC = () => {
     paymentMethod: []
   });
 
-  const { data: payrollData, loading: payrollLoading } = usePayrollData();
+  const { data: payrollData, isLoading: payrollLoading } = usePayrollData();
   const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
   const { data: salesData } = useGoogleSheets();
 
@@ -214,6 +214,27 @@ export const PowerCycleVsBarreSection: React.FC = () => {
     setDrillDownType('metric');
   };
 
+  // Transform sessionsData to match dashboard SessionData type
+  const transformedSessions = useMemo(() => {
+    return filteredSessions.map(session => ({
+      sessionId: session.sessionId || '',
+      date: session.date || '',
+      time: session.time || '',
+      classType: session.classType || '',
+      cleanedClass: session.cleanedClass || '',
+      instructor: session.trainerName || '',
+      location: session.location || '',
+      capacity: session.capacity || 0,
+      booked: session.bookedCount || 0,
+      checkedIn: session.checkedInCount || 0,
+      checkedInCount: session.checkedInCount || 0,
+      sessionCount: 1,
+      fillPercentage: session.fillPercentage || 0,
+      waitlist: 0,
+      noShows: (session.bookedCount || 0) - (session.checkedInCount || 0)
+    }));
+  }, [filteredSessions]);
+
   if (payrollLoading || sessionsLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -286,7 +307,7 @@ export const PowerCycleVsBarreSection: React.FC = () => {
               sessionsData={filteredSessions}
               onRowClick={(row) => {
                 setDrillDownData(row);
-                setDrillDownType('trainer');
+                setDrillDownType('category');
               }}
             />
 
@@ -298,11 +319,11 @@ export const PowerCycleVsBarreSection: React.FC = () => {
 
             <PowerCycleVsBarreTables
               payrollData={filteredData}
-              sessionsData={filteredSessions}
+              sessionsData={transformedSessions}
               filters={filters}
               onRowClick={(row) => {
                 setDrillDownData(row);
-                setDrillDownType('class');
+                setDrillDownType('product');
               }}
             />
           </TabsContent>

@@ -415,6 +415,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               />
               
               <DataTable
+                title="Product Performance Analysis"
+                data={filteredData}
+                type="product"
+                filters={filters}
+                onRowClick={handleTableRowClick}
+              />
+              
+              <DataTable
                 title="Category Performance Analysis (Ungrouped)"
                 data={filteredData}
                 type="category"
@@ -422,17 +430,21 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
                 onRowClick={handleTableRowClick}
               />
               
-              <EnhancedYearOnYearTable
-                data={historicData}
-                filters={filters}
-                selectedMetric={activeYoyMetric}
-                onRowClick={(row) => {
-                  setDrillDownData({ name: 'Year-on-Year', ...row });
-                  setDrillDownType('product');
-                }}
-                collapsedGroups={collapsedGroups}
-                onGroupToggle={handleGroupToggle}
-              />
+              <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+                <CardContent className="p-0">
+                  <EnhancedYearOnYearTable
+                    data={historicData}
+                    filters={filters}
+                    selectedMetric={activeYoyMetric}
+                    onRowClick={(row) => {
+                      setDrillDownData({ name: 'Year-on-Year', ...row });
+                      setDrillDownType('product');
+                    }}
+                    collapsedGroups={collapsedGroups}
+                    onGroupToggle={handleGroupToggle}
+                  />
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
         ))}

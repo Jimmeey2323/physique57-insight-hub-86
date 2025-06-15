@@ -5,133 +5,25 @@ import DashboardTitle from '@/components/ui/DashboardTitle';
 import { DashboardGrid } from '@/components/dashboard/DashboardGrid';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { RefinedLoader } from '@/components/ui/RefinedLoader';
+
 const Index = () => {
   const navigate = useNavigate();
-  const {
-    data,
-    loading,
-    error,
-    refetch
-  } = useGoogleSheets();
+  const { data, loading, error, refetch } = useGoogleSheets();
+
   const handleSectionClick = (sectionId: string) => {
     navigate(`/${sectionId}`);
   };
+
   if (loading) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex items-center justify-center relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-r from-slate-800/20 to-gray-800/20 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-r from-slate-900/20 to-gray-900/20 rounded-full blur-3xl animate-pulse animation-delay-2000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-slate-700/30 to-gray-700/30 rounded-full blur-3xl animate-pulse animation-delay-1000"></div>
-        </div>
-
-        {/* Main Loader Container */}
-        <div className="relative z-10 text-center space-y-12">
-          {/* Beautiful Modern Loader */}
-          <div className="relative flex items-center justify-center">
-            {/* Outer rotating rings */}
-            <div className="absolute w-48 h-48">
-              <div className="absolute inset-0 border-4 border-transparent rounded-full animate-spin" style={{
-              background: 'conic-gradient(from 0deg, transparent, #1e293b, #475569, transparent)',
-              animationDuration: '3s'
-            }}>
-              </div>
-            </div>
-            <div className="absolute w-40 h-40">
-              <div className="absolute inset-0 border-3 border-transparent rounded-full animate-spin" style={{
-              background: 'conic-gradient(from 180deg, transparent, #374151, #6b7280, transparent)',
-              animationDuration: '2s',
-              animationDirection: 'reverse'
-            }}>
-              </div>
-            </div>
-            <div className="absolute w-32 h-32">
-              <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" style={{
-              background: 'conic-gradient(from 90deg, transparent, #4b5563, #9ca3af, transparent)',
-              animationDuration: '4s'
-            }}>
-              </div>
-            </div>
-            
-            {/* Center circle with 57 - NO FADING */}
-            <div className="relative w-28 h-28 bg-gradient-to-br from-slate-900 via-gray-900 to-black rounded-full flex items-center justify-center shadow-2xl border-2 border-slate-700/50">
-              {/* Inner glow ring */}
-              <div className="absolute inset-1 bg-gradient-to-br from-slate-600/30 to-transparent rounded-full animate-spin" style={{
-              animationDuration: '8s'
-            }}></div>
-              
-              {/* Subtle pulsing inner ring */}
-              <div className="absolute inset-2 rounded-full border border-slate-500/30 animate-pulse" style={{
-              animationDuration: '2s'
-            }}></div>
-              
-              {/* 57 Text - Bigger and NO FADING */}
-              <div className="relative z-10">
-                <span className="text-5xl font-bold text-white font-serif tracking-tight drop-shadow-2xl">57</span>
-              </div>
-              
-              {/* Rotating subtle highlight */}
-              <div className="absolute top-2 left-2 w-2 h-2 bg-white/40 rounded-full animate-spin" style={{
-              animationDuration: '3s'
-            }}></div>
-            </div>
-            
-            {/* Orbiting particles with dark colors */}
-            <div className="absolute w-3 h-3 bg-slate-600 rounded-full shadow-lg animate-spin" style={{
-            top: '-20px',
-            right: '30px',
-            animationDuration: '4s',
-            transformOrigin: '0 140px'
-          }}>
-            </div>
-            <div className="absolute w-2 h-2 bg-gray-700 rounded-full shadow-lg animate-spin" style={{
-            bottom: '-15px',
-            left: '35px',
-            animationDuration: '3s',
-            animationDirection: 'reverse',
-            transformOrigin: '0 -120px'
-          }}>
-            </div>
-            <div className="absolute w-2.5 h-2.5 bg-slate-800 rounded-full shadow-lg animate-spin" style={{
-            top: '40px',
-            left: '-25px',
-            animationDuration: '5s',
-            transformOrigin: '100px 0'
-          }}>
-            </div>
-          </div>
-
-          {/* Elegant Brand Text */}
-          <div className="space-y-4">
-            <h1 className="text-3xl font-light text-slate-800 tracking-wide font-serif">
-              <span className="font-extralight">Physique</span>{' '}
-              <span className="font-bold bg-gradient-to-r from-slate-800 via-gray-800 to-black bg-clip-text text-transparent">57</span>
-            </h1>
-            <p className="text-lg text-slate-600/80 font-light">
-              Loading your dashboard...
-            </p>
-          </div>
-
-          {/* Animated dots with dark colors */}
-          <div className="flex justify-center space-x-3">
-            <div className="w-3 h-3 bg-gradient-to-r from-slate-600 to-slate-700 rounded-full animate-bounce shadow-lg"></div>
-            <div className="w-3 h-3 bg-gradient-to-r from-gray-600 to-gray-700 rounded-full animate-bounce shadow-lg animation-delay-1000"></div>
-            <div className="w-3 h-3 bg-gradient-to-r from-slate-700 to-slate-800 rounded-full animate-bounce shadow-lg animation-delay-2000"></div>
-          </div>
-
-          {/* Progress bar with dark gradient */}
-          <div className="w-64 mx-auto">
-            <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
-              <div className="h-full bg-gradient-to-r from-slate-700 via-gray-700 to-slate-800 rounded-full animate-pulse"></div>
-            </div>
-          </div>
-        </div>
-      </div>;
+    return <RefinedLoader subtitle="Loading your dashboard..." />;
   }
+
   if (error) {
-    return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 flex items-center justify-center p-4">
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 flex items-center justify-center p-4">
         <Card className="p-12 bg-white/95 backdrop-blur-sm shadow-2xl border-0 rounded-2xl max-w-lg">
           <CardContent className="text-center space-y-6">
             <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
@@ -145,9 +37,12 @@ const Index = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>;
+      </div>
+    );
   }
-  return <div className="min-h-screen bg-white relative overflow-hidden">
+
+  return (
+    <div className="min-h-screen bg-white relative overflow-hidden">
       {/* Refined Background */}
       <div className="absolute inset-0 overflow-hidden">
         {/* Subtle Gradient Background */}
@@ -160,9 +55,7 @@ const Index = () => {
             <rect x="80" y="140" width="240" height="6" rx="3" fill="currentColor" className="text-slate-300" />
             
             {/* Refined Woman Figure */}
-            <g className="animate-pulse" style={{
-            animationDuration: '6s'
-          }}>
+            <g className="animate-pulse" style={{ animationDuration: '6s' }}>
               {/* Head */}
               <circle cx="200" cy="90" r="22" fill="currentColor" className="text-slate-400" />
               
@@ -261,6 +154,8 @@ const Index = () => {
           animation: color-cycle 4s infinite ease-in-out;
         }
       `}</style>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;

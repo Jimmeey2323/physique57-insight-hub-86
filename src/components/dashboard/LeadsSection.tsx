@@ -22,6 +22,7 @@ import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { LeadDetailedFilterSection } from './LeadDetailedFilterSection';
 import { LeadPivotTable } from './LeadPivotTable';
 import { LeadYearOnYearSourceTable } from './LeadYearOnYearSourceTable';
+import { RefinedLoader } from '@/components/ui/RefinedLoader';
 
 const locations = [
   { 
@@ -420,19 +421,7 @@ const LeadsSectionContent: React.FC = () => {
   }, [filteredData, sourceMetric]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50/30 flex items-center justify-center">
-        <Card className="p-8 bg-white shadow-lg">
-          <CardContent className="flex items-center gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            <div>
-              <p className="text-lg font-semibold text-gray-800">Loading Leads Data</p>
-              <p className="text-sm text-gray-600">Fetching lead performance metrics...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <RefinedLoader subtitle="Fetching lead performance metrics..." />;
   }
 
   if (error) {

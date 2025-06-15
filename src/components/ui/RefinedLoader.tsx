@@ -23,74 +23,43 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
 
       {/* Main Loader Container */}
       <div className="relative z-10 text-center space-y-16">
-        {/* Sophisticated Multi-Layer Loader */}
+        {/* P57 Animated Loader */}
         <div className="relative flex items-center justify-center">
-          {/* Outer rotating rings with gradient borders */}
-          <div className="absolute w-48 h-48 opacity-40">
-            <div className="absolute inset-0 rounded-full border-2 border-transparent animate-spin bg-gradient-to-r from-blue-400 via-purple-500 to-indigo-600 p-1" style={{ animationDuration: '6s' }}>
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20"></div>
-            </div>
-          </div>
-          
-          <div className="absolute w-36 h-36 opacity-50">
-            <div className="absolute inset-0 rounded-full border-2 border-transparent animate-spin bg-gradient-to-r from-purple-400 via-indigo-500 to-blue-600 p-1" style={{ animationDuration: '4s', animationDirection: 'reverse' }}>
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20"></div>
-            </div>
-          </div>
-          
-          <div className="absolute w-24 h-24 opacity-60">
-            <div className="absolute inset-0 rounded-full border-2 border-transparent animate-spin bg-gradient-to-r from-indigo-400 via-blue-500 to-purple-600 p-1" style={{ animationDuration: '3s' }}>
-              <div className="w-full h-full rounded-full bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20"></div>
-            </div>
-          </div>
-
-          {/* Premium Center Logo */}
-          <div className="relative w-16 h-16 bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 rounded-full flex items-center justify-center shadow-2xl border-2 border-white/20 backdrop-blur-sm">
-            {/* Inner glow effect */}
-            <div className="absolute inset-1 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-indigo-500/10 rounded-full animate-pulse" style={{ animationDuration: '2s' }}></div>
+          <div className="p57-loader">
+            <svg height="0" width="0" viewBox="0 0 64 64" className="absolute">
+              <defs xmlns="http://www.w3.org/2000/svg">
+                <linearGradient gradientUnits="userSpaceOnUse" y2="2" x2="0" y1="62" x1="0" id="b">
+                  <stop stopColor="#973BED"></stop>
+                  <stop stopColor="#007CFF" offset="1"></stop>
+                </linearGradient>
+                <linearGradient gradientUnits="userSpaceOnUse" y2="0" x2="0" y1="64" x1="0" id="c">
+                  <stop stopColor="#FFC800"></stop>
+                  <stop stopColor="#F0F" offset="1"></stop>
+                  <animateTransform repeatCount="indefinite" keySplines=".42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1" keyTimes="0; 0.125; 0.25; 0.375; 0.5; 0.625; 0.75; 0.875; 1" dur="8s" values="0 32 32;-270 32 32;-270 32 32;-540 32 32;-540 32 32;-810 32 32;-810 32 32;-1080 32 32;-1080 32 32" type="rotate" attributeName="gradientTransform"></animateTransform>
+                </linearGradient>
+                <linearGradient gradientUnits="userSpaceOnUse" y2="2" x2="0" y1="62" x1="0" id="d">
+                  <stop stopColor="#00E0ED"></stop>
+                  <stop stopColor="#00DA72" offset="1"></stop>
+                </linearGradient>
+              </defs>
+            </svg>
             
-            {/* Elegant inner ring */}
-            <div className="absolute inset-2 rounded-full border border-white/10"></div>
+            {/* P Letter */}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 64 64" height="64" width="64" className="inline-block">
+              <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="8" stroke="url(#b)" d="M 8,4 h 24 c 11.045695,0 20,8.954305 20,20 0,11.045695 -8.954305,20 -20,20 H 16 V 56 H 8 Z M 16,12 V 36 H 32 c 6.627417,0 12,-5.372583 12,-12 0,-6.627417 -5.372583,-12 -12,-12 z" className="dash" pathLength="360"></path>
+            </svg>
             
-            {/* Premium 57 Text with gradient */}
-            <div className="relative z-10">
-              <span className="text-2xl font-light tracking-wider bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent animate-shimmer" 
-                    style={{ 
-                      fontFamily: 'ui-serif, serif',
-                      textShadow: '0 0 20px rgba(255,255,255,0.2)'
-                    }}>57</span>
-            </div>
+            {/* 5 Number */}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 64 64" height="64" width="64" className="inline-block">
+              <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="10" stroke="url(#c)" d="M 32 32 m 0 -27 a 27 27 0 1 1 0 54 a 27 27 0 1 1 0 -54" className="spin" pathLength="360"></path>
+            </svg>
             
-            {/* Sophisticated highlight elements */}
-            <div className="absolute top-1.5 right-1.5 w-1 h-1 bg-white/60 rounded-full animate-pulse" style={{ animationDuration: '3s' }}></div>
-            <div className="absolute bottom-1.5 left-1.5 w-0.5 h-0.5 bg-blue-300/40 rounded-full animate-pulse" style={{ animationDuration: '4s', animationDelay: '1.5s' }}></div>
-          </div>
-          
-          {/* Premium orbiting particles */}
-          <div className="absolute w-2 h-2 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full shadow-lg animate-spin opacity-70" 
-               style={{
-                 top: '-12px',
-                 right: '20px',
-                 animationDuration: '8s',
-                 transformOrigin: '0 120px'
-               }}>
-          </div>
-          <div className="absolute w-1.5 h-1.5 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full shadow-md animate-spin opacity-60" 
-               style={{
-                 bottom: '-8px',
-                 left: '25px',
-                 animationDuration: '6s',
-                 animationDirection: 'reverse',
-                 transformOrigin: '0 -110px'
-               }}>
-          </div>
-          <div className="absolute w-1 h-1 bg-gradient-to-r from-indigo-600 to-blue-700 rounded-full shadow-sm animate-spin opacity-50" 
-               style={{
-                 top: '30px',
-                 left: '-15px',
-                 animationDuration: '10s',
-                 transformOrigin: '90px 0'
-               }}>
+            <div className="w-2"></div>
+            
+            {/* 7 Number */}
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 64 64" height="64" width="64" className="inline-block">
+              <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="8" stroke="url(#d)" d="M 8,4 H 56 L 32,60 H 24 L 44,12 H 8 Z" className="dash" pathLength="360"></path>
+            </svg>
           </div>
         </div>
 
@@ -122,8 +91,91 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
         </div>
       </div>
 
-      {/* Premium Animation Styles */}
+      {/* Animation Styles */}
       <style>{`
+        .p57-loader {
+          display: flex;
+          margin: 0.25em 0;
+          align-items: center;
+          justify-content: center;
+          scale: 1.5;
+        }
+
+        .w-2 {
+          width: 0.5em;
+        }
+
+        .absolute {
+          position: absolute;
+        }
+
+        .inline-block {
+          display: inline-block;
+        }
+
+        .dash {
+          animation: dashArray 2s ease-in-out infinite,
+            dashOffset 2s linear infinite;
+        }
+
+        .spin {
+          animation: spinDashArray 2s ease-in-out infinite,
+            spin 8s ease-in-out infinite,
+            dashOffset 2s linear infinite;
+          transform-origin: center;
+        }
+
+        @keyframes dashArray {
+          0% {
+            stroke-dasharray: 0 1 359 0;
+          }
+          50% {
+            stroke-dasharray: 0 359 1 0;
+          }
+          100% {
+            stroke-dasharray: 359 1 0 0;
+          }
+        }
+
+        @keyframes spinDashArray {
+          0% {
+            stroke-dasharray: 270 90;
+          }
+          50% {
+            stroke-dasharray: 0 360;
+          }
+          100% {
+            stroke-dasharray: 270 90;
+          }
+        }
+
+        @keyframes dashOffset {
+          0% {
+            stroke-dashoffset: 365;
+          }
+          100% {
+            stroke-dashoffset: 5;
+          }
+        }
+
+        @keyframes spin {
+          0% {
+            rotate: 0deg;
+          }
+          12.5%, 25% {
+            rotate: 270deg;
+          }
+          37.5%, 50% {
+            rotate: 540deg;
+          }
+          62.5%, 75% {
+            rotate: 810deg;
+          }
+          87.5%, 100% {
+            rotate: 1080deg;
+          }
+        }
+
         @keyframes shimmer {
           0% { background-position: -200% center; }
           100% { background-position: 200% center; }

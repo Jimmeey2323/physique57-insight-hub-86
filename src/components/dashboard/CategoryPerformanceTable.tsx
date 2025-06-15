@@ -3,9 +3,11 @@ import React, { useMemo, useState } from 'react';
 import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-import { Grid, TrendingUp, Star, Package } from 'lucide-react';
+import { Grid, TrendingUp, TrendingDown, Star, Package, Edit3, Save, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 
 interface CategoryPerformanceTableProps {
   data: SalesData[];
@@ -28,6 +30,19 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
   selectedMetric: initialMetric = 'revenue'
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<YearOnYearMetricType>(initialMetric);
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+  const [summaryText, setSummaryText] = useState('• Category diversification showing strong performance\n• High-value categories maintaining steady growth\n• Opportunities identified in underperforming segments');
+
+  const parseDate = (dateStr: string): Date | null => {
+    if (!dateStr) return null;
+    const ddmmyyyy = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (ddmmyyyy) {
+      const [, day, month, year] = ddmmyyyy;
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+    }
+    const date = new Date(dateStr);
+    return isNaN(date.getTime()) ? null : date;
+  };
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
     if (!items.length) return 0;
@@ -64,6 +79,40 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
     }
   };
 
+  // Generate monthly data from Jun 2025 to Jan 2024
+  const monthlyData = useMemo(() => {
+    const months = [];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // 2025 months (Jun to Dec)
+    for (let i = 5; i >= 0; i--) {
+      const monthName = monthNames[11 - i];
+      const monthNum = 12 - i;
+      months.push({
+        key: `2025-${String(monthNum).padStart(2, '0')}`,
+        display: `${monthName} 2025`,
+        year: 2025,
+        month: monthNum,
+        quarter: Math.ceil(monthNum / 3)
+      });
+    }
+    
+    // 2024 months (Dec to Jan)
+    for (let i = 11; i >= 0; i--) {
+      const monthName = monthNames[i];
+      const monthNum = i + 1;
+      months.push({
+        key: `2024-${String(monthNum).padStart(2, '0')}`,
+        display: `${monthName} 2024`,
+        year: 2024,
+        month: monthNum,
+        quarter: Math.ceil(monthNum / 3)
+      });
+    }
+    
+    return months;
+  }, []);
+
   const processedData = useMemo(() => {
     const categoryGroups = data.reduce((acc: Record<string, SalesData[]>, item) => {
       const category = item.cleanedCategory || 'Uncategorized';
@@ -75,6 +124,16 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
     }, {});
 
     const categoryData = Object.entries(categoryGroups).map(([category, items]) => {
+      const monthlyValues: Record<string, number> = {};
+
+      monthlyData.forEach(({ key, year, month }) => {
+        const monthItems = items.filter(item => {
+          const itemDate = parseDate(item.paymentDate);
+          return itemDate && itemDate.getFullYear() === year && itemDate.getMonth() + 1 === month;
+        });
+        monthlyValues[key] = getMetricValue(monthItems, selectedMetric);
+      });
+
       const metricValue = getMetricValue(items, selectedMetric);
       const revenue = getMetricValue(items, 'revenue');
       const transactions = getMetricValue(items, 'transactions');
@@ -94,23 +153,13 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
         members,
         uniqueProducts,
         avgRevenuePerProduct,
+        monthlyValues,
         rawData: items
       };
     });
 
     return categoryData.sort((a, b) => b.metricValue - a.metricValue);
-  }, [data, selectedMetric]);
-
-  // Calculate summary
-  const summary = useMemo(() => {
-    const totalRevenue = processedData.reduce((sum, item) => sum + item.revenue, 0);
-    const totalTransactions = processedData.reduce((sum, item) => sum + item.transactions, 0);
-    const totalMembers = processedData.reduce((sum, item) => sum + item.members, 0);
-    const totalProducts = processedData.reduce((sum, item) => sum + item.uniqueProducts, 0);
-    const topPerformer = processedData[0];
-    
-    return { totalRevenue, totalTransactions, totalMembers, totalProducts, topPerformer };
-  }, [processedData]);
+  }, [data, selectedMetric, monthlyData]);
 
   const getPerformanceIndicator = (value: number, index: number) => {
     if (index === 0) return <Star className="w-4 h-4 text-yellow-500" />;
@@ -118,18 +167,51 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
     return null;
   };
 
+  const getGrowthIndicator = (current: number, previous: number) => {
+    if (previous === 0) return null;
+    const growth = ((current - previous) / previous) * 100;
+    if (growth > 0) {
+      return <TrendingUp className="w-3 h-3 text-green-500 inline ml-1" />;
+    } else if (growth < 0) {
+      return <TrendingDown className="w-3 h-3 text-red-500 inline ml-1" />;
+    }
+    return null;
+  };
+
+  const saveSummary = () => {
+    setIsEditingSummary(false);
+    localStorage.setItem('categoryPerformanceSummary', summaryText);
+  };
+
+  const cancelEdit = () => {
+    setIsEditingSummary(false);
+    const saved = localStorage.getItem('categoryPerformanceSummary');
+    if (saved) setSummaryText(saved);
+  };
+
+  // Group months by quarters and years
+  const groupedMonths = useMemo(() => {
+    const quarters: Record<string, typeof monthlyData> = {};
+    monthlyData.forEach(month => {
+      const quarterKey = `${month.year}-Q${month.quarter}`;
+      if (!quarters[quarterKey]) quarters[quarterKey] = [];
+      quarters[quarterKey].push(month);
+    });
+    return quarters;
+  }, [monthlyData]);
+
   return (
-    <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+    <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl rounded-xl">
       <CardHeader className="pb-4">
         <div className="flex flex-col gap-4">
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Grid className="w-5 h-5 text-purple-600" />
+                <Grid className="w-5 h-5 text-blue-600" />
                 Category Performance Analysis
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Detailed performance metrics for all categories ranked by selected metric
+                Monthly category performance metrics with quarterly grouping
               </p>
             </div>
           </div>
@@ -139,23 +221,33 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
       </CardHeader>
 
       <CardContent className="p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-lg">
           <table className="min-w-full bg-white border-t border-gray-200 rounded-lg">
-            <thead className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider">
+            <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left">Rank</th>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left">Category</th>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-center">Products</th>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-center">Revenue</th>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-center">Transactions</th>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-center">Members</th>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-center">Avg/Product</th>
-                <th className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-center">{selectedMetric.toUpperCase()}</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg">Rank</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left">Category</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-center">Products</th>
+                {Object.entries(groupedMonths).map(([quarterKey, months]) => (
+                  <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
+                    {quarterKey}
+                  </th>
+                ))}
+              </tr>
+              <tr>
+                {monthlyData.map(({ key, display }) => (
+                  <th key={key} className="text-white font-semibold text-xs uppercase tracking-wider px-3 py-2 bg-blue-800 border-l border-blue-600">
+                    <div className="flex flex-col">
+                      <span className="text-sm">{display.split(' ')[0]}</span>
+                      <span className="text-blue-200 text-xs">{display.split(' ')[1]}</span>
+                    </div>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {processedData.map((category, index) => (
-                <tr key={category.category} className="hover:bg-purple-50 cursor-pointer border-b border-gray-100 transition-colors duration-200" onClick={() => onRowClick(category.rawData)}>
+                <tr key={category.category} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors duration-200" onClick={() => onRowClick(category.rawData)}>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-2">
                       <span className="font-bold text-slate-700">#{index + 1}</span>
@@ -164,7 +256,7 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
                   </td>
                   <td className="px-6 py-4 text-sm font-medium text-gray-900">
                     <div className="flex items-center gap-2">
-                      <Grid className="w-4 h-4 text-purple-600" />
+                      <Grid className="w-4 h-4 text-blue-600" />
                       {category.category}
                     </div>
                   </td>
@@ -174,40 +266,64 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
                       {category.uniqueProducts}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 text-center text-sm font-semibold text-gray-900">{formatCurrency(category.revenue)}</td>
-                  <td className="px-6 py-4 text-center text-sm text-gray-900">{formatNumber(category.transactions)}</td>
-                  <td className="px-6 py-4 text-center text-sm text-gray-900">{formatNumber(category.members)}</td>
-                  <td className="px-6 py-4 text-center text-sm text-green-600 font-medium">{formatCurrency(category.avgRevenuePerProduct)}</td>
-                  <td className="px-6 py-4 text-center text-sm font-bold text-purple-700">{formatMetricValue(category.metricValue, selectedMetric)}</td>
+                  {monthlyData.map(({ key }, monthIndex) => {
+                    const current = category.monthlyValues[key] || 0;
+                    const previous = monthIndex < monthlyData.length - 1 ? category.monthlyValues[monthlyData[monthIndex + 1].key] || 0 : 0;
+                    return (
+                      <td key={key} className="px-3 py-4 text-center text-sm text-gray-900 font-mono">
+                        <div className="flex items-center justify-center">
+                          {formatMetricValue(current, selectedMetric)}
+                          {getGrowthIndicator(current, previous)}
+                        </div>
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
-              
-              {/* Summary Section */}
-              <tr className="bg-gradient-to-r from-slate-100 to-slate-200 border-t-2 border-slate-300 font-bold">
-                <td className="px-6 py-4 text-slate-800 text-sm" colSpan={2}>
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4" />
-                    TOTAL SUMMARY ({processedData.length} categories)
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-center text-slate-800 text-sm font-bold">{formatNumber(summary.totalProducts)}</td>
-                <td className="px-6 py-4 text-center text-slate-800 text-sm font-bold">{formatCurrency(summary.totalRevenue)}</td>
-                <td className="px-6 py-4 text-center text-slate-800 text-sm font-bold">{formatNumber(summary.totalTransactions)}</td>
-                <td className="px-6 py-4 text-center text-slate-800 text-sm font-bold">{formatNumber(summary.totalMembers)}</td>
-                <td className="px-6 py-4 text-center text-slate-800 text-sm font-bold">
-                  {formatCurrency(summary.totalRevenue / summary.totalProducts)}
-                </td>
-                <td className="px-6 py-4 text-center text-slate-800 text-sm font-bold">
-                  {summary.topPerformer && (
-                    <div className="flex items-center justify-center gap-1">
-                      <Star className="w-3 h-3 text-yellow-500" />
-                      <span className="text-xs">{summary.topPerformer.category}</span>
-                    </div>
-                  )}
-                </td>
-              </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* Summary/Insights Section */}
+        <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-slate-50 to-white rounded-b-lg">
+          <div className="flex justify-between items-center mb-4">
+            <h4 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+              <Grid className="w-5 h-5 text-blue-600" />
+              Category Performance Insights
+            </h4>
+            {!isEditingSummary ? (
+              <Button variant="outline" size="sm" onClick={() => setIsEditingSummary(true)} className="gap-2">
+                <Edit3 className="w-4 h-4" />
+                Edit
+              </Button>
+            ) : (
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={saveSummary} className="gap-2 text-green-600">
+                  <Save className="w-4 h-4" />
+                  Save
+                </Button>
+                <Button variant="outline" size="sm" onClick={cancelEdit} className="gap-2 text-red-600">
+                  <X className="w-4 h-4" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+          </div>
+          
+          {isEditingSummary ? (
+            <Textarea
+              value={summaryText}
+              onChange={(e) => setSummaryText(e.target.value)}
+              placeholder="Enter category performance insights using bullet points (• )"
+              className="min-h-32 text-sm"
+            />
+          ) : (
+            <div className="bg-white rounded-lg p-4 border border-gray-200">
+              <div className="text-sm text-gray-700 whitespace-pre-line">
+                {summaryText}
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

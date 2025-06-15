@@ -264,10 +264,26 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
     setDrillDownData(metric);
     setDrillDownType('metric');
   };
-  const handleTableRowClick = (row: any) => {
-    console.log('Table row clicked:', row);
-    setDrillDownData(row);
-    setDrillDownType('product');
+  const handleTableRowClick = (rowData: SalesData[]) => {
+    console.log('Table row clicked:', rowData);
+    // Ensure we're passing the actual transaction data, not zero values
+    if (Array.isArray(rowData) && rowData.length > 0) {
+      const enrichedData = {
+        transactions: rowData,
+        summary: {
+          totalRevenue: rowData.reduce((sum, item) => sum + (item.paymentValue || 0), 0),
+          totalTransactions: rowData.length,
+          uniqueMembers: new Set(rowData.map(item => item.memberId)).size,
+          avgTicketValue: rowData.length > 0 ? rowData.reduce((sum, item) => sum + (item.paymentValue || 0), 0) / rowData.length : 0,
+          dateRange: {
+            start: Math.min(...rowData.map(item => new Date(item.paymentDate).getTime())),
+            end: Math.max(...rowData.map(item => new Date(item.paymentDate).getTime()))
+          }
+        }
+      };
+      setDrillDownData(enrichedData);
+      setDrillDownType('product');
+    }
   };
   const handleGroupToggle = (groupKey: string) => {
     const newCollapsed = new Set(collapsedGroups);
@@ -294,7 +310,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
       }
     }
   }, []);
-  return <div className={cn("space-y-6", isDarkMode && "dark")}>
+  return (
+    <div className={cn("space-y-6", isDarkMode && "dark")}>
       <div className="text-center mb-8">
         
         
@@ -305,26 +322,51 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
 
       <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
         <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-100 via-white to-slate-100 p-2 rounded-2xl shadow-lg">
-          {locations.map(location => <TabsTrigger key={location.id} value={location.id} className={cn("relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500", "data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600", "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105", "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:scale-102", "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2")}>
+          {locations.map(location => (
+            <TabsTrigger 
+              key={location.id} 
+              value={location.id} 
+              className={cn(
+                "relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500",
+                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600",
+                "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105",
+                "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:scale-102",
+                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              )}
+            >
               <span className="relative z-10 block text-center">
                 <div className="font-bold">{location.name.split(',')[0]}</div>
                 <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
               </span>
-              {activeLocation === location.id && <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse" />}
-            </TabsTrigger>)}
+              {activeLocation === location.id && (
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse" />
+              )}
+            </TabsTrigger>
+          ))}
         </TabsList>
 
-        {locations.map(location => <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
+        {locations.map(location => (
+          <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
             <AutoCloseFilterSection filters={filters} onFiltersChange={setFilters} onReset={resetFilters} />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {metrics.map((metric, index) => <MetricCard key={metric.title} data={metric} delay={index * 100} onClick={() => handleMetricClick(metric)} />)}
+              {metrics.map((metric, index) => (
+                <MetricCard 
+                  key={metric.title} 
+                  data={metric} 
+                  delay={index * 100} 
+                  onClick={() => handleMetricClick(metric)} 
+                />
+              ))}
             </div>
 
-            <UnifiedTopBottomSellers data={filteredData} onRowClick={row => {
-          setDrillDownData(row);
-          setDrillDownType('product');
-        }} />
+            <UnifiedTopBottomSellers 
+              data={filteredData} 
+              onRowClick={row => {
+                setDrillDownData(row);
+                setDrillDownType('product');
+              }} 
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <InteractiveChart title="Revenue Performance Trends" data={filteredData} type="revenue" />
@@ -355,13 +397,14 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
                 </h3>
                 <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
                   <CardContent className="p-0">
-                    <EnhancedYearOnYearTable data={historicData} filters={filters} selectedMetric={activeYoyMetric} onRowClick={row => {
-                  setDrillDownData({
-                    name: 'Year-on-Year',
-                    ...row
-                  });
-                  setDrillDownType('product');
-                }} collapsedGroups={collapsedGroups} onGroupToggle={handleGroupToggle} />
+                    <EnhancedYearOnYearTable 
+                      data={historicData} 
+                      filters={filters} 
+                      selectedMetric={activeYoyMetric} 
+                      onRowClick={handleTableRowClick}
+                      collapsedGroups={collapsedGroups} 
+                      onGroupToggle={handleGroupToggle} 
+                    />
                   </CardContent>
                 </Card>
               </div>
@@ -392,10 +435,18 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
                 />
               </div>
             </div>
-          </TabsContent>)}
+          </TabsContent>
+        ))}
       </Tabs>
 
-      <DrillDownModal isOpen={!!drillDownData} onClose={() => setDrillDownData(null)} data={drillDownData} type={drillDownType} />
-    </div>;
+      <DrillDownModal 
+        isOpen={!!drillDownData} 
+        onClose={() => setDrillDownData(null)} 
+        data={drillDownData} 
+        type={drillDownType} 
+      />
+    </div>
+  );
 };
+
 export default SalesAnalyticsSection;

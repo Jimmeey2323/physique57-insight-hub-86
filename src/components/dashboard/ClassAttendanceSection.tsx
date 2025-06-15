@@ -4,17 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Users, Target, TrendingUp, Calendar, Filter, BarChart3 } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown, ChevronUp, BarChart3, Users, Target, Filter } from 'lucide-react';
 import { useSessionsData, SessionData } from '@/hooks/useSessionsData';
 import { SessionsFilterSection } from './SessionsFilterSection';
 import { SessionsGroupedTable } from './SessionsGroupedTable';
 import { SessionsMetricCards } from './SessionsMetricCards';
-import { SessionsTopBottomLists } from './SessionsTopBottomLists';
-import { SessionsComparisonTool } from './SessionsComparisonTool';
+import { ImprovedSessionsTopBottomLists } from './ImprovedSessionsTopBottomLists';
+import { SessionsQuickFilters } from './SessionsQuickFilters';
 import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
-import { SessionsTrendsInsights } from './SessionsTrendsInsights';
-import { SessionsAnomalyDetection } from './SessionsAnomalyDetection';
-import { SessionsForecasting } from './SessionsForecasting';
 import { ClassFormatAnalysis } from './ClassFormatAnalysis';
 
 const locations = [
@@ -27,6 +25,13 @@ const locations = [
 export const ClassAttendanceSection: React.FC = () => {
   const { data, loading, error, refetch } = useSessionsData();
   const [activeLocation, setActiveLocation] = useState('all');
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+  const [quickFilters, setQuickFilters] = useState({
+    locations: [] as string[],
+    trainers: [] as string[],
+    classes: [] as string[],
+    days: [] as string[]
+  });
   const [filters, setFilters] = useState({
     trainers: [] as string[],
     classTypes: [] as string[],
@@ -40,27 +45,39 @@ export const ClassAttendanceSection: React.FC = () => {
     
     let filtered = data;
 
+    // Apply location filter
     if (activeLocation !== 'all') {
       filtered = filtered.filter(item => item.location === activeLocation);
     }
 
+    // Apply quick filters
+    if (quickFilters.locations.length > 0) {
+      filtered = filtered.filter(item => quickFilters.locations.includes(item.location));
+    }
+    if (quickFilters.trainers.length > 0) {
+      filtered = filtered.filter(item => quickFilters.trainers.includes(item.trainerName));
+    }
+    if (quickFilters.classes.length > 0) {
+      filtered = filtered.filter(item => quickFilters.classes.includes(item.cleanedClass));
+    }
+    if (quickFilters.days.length > 0) {
+      filtered = filtered.filter(item => quickFilters.days.includes(item.dayOfWeek));
+    }
+
+    // Apply advanced filters
     if (filters.trainers.length > 0) {
       filtered = filtered.filter(item => filters.trainers.includes(item.trainerName));
     }
-
     if (filters.classTypes.length > 0) {
       filtered = filtered.filter(item => filters.classTypes.includes(item.cleanedClass));
     }
-
     if (filters.dayOfWeek.length > 0) {
       filtered = filtered.filter(item => filters.dayOfWeek.includes(item.dayOfWeek));
     }
-
     if (filters.dateRange.start || filters.dateRange.end) {
       filtered = filtered.filter(item => {
         if (!item.date) return false;
         const itemDate = new Date(item.date);
-        
         if (filters.dateRange.start && itemDate < filters.dateRange.start) return false;
         if (filters.dateRange.end && itemDate > filters.dateRange.end) return false;
         return true;
@@ -68,54 +85,37 @@ export const ClassAttendanceSection: React.FC = () => {
     }
 
     return filtered;
-  }, [data, activeLocation, filters]);
+  }, [data, activeLocation, quickFilters, filters]);
 
   const uniqueOptions = useMemo(() => {
-    if (!data) return { trainers: [], classTypes: [], daysOfWeek: [], timeSlots: [] };
+    if (!data) return { trainers: [], classTypes: [], daysOfWeek: [], timeSlots: [], locations: [], classes: [], days: [] };
     
     return {
       trainers: [...new Set(data.map(item => item.trainerName))].filter(Boolean),
       classTypes: [...new Set(data.map(item => item.cleanedClass))].filter(Boolean),
       daysOfWeek: [...new Set(data.map(item => item.dayOfWeek))].filter(Boolean),
-      timeSlots: [...new Set(data.map(item => item.time))].filter(Boolean)
+      timeSlots: [...new Set(data.map(item => item.time))].filter(Boolean),
+      locations: [...new Set(data.map(item => item.location))].filter(Boolean),
+      classes: [...new Set(data.map(item => item.cleanedClass))].filter(Boolean),
+      days: [...new Set(data.map(item => item.dayOfWeek))].filter(Boolean)
     };
   }, [data]);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-2xl border-0">
-          <CardContent className="flex items-center gap-4">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            <div>
-              <p className="text-lg font-semibold text-gray-800">Loading Class Data</p>
-              <p className="text-sm text-gray-600">Fetching session attendance metrics...</p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const handleQuickFilterChange = (type: string, values: string[]) => {
+    setQuickFilters(prev => ({
+      ...prev,
+      [type]: values
+    }));
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-2xl border-0 max-w-md">
-          <CardContent className="text-center space-y-4">
-            <RefreshCw className="w-12 h-12 text-red-600 mx-auto" />
-            <div>
-              <p className="text-lg font-semibold text-gray-800">Connection Error</p>
-              <p className="text-sm text-gray-600 mt-2">{error}</p>
-            </div>
-            <Button onClick={refetch} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Retry Connection
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  const clearQuickFilters = () => {
+    setQuickFilters({
+      locations: [],
+      trainers: [],
+      classes: [],
+      days: []
+    });
+  };
 
   if (!data || data.length === 0) {
     return (
@@ -150,19 +150,19 @@ export const ClassAttendanceSection: React.FC = () => {
         {/* Location Tabs */}
         <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
           <div className="flex justify-center mb-8">
-            <TabsList className="bg-white/80 backdrop-blur-sm p-2 rounded-2xl shadow-lg border border-white/50 grid grid-cols-4 w-full max-w-2xl">
+            <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-4 w-full max-w-2xl overflow-hidden">
               {locations.map((location) => (
                 <TabsTrigger
                   key={location.id}
                   value={location.id}
-                  className="relative rounded-xl px-6 py-3 font-medium text-sm transition-all duration-300 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                  className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
                 >
-                  <span className="relative z-10 block text-center">
-                    <div className="font-semibold">{location.name.split(',')[0]}</div>
+                  <div className="relative z-10 text-center">
+                    <div className="font-bold">{location.name.split(',')[0]}</div>
                     {location.name.includes(',') && (
                       <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
                     )}
-                  </span>
+                  </div>
                 </TabsTrigger>
               ))}
             </TabsList>
@@ -170,36 +170,79 @@ export const ClassAttendanceSection: React.FC = () => {
 
           {locations.map((location) => (
             <TabsContent key={location.id} value={location.id} className="space-y-8">
-              {/* Filters */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 p-6">
-                <SessionsFilterSection 
-                  filters={filters}
-                  setFilters={setFilters}
-                  options={uniqueOptions}
-                />
-              </div>
+              {/* Collapsible Advanced Filters */}
+              <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0 overflow-hidden">
+                <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-4 cursor-pointer hover:bg-gray-50/50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                          <Filter className="w-5 h-5 text-blue-600" />
+                          Advanced Filters
+                        </CardTitle>
+                        {isFilterExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <CardContent>
+                      <SessionsFilterSection 
+                        filters={filters}
+                        setFilters={setFilters}
+                        options={uniqueOptions}
+                      />
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
 
               {/* Metrics Cards */}
               <SessionsMetricCards data={filteredData} />
 
-              {/* Top/Bottom Lists */}
+              {/* Top/Bottom Lists with Quick Filters */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-                  <SessionsTopBottomLists
+                <div className="space-y-4">
+                  <SessionsQuickFilters
+                    filters={quickFilters}
+                    options={uniqueOptions}
+                    onFilterChange={handleQuickFilterChange}
+                    onClearAll={clearQuickFilters}
+                  />
+                  <ImprovedSessionsTopBottomLists
                     data={filteredData}
                     title="Top Performing Classes"
                     type="classes"
                     variant="top"
                   />
+                  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 p-4">
+                    <h4 className="font-semibold text-green-800 mb-2">Top Performance Insights</h4>
+                    <p className="text-sm text-green-700">
+                      Classes with consistently high attendance rates indicate optimal scheduling and popular formats. 
+                      Consider expanding successful time slots and class types.
+                    </p>
+                  </Card>
                 </div>
                 
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-                  <SessionsTopBottomLists
+                <div className="space-y-4">
+                  <SessionsQuickFilters
+                    filters={quickFilters}
+                    options={uniqueOptions}
+                    onFilterChange={handleQuickFilterChange}
+                    onClearAll={clearQuickFilters}
+                  />
+                  <ImprovedSessionsTopBottomLists
                     data={filteredData}
                     title="Top Performing Trainers"
                     type="trainers"
                     variant="top"
                   />
+                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 p-4">
+                    <h4 className="font-semibold text-blue-800 mb-2">Trainer Performance Insights</h4>
+                    <p className="text-sm text-blue-700">
+                      Top-performing trainers demonstrate strong client engagement and retention. 
+                      Consider mentorship programs and schedule optimization for high-demand instructors.
+                    </p>
+                  </Card>
                 </div>
               </div>
 
@@ -216,22 +259,6 @@ export const ClassAttendanceSection: React.FC = () => {
               {/* Analytics Sections */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
                 <SessionsAttendanceAnalytics data={filteredData} />
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-                <SessionsForecasting data={filteredData} />
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-                <SessionsComparisonTool data={filteredData} />
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-                <SessionsAnomalyDetection data={filteredData} />
-              </div>
-
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-                <SessionsTrendsInsights data={filteredData} />
               </div>
             </TabsContent>
           ))}

@@ -108,6 +108,11 @@ export const PowerCycleVsBarreSection: React.FC = () => {
   const loading = payrollLoading || sessionsLoading || salesLoading;
   const error = payrollError || sessionsError || salesError;
 
+  // Handler function that properly accepts FilterOptions only
+  const handleFiltersChange = (newFilters: FilterOptions) => {
+    setFilters(newFilters);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50/30 flex items-center justify-center">
@@ -210,11 +215,10 @@ export const PowerCycleVsBarreSection: React.FC = () => {
                 <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
                   {/* Filters Section */}
                   <FilterSection
+                    data={salesData || []}
                     filters={filters}
-                    onFiltersChange={setFilters}
-                    salesData={salesData || []}
-                    isExpanded={isFiltersExpanded}
-                    onToggle={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                    onFiltersChange={handleFiltersChange}
+                    type="sales"
                   />
 
                   {/* Metric Cards */}

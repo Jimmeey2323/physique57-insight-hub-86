@@ -15,9 +15,11 @@ import { CategoryPerformanceTable } from './CategoryPerformanceTable';
 import { SalesData, FilterOptions, MetricCardData, YearOnYearMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
+
 interface SalesAnalyticsSectionProps {
   data: SalesData[];
 }
+
 const locations = [{
   id: 'kwality',
   name: 'Kwality House, Kemps Corner',
@@ -31,6 +33,7 @@ const locations = [{
   name: 'Kenkere House',
   fullName: 'Kenkere House'
 }];
+
 export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
   data
 }) => {
@@ -113,9 +116,9 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
     }
     return filtered;
   };
-  const filteredData = useMemo(() => {
-    return applyFilters(data);
-  }, [data, activeLocation, filters]);
+
+  const filteredData = useMemo(() => applyFilters(data), [data, filters, activeLocation]);
+  const allHistoricData = useMemo(() => applyFilters(data, true), [data, activeLocation]);
 
   // Get historic data for year-on-year comparison (includes 2024 data)
   const historicData = useMemo(() => {
@@ -246,45 +249,13 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
       }
     }];
   }, [filteredData]);
-  const resetFilters = () => {
-    setFilters({
-      dateRange: {
-        start: '2025-03-01',
-        end: '2025-05-31'
-      },
-      location: [],
-      category: [],
-      product: [],
-      soldBy: [],
-      paymentMethod: []
-    });
+
+  const handleRowClick = (rowData: any) => {
+    console.log('Row clicked with data:', rowData);
+    setDrillDownData(rowData);
+    setDrillDownType('product');
   };
-  const handleMetricClick = (metric: MetricCardData) => {
-    console.log('Metric clicked:', metric);
-    setDrillDownData(metric);
-    setDrillDownType('metric');
-  };
-  const handleTableRowClick = (rowData: SalesData[]) => {
-    console.log('Table row clicked:', rowData);
-    // Ensure we're passing the actual transaction data, not zero values
-    if (Array.isArray(rowData) && rowData.length > 0) {
-      const enrichedData = {
-        transactions: rowData,
-        summary: {
-          totalRevenue: rowData.reduce((sum, item) => sum + (item.paymentValue || 0), 0),
-          totalTransactions: rowData.length,
-          uniqueMembers: new Set(rowData.map(item => item.memberId)).size,
-          avgTicketValue: rowData.length > 0 ? rowData.reduce((sum, item) => sum + (item.paymentValue || 0), 0) / rowData.length : 0,
-          dateRange: {
-            start: Math.min(...rowData.map(item => new Date(item.paymentDate).getTime())),
-            end: Math.max(...rowData.map(item => new Date(item.paymentDate).getTime()))
-          }
-        }
-      };
-      setDrillDownData(enrichedData);
-      setDrillDownType('product');
-    }
-  };
+
   const handleGroupToggle = (groupKey: string) => {
     const newCollapsed = new Set(collapsedGroups);
     if (newCollapsed.has(groupKey)) {
@@ -293,158 +264,94 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
       newCollapsed.add(groupKey);
     }
     setCollapsedGroups(newCollapsed);
-
-    // Persist to localStorage
-    localStorage.setItem('salesAnalytics_collapsedGroups', JSON.stringify([...newCollapsed]));
   };
 
-  // Load collapsed groups from localStorage on mount
-  React.useEffect(() => {
-    const saved = localStorage.getItem('salesAnalytics_collapsedGroups');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setCollapsedGroups(new Set(parsed));
-      } catch (e) {
-        console.error('Failed to parse saved collapsed groups:', e);
-      }
-    }
-  }, []);
   return (
-    <div className={cn("space-y-6", isDarkMode && "dark")}>
-      <div className="text-center mb-8">
-        
-        
-        
-      </div>
-
-      <ThemeSelector currentTheme={currentTheme} isDarkMode={isDarkMode} onThemeChange={setCurrentTheme} onModeChange={setIsDarkMode} />
-
-      <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-100 via-white to-slate-100 p-2 rounded-2xl shadow-lg">
-          {locations.map(location => (
-            <TabsTrigger 
-              key={location.id} 
-              value={location.id} 
-              className={cn(
-                "relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500",
-                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-600",
-                "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105",
-                "hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 hover:scale-102",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              )}
-            >
-              <span className="relative z-10 block text-center">
-                <div className="font-bold">{location.name.split(',')[0]}</div>
-                <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
-              </span>
-              {activeLocation === location.id && (
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 animate-pulse" />
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-
-        {locations.map(location => (
-          <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-            <AutoCloseFilterSection filters={filters} onFiltersChange={setFilters} onReset={resetFilters} />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {metrics.map((metric, index) => (
-                <MetricCard 
-                  key={metric.title} 
-                  data={metric} 
-                  delay={index * 100} 
-                  onClick={() => handleMetricClick(metric)} 
-                />
+    <div className="space-y-8">
+      {/* Filter and Location Tabs */}
+      <div className="space-y-6">
+        <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
+          <div className="flex justify-center mb-8">
+            <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-3 w-full max-w-2xl overflow-hidden">
+              {locations.map((location) => (
+                <TabsTrigger
+                  key={location.id}
+                  value={location.id}
+                  className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                >
+                  <div className="relative z-10 text-center">
+                    <div className="font-bold">{location.name.split(',')[0]}</div>
+                    <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
+                  </div>
+                </TabsTrigger>
               ))}
-            </div>
+            </TabsList>
+          </div>
 
-            <UnifiedTopBottomSellers 
-              data={filteredData} 
-              onRowClick={row => {
-                setDrillDownData(row);
-                setDrillDownType('product');
-              }} 
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <InteractiveChart title="Revenue Performance Trends" data={filteredData} type="revenue" />
-              <InteractiveChart title="Category Performance Analysis" data={filteredData} type="performance" />
-            </div>
-
-            <div className="space-y-8">
-              {/* Month-on-Month Table */}
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                  <div className="w-1 h-8 bg-gradient-to-b from-blue-500 to-blue-700 rounded-full"></div>
-                  Month-on-Month Performance
-                </h3>
-                <MonthOnMonthTable 
-                  data={filteredData} 
-                  filters={filters} 
-                  onRowClick={handleTableRowClick}
-                  collapsedGroups={collapsedGroups}
-                  onGroupToggle={handleGroupToggle}
-                />
-              </div>
+          {locations.map((location) => (
+            <TabsContent key={location.id} value={location.id} className="space-y-8">
+              {/* Filters */}
+              <AutoCloseFilterSection 
+                data={filteredData}
+                filters={filters}
+                onFiltersChange={setFilters}
+              />
 
               {/* Year-on-Year Table */}
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                  <div className="w-1 h-8 bg-gradient-to-b from-purple-500 to-purple-700 rounded-full"></div>
-                  Year-on-Year Performance
-                </h3>
-                <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
-                  <CardContent className="p-0">
-                    <EnhancedYearOnYearTable 
-                      data={historicData} 
-                      filters={filters} 
-                      selectedMetric={activeYoyMetric} 
-                      onRowClick={handleTableRowClick}
-                      collapsedGroups={collapsedGroups} 
-                      onGroupToggle={handleGroupToggle} 
-                    />
-                  </CardContent>
-                </Card>
-              </div>
+              <section className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900">Year-on-Year Analysis</h2>
+                <EnhancedYearOnYearTable 
+                  data={allHistoricData}
+                  onRowClick={handleRowClick}
+                  selectedMetric={activeYoyMetric}
+                />
+              </section>
+
+              {/* Month-on-Month Table */}
+              <section className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900">Month-on-Month Analysis</h2>
+                <MonthOnMonthTable 
+                  data={allHistoricData}
+                  onRowClick={handleRowClick}
+                  collapsedGroups={collapsedGroups}
+                  onGroupToggle={handleGroupToggle}
+                  selectedMetric={activeYoyMetric}
+                />
+              </section>
 
               {/* Product Performance Table */}
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                  <div className="w-1 h-8 bg-gradient-to-b from-green-500 to-green-700 rounded-full"></div>
-                  Product Performance Analysis
-                </h3>
+              <section className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900">Product Performance Analysis</h2>
                 <ProductPerformanceTable 
-                  data={filteredData} 
-                  filters={filters} 
-                  onRowClick={handleTableRowClick}
+                  data={allHistoricData}
+                  onRowClick={handleRowClick}
+                  selectedMetric={activeYoyMetric}
                 />
-              </div>
+              </section>
 
               {/* Category Performance Table */}
-              <div className="space-y-4">
-                <h3 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                  <div className="w-1 h-8 bg-gradient-to-b from-indigo-500 to-indigo-700 rounded-full"></div>
-                  Category Performance Analysis
-                </h3>
+              <section className="space-y-4">
+                <h2 className="text-2xl font-bold text-gray-900">Category Performance Analysis</h2>
                 <CategoryPerformanceTable 
-                  data={filteredData} 
-                  filters={filters} 
-                  onRowClick={handleTableRowClick}
+                  data={allHistoricData}
+                  onRowClick={handleRowClick}
+                  selectedMetric={activeYoyMetric}
                 />
-              </div>
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
+              </section>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </div>
 
-      <DrillDownModal 
-        isOpen={!!drillDownData} 
-        onClose={() => setDrillDownData(null)} 
-        data={drillDownData} 
-        type={drillDownType} 
-      />
+      {/* Drill Down Modal */}
+      {drillDownData && (
+        <DrillDownModal
+          isOpen={!!drillDownData}
+          onClose={() => setDrillDownData(null)}
+          data={drillDownData}
+          type={drillDownType}
+        />
+      )}
     </div>
   );
 };

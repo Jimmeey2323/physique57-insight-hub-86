@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, BarChart3, Users, Target, Filter } from 'lucide-react';
+import { ChevronDown, ChevronUp, BarChart3, Users, Target, Filter, MapPin, Building2 } from 'lucide-react';
 import { useSessionsData, SessionData } from '@/hooks/useSessionsData';
 import { SessionsFilterSection } from './SessionsFilterSection';
 import { SessionsGroupedTable } from './SessionsGroupedTable';
@@ -129,39 +129,54 @@ export const ClassAttendanceSection: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header Section */}
-        <div className="text-center mb-8 space-y-4">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-sm rounded-full shadow-lg border border-white/50">
-            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-sm font-medium text-gray-600">Analytics Dashboard</span>
-          </div>
-          
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-gray-900 via-blue-900 to-purple-900 bg-clip-text text-transparent">
-            Class Attendance Analytics
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Comprehensive insights into class performance, attendance patterns, and instructor analytics
-          </p>
+      {/* Enhanced Header Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/90 to-purple-900/80">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20" />
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,_rgba(59,130,246,0.3),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_rgba(147,51,234,0.2),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,_rgba(79,70,229,0.2),_transparent_50%)]" />
         </div>
+        
+        <div className="relative px-8 py-[32px]">
+          <div className="max-w-7xl mx-auto">
+            <div className="text-center space-y-6">
+              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+                <BarChart3 className="w-5 h-5 text-blue-300" />
+                <span className="font-semibold text-white">Class Analytics</span>
+              </div>
+              
+              <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
+                Class Attendance
+              </h1>
+              
+              <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+                Comprehensive insights into class performance, attendance patterns, and instructor analytics across all studio locations
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <div className="container mx-auto px-6 py-8">
         {/* Location Tabs */}
         <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
           <div className="flex justify-center mb-8">
-            <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-4 w-full max-w-2xl overflow-hidden">
+            <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-4 w-full max-w-3xl overflow-hidden">
               {locations.map((location) => (
                 <TabsTrigger
                   key={location.id}
                   value={location.id}
                   className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
                 >
-                  <div className="relative z-10 text-center">
-                    <div className="font-bold">{location.name.split(',')[0]}</div>
-                    {location.name.includes(',') && (
-                      <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
-                    )}
+                  <div className="flex items-center gap-2">
+                    {location.id === 'all' ? <Building2 className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+                    <div className="text-center">
+                      <div className="font-bold">{location.name.split(',')[0]}</div>
+                      {location.name.includes(',') && (
+                        <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
+                      )}
+                    </div>
                   </div>
                 </TabsTrigger>
               ))}
@@ -170,6 +185,14 @@ export const ClassAttendanceSection: React.FC = () => {
 
           {locations.map((location) => (
             <TabsContent key={location.id} value={location.id} className="space-y-8">
+              {/* Quick Filters */}
+              <SessionsQuickFilters
+                filters={quickFilters}
+                options={uniqueOptions}
+                onFilterChange={handleQuickFilterChange}
+                onClearAll={clearQuickFilters}
+              />
+
               {/* Collapsible Advanced Filters */}
               <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0 overflow-hidden">
                 <Collapsible open={isFilterExpanded} onOpenChange={setIsFilterExpanded}>
@@ -199,64 +222,31 @@ export const ClassAttendanceSection: React.FC = () => {
               {/* Metrics Cards */}
               <SessionsMetricCards data={filteredData} />
 
-              {/* Top/Bottom Lists with Quick Filters */}
+              {/* Top/Bottom Lists */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <SessionsQuickFilters
-                    filters={quickFilters}
-                    options={uniqueOptions}
-                    onFilterChange={handleQuickFilterChange}
-                    onClearAll={clearQuickFilters}
-                  />
-                  <ImprovedSessionsTopBottomLists
-                    data={filteredData}
-                    title="Top Performing Classes"
-                    type="classes"
-                    variant="top"
-                  />
-                  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 p-4">
-                    <h4 className="font-semibold text-green-800 mb-2">Top Performance Insights</h4>
-                    <p className="text-sm text-green-700">
-                      Classes with consistently high attendance rates indicate optimal scheduling and popular formats. 
-                      Consider expanding successful time slots and class types.
-                    </p>
-                  </Card>
-                </div>
-                
-                <div className="space-y-4">
-                  <SessionsQuickFilters
-                    filters={quickFilters}
-                    options={uniqueOptions}
-                    onFilterChange={handleQuickFilterChange}
-                    onClearAll={clearQuickFilters}
-                  />
-                  <ImprovedSessionsTopBottomLists
-                    data={filteredData}
-                    title="Top Performing Trainers"
-                    type="trainers"
-                    variant="top"
-                  />
-                  <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 p-4">
-                    <h4 className="font-semibold text-blue-800 mb-2">Trainer Performance Insights</h4>
-                    <p className="text-sm text-blue-700">
-                      Top-performing trainers demonstrate strong client engagement and retention. 
-                      Consider mentorship programs and schedule optimization for high-demand instructors.
-                    </p>
-                  </Card>
-                </div>
+                <ImprovedSessionsTopBottomLists
+                  data={filteredData}
+                  title="Top Performing Classes"
+                  type="classes"
+                  variant="top"
+                />
+                <ImprovedSessionsTopBottomLists
+                  data={filteredData}
+                  title="Top Performing Trainers"
+                  type="trainers"
+                  variant="top"
+                />
               </div>
 
-              {/* Sessions Analysis Table */}
+              {/* Analytics Sections */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
                 <SessionsGroupedTable data={filteredData} />
               </div>
 
-              {/* Class Format Analysis */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
                 <ClassFormatAnalysis data={filteredData} />
               </div>
 
-              {/* Analytics Sections */}
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
                 <SessionsAttendanceAnalytics data={filteredData} />
               </div>

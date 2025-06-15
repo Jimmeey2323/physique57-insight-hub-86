@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
@@ -85,9 +84,9 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     // 2025 months (Jun to Dec)
-    for (let i = 5; i >= 0; i--) {
-      const monthName = monthNames[11 - i];
-      const monthNum = 12 - i;
+    for (let i = 5; i < 12; i++) {
+      const monthName = monthNames[i];
+      const monthNum = i + 1;
       months.push({
         key: `2025-${String(monthNum).padStart(2, '0')}`,
         display: `${monthName} 2025`,
@@ -97,7 +96,7 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
       });
     }
     
-    // 2024 months (Dec to Jan)
+    // 2024 months (Dec to Jan) - in descending order
     for (let i = 11; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
@@ -168,11 +167,12 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
   };
 
   const getGrowthIndicator = (current: number, previous: number) => {
-    if (previous === 0) return null;
+    if (previous === 0 && current === 0) return null;
+    if (previous === 0) return <TrendingUp className="w-3 h-3 text-green-500 inline ml-1" />;
     const growth = ((current - previous) / previous) * 100;
-    if (growth > 0) {
+    if (growth > 5) {
       return <TrendingUp className="w-3 h-3 text-green-500 inline ml-1" />;
-    } else if (growth < 0) {
+    } else if (growth < -5) {
       return <TrendingDown className="w-3 h-3 text-red-500 inline ml-1" />;
     }
     return null;
@@ -247,20 +247,20 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
             </thead>
             <tbody>
               {processedData.map((category, index) => (
-                <tr key={category.category} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors duration-200" onClick={() => onRowClick(category.rawData)}>
-                  <td className="px-6 py-4 text-center">
+                <tr key={category.category} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors duration-200 h-8 max-h-8" onClick={() => onRowClick(category.rawData)}>
+                  <td className="px-6 py-2 text-center h-8 max-h-8">
                     <div className="flex items-center justify-center gap-2">
                       <span className="font-bold text-slate-700">#{index + 1}</span>
                       {getPerformanceIndicator(category.metricValue, index)}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  <td className="px-6 py-2 text-sm font-medium text-gray-900 h-8 max-h-8">
                     <div className="flex items-center gap-2">
                       <Grid className="w-4 h-4 text-blue-600" />
                       {category.category}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-center">
+                  <td className="px-6 py-2 text-center h-8 max-h-8">
                     <Badge variant="outline" className="text-xs flex items-center gap-1">
                       <Package className="w-3 h-3" />
                       {category.uniqueProducts}
@@ -268,9 +268,9 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
                   </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = category.monthlyValues[key] || 0;
-                    const previous = monthIndex < monthlyData.length - 1 ? category.monthlyValues[monthlyData[monthIndex + 1].key] || 0 : 0;
+                    const previous = monthIndex > 0 ? category.monthlyValues[monthlyData[monthIndex - 1].key] || 0 : 0;
                     return (
-                      <td key={key} className="px-3 py-4 text-center text-sm text-gray-900 font-mono">
+                      <td key={key} className="px-3 py-2 text-center text-sm text-gray-900 font-mono h-8 max-h-8">
                         <div className="flex items-center justify-center">
                           {formatMetricValue(current, selectedMetric)}
                           {getGrowthIndicator(current, previous)}

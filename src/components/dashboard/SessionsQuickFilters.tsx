@@ -1,30 +1,11 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
+import { Badge } from '@/components/ui/badge';
+import { X, Filter } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-interface SessionsQuickFiltersProps {
+interface QuickFiltersProps {
   filters: {
     locations: string[];
     trainers: string[];
@@ -41,126 +22,132 @@ interface SessionsQuickFiltersProps {
   onClearAll: () => void;
 }
 
-export const SessionsQuickFilters: React.FC<SessionsQuickFiltersProps> = ({
+export const SessionsQuickFilters: React.FC<QuickFiltersProps> = ({
   filters,
   options,
   onFilterChange,
   onClearAll
 }) => {
-  const MultiSelectDropdown = ({ 
-    label, 
-    type, 
-    values, 
-    options: selectOptions 
-  }: { 
-    label: string; 
-    type: string; 
-    values: string[]; 
-    options: string[] 
-  }) => (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="h-9 px-3 text-sm">
-          {label} {values.length > 0 && <Badge variant="secondary" className="ml-2">{values.length}</Badge>}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-64 p-0 bg-white shadow-lg border" align="start">
-        <Command>
-          <CommandInput placeholder={`Search ${label.toLowerCase()}...`} />
-          <CommandList>
-            <CommandEmpty>No {label.toLowerCase()} found.</CommandEmpty>
-            <CommandGroup>
-              {selectOptions.map((option) => (
-                <CommandItem
-                  key={option}
-                  onSelect={() => {
-                    const newValues = values.includes(option)
-                      ? values.filter(v => v !== option)
-                      : [...values, option];
-                    onFilterChange(type, newValues);
-                  }}
-                  className="cursor-pointer"
-                >
-                  <div className="flex items-center space-x-2">
-                    <div className={`w-4 h-4 border border-gray-300 rounded ${
-                      values.includes(option) ? 'bg-blue-600 border-blue-600' : ''
-                    }`}>
-                      {values.includes(option) && (
-                        <div className="w-2 h-2 bg-white rounded-sm m-0.5" />
-                      )}
-                    </div>
-                    <span className="text-sm">{option}</span>
-                  </div>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
+  const handleQuickSelect = (type: string, value: string) => {
+    const currentValues = [...filters[type as keyof typeof filters]];
+    const index = currentValues.indexOf(value);
+    
+    if (index > -1) {
+      currentValues.splice(index, 1);
+    } else {
+      currentValues.push(value);
+    }
+    
+    onFilterChange(type, currentValues);
+  };
 
-  const hasActiveFilters = Object.values(filters).some(arr => arr.length > 0);
+  const totalActiveFilters = Object.values(filters).reduce((sum, arr) => sum + arr.length, 0);
 
   return (
-    <div className="flex flex-wrap items-center gap-3 p-4 bg-white rounded-lg border border-gray-200 mb-4">
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-gray-700">Quick Filters:</span>
-        <MultiSelectDropdown 
-          label="Locations" 
-          type="locations" 
-          values={filters.locations} 
-          options={options.locations} 
-        />
-        <MultiSelectDropdown 
-          label="Trainers" 
-          type="trainers" 
-          values={filters.trainers} 
-          options={options.trainers} 
-        />
-        <MultiSelectDropdown 
-          label="Classes" 
-          type="classes" 
-          values={filters.classes} 
-          options={options.classes} 
-        />
-        <MultiSelectDropdown 
-          label="Days" 
-          type="days" 
-          values={filters.days} 
-          options={options.days} 
-        />
-      </div>
-      
-      {hasActiveFilters && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onClearAll}
-          className="h-8 px-2 text-xs text-gray-500 hover:text-gray-700"
-        >
-          <X className="w-3 h-3 mr-1" />
-          Clear All
-        </Button>
-      )}
-      
-      {hasActiveFilters && (
-        <div className="flex flex-wrap gap-1 ml-2">
-          {Object.entries(filters).map(([type, values]) =>
-            values.map(value => (
-              <Badge 
-                key={`${type}-${value}`}
-                variant="secondary" 
-                className="text-xs cursor-pointer hover:bg-red-100"
-                onClick={() => onFilterChange(type, filters[type as keyof typeof filters].filter(v => v !== value))}
-              >
-                {value}
-                <X className="w-3 h-3 ml-1" />
+    <Card className="bg-white/80 backdrop-blur-sm shadow-sm border border-gray-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Filter className="w-4 h-4 text-blue-600" />
+            Quick Filters
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            {totalActiveFilters > 0 && (
+              <Badge className="bg-blue-600 text-white text-xs">
+                {totalActiveFilters} active
               </Badge>
-            ))
-          )}
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onClearAll}
+              disabled={totalActiveFilters === 0}
+              className="gap-1 h-7 px-2 text-xs"
+            >
+              <X className="h-3 w-3" />
+              Clear
+            </Button>
+          </div>
         </div>
-      )}
-    </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        {/* Days Filter */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-600">Days of Week</label>
+          <div className="flex flex-wrap gap-1">
+            {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
+              <Button
+                key={day}
+                variant={filters.days.includes(day) ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleQuickSelect('days', day)}
+                className="h-7 px-3 text-xs"
+              >
+                {day.slice(0, 3)}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Top Trainers Filter */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-600">Popular Trainers</label>
+          <div className="flex flex-wrap gap-1">
+            {options.trainers.slice(0, 6).map((trainer) => (
+              <Button
+                key={trainer}
+                variant={filters.trainers.includes(trainer) ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleQuickSelect('trainers', trainer)}
+                className="h-7 px-3 text-xs"
+              >
+                {trainer}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Popular Classes Filter */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-gray-600">Popular Classes</label>
+          <div className="flex flex-wrap gap-1">
+            {options.classes.slice(0, 8).map((className) => (
+              <Button
+                key={className}
+                variant={filters.classes.includes(className) ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleQuickSelect('classes', className)}
+                className="h-7 px-3 text-xs"
+              >
+                {className}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {/* Active Filters Display */}
+        {totalActiveFilters > 0 && (
+          <div className="pt-2 border-t border-gray-100">
+            <div className="text-xs font-medium text-gray-600 mb-2">Active Filters:</div>
+            <div className="flex flex-wrap gap-1">
+              {Object.entries(filters).map(([type, values]) =>
+                values.map((value) => (
+                  <Badge 
+                    key={`${type}-${value}`} 
+                    variant="secondary" 
+                    className="text-xs cursor-pointer hover:bg-red-100"
+                    onClick={() => handleQuickSelect(type, value)}
+                  >
+                    {value}
+                    <X className="h-3 w-3 ml-1" />
+                  </Badge>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };

@@ -2,8 +2,8 @@
 import React, { useMemo, useState } from 'react';
 import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
-import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
-import { ChevronDown, ChevronRight, RefreshCw, Filter, Calendar, TrendingUp, TrendingDown, Edit3, Save, X } from 'lucide-react';
+import { formatCurrency, formatNumber } from '@/utils/formatters';
+import { ChevronDown, ChevronRight, Calendar, TrendingUp, TrendingDown, Edit3, Save, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -103,10 +103,10 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     const months = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // 2025 months (Jun to Dec)
-    for (let i = 5; i >= 0; i--) {
-      const monthName = monthNames[11 - i];
-      const monthNum = 12 - i;
+    // 2025 months (Jun to Dec) - reversed to start from Jun 2025
+    for (let i = 5; i < 12; i++) {
+      const monthName = monthNames[i];
+      const monthNum = i + 1;
       months.push({
         key: `2025-${String(monthNum).padStart(2, '0')}`,
         display: `${monthName} 2025`,
@@ -116,7 +116,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       });
     }
     
-    // 2024 months (Dec to Jan)
+    // 2024 months (Dec to Jan) - in descending order
     for (let i = 11; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
@@ -169,11 +169,12 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
   }, [data, selectedMetric, monthlyData]);
 
   const getGrowthIndicator = (current: number, previous: number) => {
-    if (previous === 0) return null;
+    if (previous === 0 && current === 0) return null;
+    if (previous === 0) return <TrendingUp className="w-3 h-3 text-green-500 inline ml-1" />;
     const growth = ((current - previous) / previous) * 100;
-    if (growth > 0) {
+    if (growth > 5) {
       return <TrendingUp className="w-3 h-3 text-green-500 inline ml-1" />;
-    } else if (growth < 0) {
+    } else if (growth < -5) {
       return <TrendingDown className="w-3 h-3 text-red-500 inline ml-1" />;
     }
     return null;
@@ -181,7 +182,6 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
 
   const saveSummary = () => {
     setIsEditingSummary(false);
-    // In a real app, this would save to backend
     localStorage.setItem('monthOnMonthSummary', summaryText);
   };
 
@@ -251,8 +251,8 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
             <tbody>
               {processedData.map(categoryGroup => (
                 <React.Fragment key={categoryGroup.category}>
-                  <tr onClick={() => onGroupToggle(categoryGroup.category)} className="bg-white hover:bg-blue-50 cursor-pointer border-b border-gray-200 group transition-colors duration-200">
-                    <td className="py-4 font-semibold text-gray-800 bg-white sticky left-0 z-10 px-[10px] min-w-80 text-sm">
+                  <tr onClick={() => onGroupToggle(categoryGroup.category)} className="bg-white hover:bg-blue-50 cursor-pointer border-b border-gray-200 group transition-colors duration-200 h-8 max-h-8">
+                    <td className="py-2 font-semibold text-gray-800 bg-white sticky left-0 z-10 px-[10px] min-w-80 text-sm h-8 max-h-8">
                       <div className="flex justify-between items-center min-w-full text-md font-bold">
                         <div className="flex items-center">
                           {collapsedGroups.has(categoryGroup.category) ? 
@@ -268,9 +268,9 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                     </td>
                     {monthlyData.map(({ key }, index) => {
                       const current = categoryGroup.monthlyValues[key] || 0;
-                      const previous = index < monthlyData.length - 1 ? categoryGroup.monthlyValues[monthlyData[index + 1].key] || 0 : 0;
+                      const previous = index > 0 ? categoryGroup.monthlyValues[monthlyData[index - 1].key] || 0 : 0;
                       return (
-                        <td key={key} className="px-3 py-4 text-center font-semibold text-gray-900 text-sm">
+                        <td key={key} className="px-3 py-2 text-center font-semibold text-gray-900 text-sm h-8 max-h-8">
                           <div className="flex items-center justify-center">
                             {formatMetricValue(current, selectedMetric)}
                             {getGrowthIndicator(current, previous)}
@@ -281,15 +281,15 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                   </tr>
 
                   {!collapsedGroups.has(categoryGroup.category) && categoryGroup.products.map(product => (
-                    <tr key={`${categoryGroup.category}-${product.product}`} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100" onClick={() => onRowClick && onRowClick(product.rawData)}>
-                      <td className="px-8 py-3 text-sm text-gray-700 hover:text-blue-700 sticky left-0 bg-white hover:bg-blue-50 z-10">
+                    <tr key={`${categoryGroup.category}-${product.product}`} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 h-8 max-h-8" onClick={() => onRowClick && onRowClick(product.rawData)}>
+                      <td className="px-8 py-2 text-sm text-gray-700 hover:text-blue-700 sticky left-0 bg-white hover:bg-blue-50 z-10 h-8 max-h-8">
                         {product.product}
                       </td>
                       {monthlyData.map(({ key }, index) => {
                         const current = product.monthlyValues[key] || 0;
-                        const previous = index < monthlyData.length - 1 ? product.monthlyValues[monthlyData[index + 1].key] || 0 : 0;
+                        const previous = index > 0 ? product.monthlyValues[monthlyData[index - 1].key] || 0 : 0;
                         return (
-                          <td key={key} className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                          <td key={key} className="px-3 py-2 text-center text-sm text-gray-900 font-mono h-8 max-h-8">
                             <div className="flex items-center justify-center">
                               {formatMetricValue(current, selectedMetric)}
                               {getGrowthIndicator(current, previous)}

@@ -1,16 +1,16 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TrendingUp, TrendingDown, Calendar, ChevronDown, ChevronRight, Target } from 'lucide-react';
 import { SalesData, FilterOptions } from '@/types/dashboard';
-import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
-import { TrendingUp, Calendar, Package, ChevronDown, ChevronRight } from 'lucide-react';
+import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
 
-interface DiscountMonthOnMonthTableProps {
+interface DiscountYearOnYearTableProps {
   data: SalesData[];
   filters: FilterOptions;
   onRowClick: (row: any) => void;
@@ -18,7 +18,7 @@ interface DiscountMonthOnMonthTableProps {
 
 type DiscountMetricType = 'discountAmount' | 'discountRate' | 'penetration' | 'avgDiscount' | 'transactions' | 'revenue';
 
-export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps> = ({
+export const DiscountYearOnYearTable: React.FC<DiscountYearOnYearTableProps> = ({
   data,
   filters,
   onRowClick
@@ -26,12 +26,11 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
   const [selectedMetric, setSelectedMetric] = useState<DiscountMetricType>('discountAmount');
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
 
-  const { monthlyProductData, months, summary } = useMemo(() => {
-    // Group data by month and product
-    const monthlyGroups = data.reduce((acc, item) => {
+  const { tableData, months, summary } = useMemo(() => {
+    // Group data by product and month
+    const productMonthGroups = data.reduce((acc, item) => {
       if (!item.paymentDate || !item.cleanedProduct) return acc;
       
-      // Parse DD/MM/YYYY format
       const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
       if (!ddmmyyyy) return acc;
       
@@ -45,31 +44,23 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
       }
       if (!acc[productKey][monthKey]) {
         acc[productKey][monthKey] = {
-          product: item.cleanedProduct,
-          category: item.cleanedCategory || 'Uncategorized',
-          totalRevenue: 0,
-          totalDiscounts: 0,
-          totalGrossRevenue: 0,
-          totalNetRevenue: 0,
-          unitsSold: 0,
-          unitsWithDiscount: 0,
-          totalGrossDiscountPercent: 0,
-          totalNetDiscountPercent: 0,
+          discountAmount: 0,
+          grossRevenue: 0,
+          netRevenue: 0,
+          transactions: 0,
           discountedTransactions: 0,
-          totalTransactions: 0
+          totalGrossDiscountPercent: 0,
+          totalNetDiscountPercent: 0
         };
       }
       
       const group = acc[productKey][monthKey];
-      group.totalRevenue += item.paymentValue || 0;
-      group.totalDiscounts += item.discountAmount || 0;
-      group.totalGrossRevenue += item.grossRevenue || 0;
-      group.totalNetRevenue += item.netRevenue || 0;
-      group.unitsSold += 1;
-      group.totalTransactions += 1;
+      group.discountAmount += item.discountAmount || 0;
+      group.grossRevenue += item.grossRevenue || 0;
+      group.netRevenue += item.netRevenue || 0;
+      group.transactions += 1;
       
       if ((item.discountAmount || 0) > 0) {
-        group.unitsWithDiscount += 1;
         group.discountedTransactions += 1;
         group.totalGrossDiscountPercent += item.grossDiscountPercent || 0;
         group.totalNetDiscountPercent += item.netDiscountPercent || 0;
@@ -80,7 +71,7 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
 
     // Get unique months and sort them
     const allMonths = new Set<string>();
-    Object.values(monthlyGroups).forEach(productData => {
+    Object.values(productMonthGroups).forEach(productData => {
       Object.keys(productData).forEach(month => allMonths.add(month));
     });
     const sortedMonths = Array.from(allMonths).sort((a, b) => {
@@ -91,9 +82,9 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
       return dateA.getTime() - dateB.getTime();
     });
 
-    // Process data for table
-    const processedData = Object.entries(monthlyGroups).map(([product, monthData]) => {
-      const productRow: any = { product, category: Object.values(monthData)[0]?.category || 'Unknown' };
+    // Calculate processed data for each product
+    const processedData = Object.entries(productMonthGroups).map(([product, monthData]) => {
+      const productRow: any = { product };
       let totalDiscountAmount = 0;
       let totalRevenue = 0;
       let totalTransactions = 0;
@@ -101,43 +92,31 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
 
       sortedMonths.forEach(month => {
         const monthStats = monthData[month] || {
-          totalDiscounts: 0,
-          totalGrossRevenue: 0,
-          totalNetRevenue: 0,
+          discountAmount: 0,
+          grossRevenue: 0,
+          netRevenue: 0,
+          transactions: 0,
           discountedTransactions: 0,
-          totalTransactions: 0,
           totalGrossDiscountPercent: 0,
           totalNetDiscountPercent: 0
         };
 
-        const avgGrossDiscountPercent = monthStats.discountedTransactions > 0 
-          ? monthStats.totalGrossDiscountPercent / monthStats.discountedTransactions 
-          : 0;
-        const avgNetDiscountPercent = monthStats.discountedTransactions > 0 
-          ? monthStats.totalNetDiscountPercent / monthStats.discountedTransactions 
-          : 0;
-        const discountPenetration = monthStats.totalTransactions > 0 
-          ? (monthStats.discountedTransactions / monthStats.totalTransactions) * 100 
-          : 0;
-        const avgDiscountPerUnit = monthStats.discountedTransactions > 0 
-          ? monthStats.totalDiscounts / monthStats.discountedTransactions 
-          : 0;
-        const discountRate = monthStats.totalGrossRevenue > 0 
-          ? (monthStats.totalDiscounts / monthStats.totalGrossRevenue) * 100 
-          : 0;
+        const discountRate = monthStats.grossRevenue > 0 ? (monthStats.discountAmount / monthStats.grossRevenue) * 100 : 0;
+        const penetration = monthStats.transactions > 0 ? (monthStats.discountedTransactions / monthStats.transactions) * 100 : 0;
+        const avgDiscount = monthStats.discountedTransactions > 0 ? monthStats.discountAmount / monthStats.discountedTransactions : 0;
 
         productRow[month] = {
-          discountAmount: monthStats.totalDiscounts,
+          discountAmount: monthStats.discountAmount,
           discountRate,
-          penetration: discountPenetration,
-          avgDiscount: avgDiscountPerUnit,
+          penetration,
+          avgDiscount,
           transactions: monthStats.discountedTransactions,
-          revenue: monthStats.totalGrossRevenue
+          revenue: monthStats.grossRevenue
         };
 
-        totalDiscountAmount += monthStats.totalDiscounts;
-        totalRevenue += monthStats.totalGrossRevenue;
-        totalTransactions += monthStats.totalTransactions;
+        totalDiscountAmount += monthStats.discountAmount;
+        totalRevenue += monthStats.grossRevenue;
+        totalTransactions += monthStats.transactions;
         totalDiscountedTransactions += monthStats.discountedTransactions;
       });
 
@@ -159,27 +138,15 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
         const monthData = product[month] || { discountAmount: 0, revenue: 0, transactions: 0 };
         return {
           discountAmount: monthSum.discountAmount + monthData.discountAmount,
-          discountRate: 0, // Will calculate after
-          penetration: 0, // Will calculate after
-          avgDiscount: 0, // Will calculate after
-          transactions: monthSum.transactions + monthData.transactions,
-          revenue: monthSum.revenue + monthData.revenue
+          revenue: monthSum.revenue + monthData.revenue,
+          transactions: monthSum.transactions + monthData.transactions
         };
-      }, { discountAmount: 0, discountRate: 0, penetration: 0, avgDiscount: 0, transactions: 0, revenue: 0 });
-      
-      // Calculate derived metrics
-      if (acc[month].revenue > 0) {
-        acc[month].discountRate = (acc[month].discountAmount / acc[month].revenue) * 100;
-      }
-      if (acc[month].transactions > 0) {
-        acc[month].avgDiscount = acc[month].discountAmount / acc[month].transactions;
-      }
-      
+      }, { discountAmount: 0, revenue: 0, transactions: 0 });
       return acc;
     }, {} as Record<string, any>);
 
     return {
-      monthlyProductData: processedData.sort((a, b) => b.totals[selectedMetric] - a.totals[selectedMetric]),
+      tableData: processedData.sort((a, b) => b.totals[selectedMetric] - a.totals[selectedMetric]),
       months: sortedMonths,
       summary: summaryData
     };
@@ -223,12 +190,25 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
     setExpandedRows(newExpanded);
   };
 
+  const getYearOnYearChange = (product: any, metric: DiscountMetricType) => {
+    const currentYearMonths = months.filter(m => m.includes('2025'));
+    const previousYearMonths = months.filter(m => m.includes('2024'));
+    
+    if (currentYearMonths.length === 0 || previousYearMonths.length === 0) return null;
+    
+    const currentValue = currentYearMonths.reduce((sum, month) => sum + (product[month]?.[metric] || 0), 0);
+    const previousValue = previousYearMonths.reduce((sum, month) => sum + (product[month]?.[metric] || 0), 0);
+    
+    if (previousValue === 0) return currentValue > 0 ? 100 : 0;
+    return ((currentValue - previousValue) / previousValue) * 100;
+  };
+
   return (
     <Card className="bg-gradient-to-br from-white via-red-50/30 to-orange-50/20 border-0 shadow-xl">
       <CardHeader className="pb-4">
         <CardTitle className="text-xl font-bold bg-gradient-to-r from-red-700 to-orange-700 bg-clip-text text-transparent flex items-center gap-2">
           <Calendar className="w-6 h-6 text-red-600" />
-          Month-on-Month Discount Analysis
+          Year-on-Year Discount Analysis
         </CardTitle>
         
         <div className="mt-4">
@@ -265,7 +245,6 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
                 <TableHead className="font-bold text-red-700 sticky left-0 bg-gradient-to-r from-red-50 to-orange-50 z-10 min-w-[200px]">
                   Product
                 </TableHead>
-                <TableHead className="font-bold text-red-700 min-w-[120px]">Category</TableHead>
                 {months.map((month) => (
                   <TableHead key={month} className="text-center font-bold text-red-700 min-w-[120px]">
                     <div className="text-center">
@@ -274,6 +253,7 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
                     </div>
                   </TableHead>
                 ))}
+                <TableHead className="text-center font-bold text-red-700 min-w-[100px]">YoY Change</TableHead>
                 <TableHead className="text-center font-bold text-red-700 min-w-[120px]">Total</TableHead>
               </TableRow>
             </TableHeader>
@@ -283,20 +263,25 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
                 <TableCell className="font-bold text-red-800 sticky left-0 bg-gradient-to-r from-red-100 to-orange-100 z-10 border-r">
                   TOTAL
                 </TableCell>
-                <TableCell className="font-bold text-red-800">All Categories</TableCell>
                 {months.map((month) => (
                   <TableCell key={`total-${month}`} className="text-center font-bold text-red-800">
                     {formatValue(summary[month]?.[selectedMetric] || 0, selectedMetric)}
                   </TableCell>
                 ))}
+                <TableCell className="text-center">
+                  <Badge className="bg-red-100 text-red-800 hover:bg-red-200">
+                    Total YoY
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-center font-bold text-red-800">
                   {formatValue(Object.values(summary).reduce((sum: number, month: any) => sum + (month[selectedMetric] || 0), 0), selectedMetric)}
                 </TableCell>
               </TableRow>
 
               {/* Product Rows */}
-              {monthlyProductData.map((product) => {
+              {tableData.map((product) => {
                 const isExpanded = expandedRows.has(product.product);
+                const yoyChange = getYearOnYearChange(product, selectedMetric);
                 
                 return (
                   <React.Fragment key={product.product}>
@@ -320,16 +305,31 @@ export const DiscountMonthOnMonthTable: React.FC<DiscountMonthOnMonthTableProps>
                           <span className="text-sm">{product.product}</span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm text-slate-600">
-                        <Badge variant="outline" className="text-xs">
-                          {product.category}
-                        </Badge>
-                      </TableCell>
                       {months.map((month) => (
                         <TableCell key={`${product.product}-${month}`} className="text-center font-mono text-sm">
                           {formatValue(product[month]?.[selectedMetric] || 0, selectedMetric)}
                         </TableCell>
                       ))}
+                      <TableCell className="text-center">
+                        {yoyChange !== null && (
+                          <Badge
+                            variant={yoyChange >= 0 ? "default" : "destructive"}
+                            className={cn(
+                              "flex items-center gap-1 w-fit mx-auto",
+                              yoyChange >= 0 
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                : 'bg-red-100 text-red-800 hover:bg-red-200'
+                            )}
+                          >
+                            {yoyChange >= 0 ? (
+                              <TrendingUp className="w-3 h-3" />
+                            ) : (
+                              <TrendingDown className="w-3 h-3" />
+                            )}
+                            {Math.abs(yoyChange).toFixed(1)}%
+                          </Badge>
+                        )}
+                      </TableCell>
                       <TableCell className="text-center font-bold text-slate-700">
                         {formatValue(product.totals[selectedMetric], selectedMetric)}
                       </TableCell>

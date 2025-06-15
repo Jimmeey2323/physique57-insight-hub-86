@@ -299,7 +299,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                 key,
                 display,
                 year
-              }) => <th key={key} className="bg-gradient-to-r from-pink-700 via-pink-800 to-pink-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2\n">
+              }) => <th key={key} className="bg-gradient-to-r from-indigo-700 to-purple-800 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2\\n">
                     <div className="flex flex-col">
                       <span className="text-base">{display.split(' ')[0]}</span>
                       <span className="text-yellow-200 text-xs">
@@ -312,7 +312,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
             <tbody>
               {processedData.map(categoryGroup => <React.Fragment key={categoryGroup.category}>
                   <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-200 group transition-colors duration-200" onClick={() => onGroupToggle(categoryGroup.category)}>
-                    <td className="px-6 py-4 font-semibold text-gray-800 group-hover:text-red-900 bg-gray-50 group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out">
+                    <td className="px-6 py-4 font-semibold text-gray-800 group-hover:text-gray-900 bg-gray-50 group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out">
                       <div className="flex items-center">
                         {collapsedGroups.has(categoryGroup.category) ? <ChevronRight className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" /> : <ChevronDown className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" />}
                         {categoryGroup.category}

@@ -21,129 +21,316 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
         </div>
       </div>
 
-      {/* Main Loader Container */}
+      {/* Heart Loader */}
       <div className="relative z-10 flex items-center justify-center">
-        {/* P57 Animated Loader - Made Bigger */}
-        <div className="p57-loader">
-          <svg height="0" width="0" viewBox="0 0 64 64" className="absolute">
-            <defs xmlns="http://www.w3.org/2000/svg">
-              <linearGradient gradientUnits="userSpaceOnUse" y2="2" x2="0" y1="62" x1="0" id="b">
-                <stop stopColor="#973BED"></stop>
-                <stop stopColor="#007CFF" offset="1"></stop>
-              </linearGradient>
-              <linearGradient gradientUnits="userSpaceOnUse" y2="0" x2="0" y1="64" x1="0" id="c">
-                <stop stopColor="#FFC800"></stop>
-                <stop stopColor="#F0F" offset="1"></stop>
-                <animateTransform repeatCount="indefinite" keySplines=".42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1" keyTimes="0; 0.125; 0.25; 0.375; 0.5; 0.625; 0.75; 0.875; 1" dur="12s" values="0 32 32;-270 32 32;-270 32 32;-540 32 32;-540 32 32;-810 32 32;-810 32 32;-1080 32 32;-1080 32 32" type="rotate" attributeName="gradientTransform"></animateTransform>
-              </linearGradient>
-              <linearGradient gradientUnits="userSpaceOnUse" y2="2" x2="0" y1="62" x1="0" id="d">
-                <stop stopColor="#00E0ED"></stop>
-                <stop stopColor="#00DA72" offset="1"></stop>
-              </linearGradient>
-            </defs>
-          </svg>
-          
-          {/* P Letter */}
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 64 64" height="64" width="64" className="inline-block">
-            <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="8" stroke="url(#b)" d="M 8,4 h 24 c 11.045695,0 20,8.954305 20,20 0,11.045695 -8.954305,20 -20,20 H 16 V 56 H 8 Z M 16,12 V 36 H 32 c 6.627417,0 12,-5.372583 12,-12 0,-6.627417 -5.372583,-12 -12,-12 z" className="dash" pathLength="360"></path>
-          </svg>
-          
-          {/* 5 Number */}
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 64 64" height="64" width="64" className="inline-block">
-            <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="8" stroke="url(#c)" d="M 52,4 H 12 V 32 H 36 c 8.836556,0 16,7.163444 16,16 0,8.836556 -7.163444,16 -16,16 H 20 c -8.836556,0 -16,-7.163444 -16,-16 H 12 c 0,4.418278 3.581722,8 8,8 H 36 c 4.418278,0 8,-3.581722 8,-8 0,-4.418278 -3.581722,-8 -8,-8 H 4 V 4 H 52 Z" className="spin" pathLength="360"></path>
-          </svg>
-          
-          <div className="w-2"></div>
-          
-          {/* 7 Number */}
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 64 64" height="64" width="64" className="inline-block">
-            <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="8" stroke="url(#d)" d="M 8,4 H 56 L 32,60 H 24 L 44,12 H 8 Z" className="dash" pathLength="360"></path>
-          </svg>
+        <div className="cssload-main">
+          <div className="cssload-heart">
+            <span className="cssload-heartL"></span>
+            <span className="cssload-heartR"></span>
+            <span className="cssload-square"></span>
+          </div>
+          <div className="cssload-shadow"></div>
         </div>
       </div>
 
-      {/* Animation Styles */}
+      {/* Heart Loader Styles */}
       <style>{`
-        .p57-loader {
-          display: flex;
-          margin: 0.25em 0;
-          align-items: center;
-          justify-content: center;
-          scale: 3;
+        .cssload-main {
+          position: absolute;
+          content: '';
+          left: 50%;
+          transform: translate(-50%, -50%);
+          -o-transform: translate(-50%, -50%);
+          -ms-transform: translate(-50%, -50%);
+          -webkit-transform: translate(-50%, -50%);
+          -moz-transform: translate(-50%, -50%);
+          scale: 2;
         }
 
-        .w-2 {
-          width: 0.5em;
+        .cssload-main * {
+          font-size: 62px;
         }
 
-        .absolute {
+        .cssload-heart {
+          animation: cssload-heart 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -o-animation: cssload-heart 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -ms-animation: cssload-heart 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -webkit-animation: cssload-heart 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -moz-animation: cssload-heart 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          top: 50%;
+          content: '';
+          left: 50%;
           position: absolute;
         }
 
-        .inline-block {
-          display: inline-block;
+        .cssload-heartL {
+          width: 1em;
+          height: 1em;
+          border: 1px solid rgb(252, 0, 101);
+          background-color: rgb(252, 0, 101);
+          content: '';
+          position: absolute;
+          display: block;
+          border-radius: 100%;
+          animation: cssload-heartL 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -o-animation: cssload-heartL 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -ms-animation: cssload-heartL 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -webkit-animation: cssload-heartL 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -moz-animation: cssload-heartL 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          transform: translate(-28px, -27px);
+          -o-transform: translate(-28px, -27px);
+          -ms-transform: translate(-28px, -27px);
+          -webkit-transform: translate(-28px, -27px);
+          -moz-transform: translate(-28px, -27px);
         }
 
-        .dash {
-          animation: dashArray 4s ease-in-out infinite,
-            dashOffset 4s linear infinite;
+        .cssload-heartR {
+          width: 1em;
+          height: 1em;
+          border: 1px solid rgb(252, 0, 101);
+          background-color: rgb(252, 0, 101);
+          content: '';
+          position: absolute;
+          display: block;
+          border-radius: 100%;
+          transform: translate(28px, -27px);
+          -o-transform: translate(28px, -27px);
+          -ms-transform: translate(28px, -27px);
+          -webkit-transform: translate(28px, -27px);
+          -moz-transform: translate(28px, -27px);
+          animation: cssload-heartR 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -o-animation: cssload-heartR 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -ms-animation: cssload-heartR 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -webkit-animation: cssload-heartR 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -moz-animation: cssload-heartR 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
         }
 
-        .spin {
-          animation: spinDashArray 4s ease-in-out infinite,
-            spin 12s ease-in-out infinite,
-            dashOffset 4s linear infinite;
-          transform-origin: center;
+        .cssload-square {
+          width: 1em;
+          height: 1em;
+          border: 1px solid rgb(252, 0, 101);
+          background-color: rgb(252, 0, 101);
+          position: relative;
+          display: block;
+          content: '';
+          transform: scale(1) rotate(-45deg);
+          -o-transform: scale(1) rotate(-45deg);
+          -ms-transform: scale(1) rotate(-45deg);
+          -webkit-transform: scale(1) rotate(-45deg);
+          -moz-transform: scale(1) rotate(-45deg);
+          animation: cssload-square 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -o-animation: cssload-square 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -ms-animation: cssload-square 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -webkit-animation: cssload-square 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -moz-animation: cssload-square 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
         }
 
-        @keyframes dashArray {
-          0% {
-            stroke-dasharray: 0 1 359 0;
-          }
+        .cssload-shadow {
+          top: 97px;
+          left: 50%;
+          content: '';
+          position: relative;
+          display: block;
+          bottom: -.5em;
+          width: 1em;
+          height: .24em;
+          background-color: rgb(215,215,215);
+          border: 1px solid rgb(215,215,215);
+          border-radius: 50%;
+          animation: cssload-shadow 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -o-animation: cssload-shadow 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -ms-animation: cssload-shadow 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -webkit-animation: cssload-shadow 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+          -moz-animation: cssload-shadow 2.88s cubic-bezier(0.75, 0, 0.5, 1) infinite normal;
+        }
+
+        @keyframes cssload-square {
           50% {
-            stroke-dasharray: 0 359 1 0;
+            border-radius: 100%;
+            transform: scale(0.5) rotate(-45deg);
           }
           100% {
-            stroke-dasharray: 359 1 0 0;
+            transform: scale(1) rotate(-45deg);
           }
         }
 
-        @keyframes spinDashArray {
-          0% {
-            stroke-dasharray: 270 90;
-          }
+        @-o-keyframes cssload-square {
           50% {
-            stroke-dasharray: 0 360;
+            border-radius: 100%;
+            -o-transform: scale(0.5) rotate(-45deg);
           }
           100% {
-            stroke-dasharray: 270 90;
+            -o-transform: scale(1) rotate(-45deg);
           }
         }
 
-        @keyframes dashOffset {
-          0% {
-            stroke-dashoffset: 365;
+        @-ms-keyframes cssload-square {
+          50% {
+            border-radius: 100%;
+            -ms-transform: scale(0.5) rotate(-45deg);
           }
           100% {
-            stroke-dashoffset: 5;
+            -ms-transform: scale(1) rotate(-45deg);
           }
         }
 
-        @keyframes spin {
-          0% {
-            rotate: 0deg;
+        @-webkit-keyframes cssload-square {
+          50% {
+            border-radius: 100%;
+            -webkit-transform: scale(0.5) rotate(-45deg);
           }
-          12.5%, 25% {
-            rotate: 270deg;
+          100% {
+            -webkit-transform: scale(1) rotate(-45deg);
           }
-          37.5%, 50% {
-            rotate: 540deg;
+        }
+
+        @-moz-keyframes cssload-square {
+          50% {
+            border-radius: 100%;
+            -moz-transform: scale(0.5) rotate(-45deg);
           }
-          62.5%, 75% {
-            rotate: 810deg;
+          100% {
+            -moz-transform: scale(1) rotate(-45deg);
           }
-          87.5%, 100% {
-            rotate: 1080deg;
+        }
+
+        @keyframes cssload-heart {
+          50% {
+            transform: rotate(360deg);
+          }
+          100% {
+            transform: rotate(720deg);
+          }
+        }
+
+        @-o-keyframes cssload-heart {
+          50% {
+            -o-transform: rotate(360deg);
+          }
+          100% {
+            -o-transform: rotate(720deg);
+          }
+        }
+
+        @-ms-keyframes cssload-heart {
+          50% {
+            -ms-transform: rotate(360deg);
+          }
+          100% {
+            -ms-transform: rotate(720deg);
+          }
+        }
+
+        @-webkit-keyframes cssload-heart {
+          50% {
+            -webkit-transform: rotate(360deg);
+          }
+          100% {
+            -webkit-transform: rotate(720deg);
+          }
+        }
+
+        @-moz-keyframes cssload-heart {
+          50% {
+            -moz-transform: rotate(360deg);
+          }
+          100% {
+            -moz-transform: rotate(720deg);
+          }
+        }
+
+        @keyframes cssload-heartL {
+          60% {
+            transform: scale(0.4);
+          }
+        }
+
+        @-o-keyframes cssload-heartL {
+          60% {
+            -o-transform: scale(0.4);
+          }
+        }
+
+        @-ms-keyframes cssload-heartL {
+          60% {
+            -ms-transform: scale(0.4);
+          }
+        }
+
+        @-webkit-keyframes cssload-heartL {
+          60% {
+            -webkit-transform: scale(0.4);
+          }
+        }
+
+        @-moz-keyframes cssload-heartL {
+          60% {
+            -moz-transform: scale(0.4);
+          }
+        }
+
+        @keyframes cssload-heartR {
+          40% {
+            transform: scale(0.4);
+          }
+        }
+
+        @-o-keyframes cssload-heartR {
+          40% {
+            -o-transform: scale(0.4);
+          }
+        }
+
+        @-ms-keyframes cssload-heartR {
+          40% {
+            -ms-transform: scale(0.4);
+          }
+        }
+
+        @-webkit-keyframes cssload-heartR {
+          40% {
+            -webkit-transform: scale(0.4);
+          }
+        }
+
+        @-moz-keyframes cssload-heartR {
+          40% {
+            -moz-transform: scale(0.4);
+          }
+        }
+
+        @keyframes cssload-shadow {
+          50% {
+            transform: scale(0.5);
+            border-color: rgb(228,228,228);
+          }
+        }
+
+        @-o-keyframes cssload-shadow {
+          50% {
+            -o-transform: scale(0.5);
+            border-color: rgb(228,228,228);
+          }
+        }
+
+        @-ms-keyframes cssload-shadow {
+          50% {
+            -ms-transform: scale(0.5);
+            border-color: rgb(228,228,228);
+          }
+        }
+
+        @-webkit-keyframes cssload-shadow {
+          50% {
+            -webkit-transform: scale(0.5);
+            border-color: rgb(228,228,228);
+          }
+        }
+
+        @-moz-keyframes cssload-shadow {
+          50% {
+            -moz-transform: scale(0.5);
+            border-color: rgb(228,228,228);
           }
         }
       `}</style>

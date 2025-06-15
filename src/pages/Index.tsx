@@ -103,24 +103,17 @@ const Index = () => {
         <div className="container mx-auto px-8 py-16">
           {/* Refined Header Section */}
           <header className="mb-20 text-center">
-            {/* Business Badge */}
-            <div className="inline-flex items-center justify-center mb-8">
-              <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white px-8 py-3 rounded-full text-sm font-medium shadow-lg animate-pulse">
+            {/* Business Badge - Full Width */}
+            <div className="inline-flex items-center justify-center mb-8 w-full max-w-md mx-auto">
+              <div className="bg-slate-800 text-white px-8 py-3 rounded-full text-sm font-medium shadow-lg w-full text-center">
                 Business Intelligence Dashboard
               </div>
             </div>
             
-            {/* Main Title */}
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-slate-900 mb-4 tracking-tight">
+            {/* Main Title with Stylish Font */}
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-slate-900 mb-4 tracking-tight font-serif">
               <span className="font-extralight">Physique</span>{' '}
-              <span className="font-bold animate-pulse" style={{
-                background: 'linear-gradient(-45deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899)',
-                backgroundSize: '400% 400%',
-                animation: 'gradient 4s ease infinite',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text'
-              }}>57</span>
+              <span className="font-bold animate-color-cycle">57</span>
               <span className="text-slate-600 font-light">, India</span>
             </h1>
             
@@ -160,17 +153,17 @@ const Index = () => {
       
       <Footer />
       
-      <style jsx>{`
-        @keyframes gradient {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
+      <style>{`
+        @keyframes color-cycle {
+          0% { color: #3b82f6; }
+          25% { color: #ef4444; }
+          50% { color: #6366f1; }
+          75% { color: #8b5cf6; }
+          100% { color: #3b82f6; }
+        }
+        
+        .animate-color-cycle {
+          animation: color-cycle 4s infinite ease-in-out;
         }
       `}</style>
     </div>

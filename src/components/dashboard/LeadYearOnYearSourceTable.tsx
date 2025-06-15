@@ -147,12 +147,12 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       totals: { total2024: 0, total2025: 0, growth: 0 }
     };
 
-    const months = [];
+    const monthNumbers = [];
     for (let month = 6; month >= 1; month--) {
-      months.push(month);
+      monthNumbers.push(month);
     }
 
-    months.forEach(month => {
+    monthNumbers.forEach(month => {
       const monthTotals2024 = result.reduce((sum, item) => sum + (item.months[month]?.value2024 || 0), 0);
       const monthTotals2025 = result.reduce((sum, item) => sum + (item.months[month]?.value2025 || 0), 0);
       const monthGrowth = monthTotals2024 > 0 ? ((monthTotals2025 - monthTotals2024) / monthTotals2024) * 100 : 0;

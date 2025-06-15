@@ -34,6 +34,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
   const [selectedMetric, setSelectedMetric] = useState<MetricType>('classAverage');
   const [showCount, setShowCount] = useState(initialCount);
   const [viewType, setViewType] = useState<'classes' | 'trainers'>(type);
+  const [includeTrainer, setIncludeTrainer] = useState(false);
 
   const processedData = useMemo(() => {
     const grouped: Record<string, {
@@ -51,9 +52,19 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
     }> = {};
 
     data.forEach(session => {
-      const key = viewType === 'classes' 
-        ? `${session.cleanedClass}|${session.dayOfWeek}|${session.time}|${session.location}`
-        : session.trainerName;
+      let key: string;
+      
+      if (viewType === 'classes') {
+        // For classes view, the includeTrainer toggle determines grouping
+        if (includeTrainer) {
+          key = `${session.cleanedClass}|${session.dayOfWeek}|${session.time}|${session.location}|${session.trainerName}`;
+        } else {
+          key = `${session.cleanedClass}|${session.dayOfWeek}|${session.time}|${session.location}`;
+        }
+      } else {
+        // For trainers view, always group by trainer
+        key = session.trainerName;
+      }
       
       if (!key) return;
 
@@ -82,10 +93,18 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
     Object.values(grouped).forEach(item => {
       const relatedSessions = data.filter(s => {
         if (viewType === 'classes') {
-          return s.cleanedClass === item.cleanedClass && 
-                 s.dayOfWeek === item.dayOfWeek && 
-                 s.time === item.time && 
-                 s.location === item.location;
+          if (includeTrainer) {
+            return s.cleanedClass === item.cleanedClass && 
+                   s.dayOfWeek === item.dayOfWeek && 
+                   s.time === item.time && 
+                   s.location === item.location &&
+                   s.trainerName === item.trainerName;
+          } else {
+            return s.cleanedClass === item.cleanedClass && 
+                   s.dayOfWeek === item.dayOfWeek && 
+                   s.time === item.time && 
+                   s.location === item.location;
+          }
         } else {
           return s.trainerName === item.trainerName;
         }
@@ -130,7 +149,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
     });
 
     return sortedData;
-  }, [data, viewType, selectedMetric, variant]);
+  }, [data, viewType, includeTrainer, selectedMetric, variant]);
 
   const displayData = processedData.slice(0, showCount);
   const hasMore = processedData.length > showCount;
@@ -158,7 +177,11 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
 
   const getDisplayName = (item: typeof processedData[0]) => {
     if (viewType === 'classes') {
-      return `${item.cleanedClass} - ${item.dayOfWeek} ${item.time}`;
+      if (includeTrainer) {
+        return `${item.cleanedClass} - ${item.dayOfWeek} ${item.time} (${item.trainerName})`;
+      } else {
+        return `${item.cleanedClass} - ${item.dayOfWeek} ${item.time}`;
+      }
     } else {
       return item.trainerName;
     }
@@ -209,7 +232,7 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
         </div>
         
         {/* Toggle between Classes and Trainers */}
-        <div className="flex justify-center">
+        <div className="flex justify-center mb-4">
           <ToggleGroup type="single" value={viewType} onValueChange={(value) => value && setViewType(value as 'classes' | 'trainers')}>
             <ToggleGroupItem value="classes" aria-label="Classes view">
               Classes
@@ -219,6 +242,20 @@ export const ImprovedSessionsTopBottomLists: React.FC<ImprovedSessionsTopBottomL
             </ToggleGroupItem>
           </ToggleGroup>
         </div>
+
+        {/* Include Trainer Toggle - only show for classes view */}
+        {viewType === 'classes' && (
+          <div className="flex justify-center">
+            <ToggleGroup type="single" value={includeTrainer ? 'with-trainer' : 'without-trainer'} onValueChange={(value) => setIncludeTrainer(value === 'with-trainer')}>
+              <ToggleGroupItem value="without-trainer" aria-label="Group without trainer">
+                Group by Class
+              </ToggleGroupItem>
+              <ToggleGroupItem value="with-trainer" aria-label="Group with trainer">
+                Include Trainer
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        )}
       </CardHeader>
       
       <CardContent className="p-0">

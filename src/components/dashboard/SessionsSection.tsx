@@ -16,34 +16,10 @@ import { RefinedLoader } from '@/components/ui/RefinedLoader';
 import { formatNumber } from '@/utils/formatters';
 
 const locations = [
-  { 
-    id: 'all', 
-    name: 'All Locations', 
-    fullName: 'All Studio Locations',
-    icon: <Building2 className="w-4 h-4" />,
-    gradient: 'from-blue-500 to-indigo-600'
-  },
-  { 
-    id: 'Studio A', 
-    name: 'Studio A', 
-    fullName: 'Main Studio Location A',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-emerald-500 to-teal-600'
-  },
-  { 
-    id: 'Studio B', 
-    name: 'Studio B', 
-    fullName: 'Premium Studio Location B',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-purple-500 to-violet-600'
-  },
-  { 
-    id: 'Studio C', 
-    name: 'Studio C', 
-    fullName: 'Boutique Studio Location C',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-orange-500 to-red-600'
-  }
+  { id: 'all', name: 'All Locations', fullName: 'All Locations' },
+  { id: 'kwality', name: 'Kwality House, Kemps Corner', fullName: 'Kwality House, Kemps Corner' },
+  { id: 'supreme', name: 'Supreme HQ, Bandra', fullName: 'Supreme HQ, Bandra' },
+  { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
 ];
 
 export const SessionsSection: React.FC = () => {
@@ -97,46 +73,50 @@ export const SessionsSection: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Header Section - matching sales tab style */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-700 text-white">
-        <div className="absolute inset-0 bg-black/20" />
+      {/* Header Section - matching other tabs style */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20" />
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,_rgba(120,119,198,0.3),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_rgba(255,255,255,0.1),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,_rgba(120,119,198,0.2),_transparent_50%)]" />
+        </div>
         
-        <div className="relative px-8 py-12">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center space-y-4">
-              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 border border-white/20">
-                <Target className="w-5 h-5" />
-                <span className="font-medium">Session Analytics</span>
+        <div className="relative px-8 py-16">
+          <div className="max-w-7xl mx-auto text-center space-y-6">
+            <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+              <Target className="w-5 h-5 text-blue-300" />
+              <span className="font-semibold text-white">Session Analytics</span>
+            </div>
+            
+            <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-white via-blue-100 to-indigo-200 bg-clip-text text-transparent">
+              Sessions Dashboard
+            </h1>
+            
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+              Comprehensive analysis of class performance, attendance patterns, and operational insights across all studio locations
+            </p>
+            
+            {/* Key Metrics Display */}
+            <div className="flex items-center justify-center gap-12 mt-12">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white mb-2">{formatNumber(filteredData.length)}</div>
+                <div className="text-sm text-slate-300 font-medium">Total Sessions</div>
               </div>
-              
-              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-blue-100 to-indigo-100 bg-clip-text text-transparent">
-                Sessions Dashboard
-              </h1>
-              
-              <p className="text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-                Analyze class attendance patterns and optimize schedules for maximum performance
-              </p>
-              
-              <div className="flex items-center justify-center gap-8 mt-8">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white">{formatNumber(filteredData.length)}</div>
-                  <div className="text-sm text-blue-200">Total Sessions</div>
+              <div className="w-px h-16 bg-white/20" />
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white mb-2">
+                  {filteredData.reduce((sum, session) => sum + (session.checkedInCount || 0), 0).toLocaleString()}
                 </div>
-                <div className="w-px h-12 bg-white/30" />
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white">
-                    {filteredData.reduce((sum, session) => sum + (session.checkedInCount || 0), 0).toLocaleString()}
-                  </div>
-                  <div className="text-sm text-blue-200">Total Attendance</div>
+                <div className="text-sm text-slate-300 font-medium">Total Attendance</div>
+              </div>
+              <div className="w-px h-16 bg-white/20" />
+              <div className="text-center">
+                <div className="text-4xl font-bold text-white mb-2">
+                  {filteredData.length > 0 ? 
+                    Math.round(filteredData.reduce((sum, session) => sum + (session.fillPercentage || 0), 0) / filteredData.length) : 0}%
                 </div>
-                <div className="w-px h-12 bg-white/30" />
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-white">
-                    {filteredData.length > 0 ? 
-                      Math.round(filteredData.reduce((sum, session) => sum + (session.fillPercentage || 0), 0) / filteredData.length) : 0}%
-                  </div>
-                  <div className="text-sm text-blue-200">Avg Fill Rate</div>
-                </div>
+                <div className="text-sm text-slate-300 font-medium">Avg Fill Rate</div>
               </div>
             </div>
           </div>
@@ -156,10 +136,9 @@ export const SessionsSection: React.FC = () => {
                     className="rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300"
                   >
                     <div className="flex items-center gap-2">
-                      {location.icon}
+                      {location.id === 'all' ? <Building2 className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
                       <div className="text-center">
                         <div className="font-bold">{location.name}</div>
-                        <div className="text-xs opacity-75">{location.fullName}</div>
                       </div>
                     </div>
                   </TabsTrigger>

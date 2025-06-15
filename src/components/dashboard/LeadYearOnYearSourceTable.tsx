@@ -304,6 +304,7 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
                           </TableCell>
                         </React.Fragment>;
                 })}
+                  <TableFooter className="sticky bottom-0 z-20">
                     <TableCell className="text-center p-3">
                       <div className={`flex items-center justify-center gap-1 font-bold ${sourceData.totals.growth > 0 ? 'text-emerald-600' : sourceData.totals.growth < 0 ? 'text-red-600' : 'text-slate-500'} ${isTotal ? 'text-lg' : 'text-sm'}`}>
                         {sourceData.totals.growth > 0 ? <TrendingUp className="w-4 h-4" /> : sourceData.totals.growth < 0 ? <TrendingDown className="w-4 h-4" /> : null}
@@ -313,6 +314,7 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
                   </TableRow>;
             })}
             </TableBody>
+          </TableFooter>
           </Table>
         </div>
         

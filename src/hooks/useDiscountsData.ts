@@ -65,6 +65,7 @@ export const useDiscountsData = () => {
         return;
       }
 
+      // Parse all columns according to the sheet structure
       const salesData: SalesData[] = rows.slice(1).map((row: any[]) => ({
         memberId: row[0] || '',
         customerName: row[1] || '',
@@ -87,6 +88,7 @@ export const useDiscountsData = () => {
         calculatedLocation: row[18] || '',
         cleanedProduct: row[19] || '',
         cleanedCategory: row[20] || '',
+        // Discount-specific fields
         discountAmount: parseFloat(row[21]) || 0,
         grossRevenue: parseFloat(row[22]) || 0,
         preTaxMrp: parseFloat(row[23]) || 0,
@@ -98,6 +100,15 @@ export const useDiscountsData = () => {
       }));
 
       console.log('Sales data loaded for discounts:', salesData.length, 'records');
+      console.log('Sample discount data:', salesData.slice(0, 3).map(item => ({
+        product: item.cleanedProduct,
+        discountAmount: item.discountAmount,
+        grossDiscountPercent: item.grossDiscountPercent,
+        netDiscountPercent: item.netDiscountPercent,
+        grossRevenue: item.grossRevenue,
+        netRevenue: item.netRevenue
+      })));
+      
       setData(salesData);
       setError(null);
     } catch (err) {

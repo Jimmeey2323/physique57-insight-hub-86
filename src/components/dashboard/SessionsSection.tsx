@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+
+import React, { useState, useMemo, memo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -9,9 +10,9 @@ import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
 import { SessionsMetricCards } from './SessionsMetricCards';
 import { SessionsGroupedTable } from './SessionsGroupedTable';
 import { ClassFormatAnalysis } from './ClassFormatAnalysis';
-import { SessionsTopBottomLists } from './SessionsTopBottomLists';
 import { ImprovedSessionsTopBottomLists } from './ImprovedSessionsTopBottomLists';
-import { RefinedLoader } from '@/components/ui/RefinedLoader';
+import { LoadingSkeleton } from '@/components/ui/LoadingSkeleton';
+import { designTokens } from '@/utils/designTokens';
 import { formatNumber } from '@/utils/formatters';
 
 const locations = [
@@ -21,10 +22,29 @@ const locations = [
   { id: 'kenkere', name: 'Kenkere House', fullName: 'Kenkere House' }
 ];
 
+// Memoized location tab component
+const LocationTab = memo(({ location, isActive }: { location: typeof locations[0]; isActive: boolean }) => (
+  <div className="flex items-center gap-2">
+    {location.id === 'all' ? <Building2 className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
+    <div className="text-center">
+      <div className="font-bold">{location.name}</div>
+    </div>
+  </div>
+));
+
+// Memoized metric display component
+const MetricDisplay = memo(({ title, value, description }: { title: string; value: string; description: string }) => (
+  <div className="text-center">
+    <div className="text-4xl font-bold text-white mb-2">{value}</div>
+    <div className="text-sm text-slate-300 font-medium">{description}</div>
+  </div>
+));
+
 export const SessionsSection: React.FC = () => {
   const { data, loading, error, refetch } = useSessionsData();
   const [activeLocation, setActiveLocation] = useState('all');
 
+  // Memoized filtered data with performance optimization
   const filteredData = useMemo(() => {
     if (!data) return [];
     
@@ -42,48 +62,56 @@ export const SessionsSection: React.FC = () => {
     if (activeLocation !== 'all') {
       const selectedLocation = locations.find(loc => loc.id === activeLocation);
       if (selectedLocation) {
-        console.log('Filtering for location:', selectedLocation.fullName);
-        console.log('Sample session locations:', filtered.slice(0, 3).map(s => s.location));
-        
         filtered = filtered.filter(session => {
-          // Try exact match first
-          if (session.location === selectedLocation.fullName) {
-            return true;
-          }
+          if (session.location === selectedLocation.fullName) return true;
           
-          // Try partial match for different variations
           const sessionLoc = session.location?.toLowerCase() || '';
           const targetLoc = selectedLocation.fullName.toLowerCase();
           
-          // Check if the session location contains key parts of the target location
-          if (selectedLocation.id === 'kwality' && sessionLoc.includes('kwality')) {
-            return true;
-          }
-          if (selectedLocation.id === 'supreme' && sessionLoc.includes('supreme')) {
-            return true;
-          }
-          if (selectedLocation.id === 'kenkere' && sessionLoc.includes('kenkere')) {
-            return true;
-          }
+          if (selectedLocation.id === 'kwality' && sessionLoc.includes('kwality')) return true;
+          if (selectedLocation.id === 'supreme' && sessionLoc.includes('supreme')) return true;
+          if (selectedLocation.id === 'kenkere' && sessionLoc.includes('kenkere')) return true;
           
           return false;
         });
-        
-        console.log('Filtered data count:', filtered.length);
       }
     }
 
     return filtered;
   }, [data, activeLocation]);
 
+  // Memoized metrics calculation
+  const headerMetrics = useMemo(() => {
+    const totalSessions = filteredData.length;
+    const totalAttendance = filteredData.reduce((sum, session) => sum + (session.checkedInCount || 0), 0);
+    const avgFillRate = filteredData.length > 0 ? 
+      Math.round(filteredData.reduce((sum, session) => sum + (session.fillPercentage || 0), 0) / filteredData.length) : 0;
+
+    return {
+      totalSessions: formatNumber(totalSessions),
+      totalAttendance: totalAttendance.toLocaleString(),
+      avgFillRate: `${avgFillRate}%`
+    };
+  }, [filteredData]);
+
+  const handleLocationChange = useCallback((value: string) => {
+    setActiveLocation(value);
+  }, []);
+
   if (loading) {
-    return <RefinedLoader />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          <LoadingSkeleton type="full-page" />
+        </div>
+      </div>
+    );
   }
 
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50/30 flex items-center justify-center p-4">
-        <Card className="p-8 bg-white shadow-lg max-w-md">
+        <Card className={`p-8 ${designTokens.card.background} ${designTokens.card.shadow} max-w-md`}>
           <CardContent className="text-center space-y-4">
             <RefreshCw className="w-12 h-12 text-red-600 mx-auto" />
             <div>
@@ -102,7 +130,7 @@ export const SessionsSection: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Header Section */}
+      {/* Optimized Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20" />
         <div className="absolute inset-0">
@@ -126,37 +154,35 @@ export const SessionsSection: React.FC = () => {
               Comprehensive analysis of class performance, attendance patterns, and operational insights across all studio locations
             </p>
             
-            {/* Key Metrics Display */}
+            {/* Optimized Key Metrics Display */}
             <div className="flex items-center justify-center gap-12 mt-12">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-white mb-2">{formatNumber(filteredData.length)}</div>
-                <div className="text-sm text-slate-300 font-medium">Total Sessions</div>
-              </div>
+              <MetricDisplay 
+                title="Total Sessions"
+                value={headerMetrics.totalSessions}
+                description="Total Sessions"
+              />
               <div className="w-px h-16 bg-white/20" />
-              <div className="text-center">
-                <div className="text-4xl font-bold text-white mb-2">
-                  {filteredData.reduce((sum, session) => sum + (session.checkedInCount || 0), 0).toLocaleString()}
-                </div>
-                <div className="text-sm text-slate-300 font-medium">Total Attendance</div>
-              </div>
+              <MetricDisplay 
+                title="Total Attendance"
+                value={headerMetrics.totalAttendance}
+                description="Total Attendance"
+              />
               <div className="w-px h-16 bg-white/20" />
-              <div className="text-center">
-                <div className="text-4xl font-bold text-white mb-2">
-                  {filteredData.length > 0 ? 
-                    Math.round(filteredData.reduce((sum, session) => sum + (session.fillPercentage || 0), 0) / filteredData.length) : 0}%
-                </div>
-                <div className="text-sm text-slate-300 font-medium">Avg Fill Rate</div>
-              </div>
+              <MetricDisplay 
+                title="Average Fill Rate"
+                value={headerMetrics.avgFillRate}
+                description="Avg Fill Rate"
+              />
             </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Location Tabs */}
-        <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden">
+        {/* Optimized Location Tabs */}
+        <Card className={`${designTokens.card.background} ${designTokens.card.shadow} ${designTokens.card.border} overflow-hidden`}>
           <CardContent className="p-2">
-            <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
+            <Tabs value={activeLocation} onValueChange={handleLocationChange} className="w-full">
               <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl h-auto gap-2">
                 {locations.map((location) => (
                   <TabsTrigger
@@ -164,22 +190,17 @@ export const SessionsSection: React.FC = () => {
                     value={location.id}
                     className="rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300"
                   >
-                    <div className="flex items-center gap-2">
-                      {location.id === 'all' ? <Building2 className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
-                      <div className="text-center">
-                        <div className="font-bold">{location.name}</div>
-                      </div>
-                    </div>
+                    <LocationTab location={location} isActive={activeLocation === location.id} />
                   </TabsTrigger>
                 ))}
               </TabsList>
 
-              {/* Tab Content */}
+              {/* Optimized Tab Content */}
               {locations.map((location) => (
                 <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
                   <SessionsMetricCards data={filteredData} />
                   
-                  {/* Top and Bottom Lists Side by Side - Above Charts */}
+                  {/* Top and Bottom Lists Side by Side */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <ImprovedSessionsTopBottomLists 
                       data={filteredData} 

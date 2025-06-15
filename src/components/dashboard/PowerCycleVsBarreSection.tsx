@@ -381,7 +381,7 @@ export const PowerCycleVsBarreSection: React.FC = () => {
         </Card>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes fade-in-up {
           from {
             opacity: 0;

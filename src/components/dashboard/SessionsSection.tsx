@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -41,7 +40,37 @@ export const SessionsSection: React.FC = () => {
     });
 
     if (activeLocation !== 'all') {
-      filtered = filtered.filter(session => session.location === activeLocation);
+      const selectedLocation = locations.find(loc => loc.id === activeLocation);
+      if (selectedLocation) {
+        console.log('Filtering for location:', selectedLocation.fullName);
+        console.log('Sample session locations:', filtered.slice(0, 3).map(s => s.location));
+        
+        filtered = filtered.filter(session => {
+          // Try exact match first
+          if (session.location === selectedLocation.fullName) {
+            return true;
+          }
+          
+          // Try partial match for different variations
+          const sessionLoc = session.location?.toLowerCase() || '';
+          const targetLoc = selectedLocation.fullName.toLowerCase();
+          
+          // Check if the session location contains key parts of the target location
+          if (selectedLocation.id === 'kwality' && sessionLoc.includes('kwality')) {
+            return true;
+          }
+          if (selectedLocation.id === 'supreme' && sessionLoc.includes('supreme')) {
+            return true;
+          }
+          if (selectedLocation.id === 'kenkere' && sessionLoc.includes('kenkere')) {
+            return true;
+          }
+          
+          return false;
+        });
+        
+        console.log('Filtered data count:', filtered.length);
+      }
     }
 
     return filtered;
@@ -73,7 +102,7 @@ export const SessionsSection: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
-      {/* Header Section - matching other tabs style */}
+      {/* Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-indigo-600/20" />
         <div className="absolute inset-0">

@@ -1,9 +1,6 @@
-
 import React from 'react';
-
 export const Footer: React.FC = () => {
-  return (
-    <footer className="relative h-16 overflow-hidden">
+  return <footer className="relative h-16 overflow-hidden">
       {/* Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-indigo-900 to-purple-900"></div>
       
@@ -33,12 +30,11 @@ export const Footer: React.FC = () => {
           
           <div className="flex items-center gap-2">
             <span className="text-xs text-slate-400 tracking-widest">PROJECT BY</span>
-            <span className="text-sm font-semibold text-white bg-gradient-to-r from-blue-500 to-purple-600 px-3 py-1 rounded-full tracking-wide">
+            <span className="text-white text-xs text-center bg-transparent">
               JIMMEEY
             </span>
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };

@@ -44,7 +44,7 @@ import { useSessionsData } from '@/hooks/useSessionsData';
 import { usePayrollData } from '@/hooks/usePayrollData';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { useLeadsData } from '@/hooks/useLeadsData';
-import { useDiscountsdata } from '@/hooks/useDiscountsData';
+import { useDiscountsData } from '@/hooks/useDiscountsData';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart as RechartsBarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Area, AreaChart, ComposedChart, FunnelChart, Funnel, LabelList } from 'recharts';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -151,7 +151,7 @@ const EditableSummary: React.FC<EditableSummaryProps> = ({ title, initialContent
 export const ExecutiveSummarySection = () => {
   const { data: salesData, loading: salesLoading } = useGoogleSheets();
   const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
-  const { data: payrollData, isLoading: payrollLoading } = usePayrollData();
+  const { data: payrollData, loading: payrollLoading } = usePayrollData();
   const { data: newClientData, loading: newClientLoading } = useNewClientData();
   const { data: leadsData, loading: leadsLoading } = useLeadsData();
   const { data: discountsData, loading: discountsLoading } = useDiscountsData();

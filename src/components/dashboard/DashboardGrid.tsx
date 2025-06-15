@@ -8,8 +8,7 @@ import {
   Calendar, 
   Tag,
   ChevronRight,
-  Sparkles,
-  ArrowUpRight
+  Sparkles
 } from "lucide-react";
 
 // Utility function for className merging
@@ -38,7 +37,7 @@ const defaultButtons: DashboardButton[] = [
     id: "executive-summary",
     label: "Executive Summary",
     description: "Strategic Performance Overview & Key Metrics",
-    icon: <BarChart3 size={28} />,
+    icon: <BarChart3 size={32} />,
     color: "text-blue-600",
     gradient: "from-blue-50 to-blue-100",
     hoverColor: "hover:border-blue-300",
@@ -48,7 +47,7 @@ const defaultButtons: DashboardButton[] = [
     id: "sales-analytics",
     label: "Sales Analytics",
     description: "Revenue Intelligence & Sales Performance",
-    icon: <TrendingUp size={28} />,
+    icon: <TrendingUp size={32} />,
     color: "text-emerald-600",
     gradient: "from-emerald-50 to-emerald-100",
     hoverColor: "hover:border-emerald-300",
@@ -58,7 +57,7 @@ const defaultButtons: DashboardButton[] = [
     id: "funnel-leads",
     label: "Funnel & Lead Performance",
     description: "Lead Pipeline Efficiency and Conversion Metrics",
-    icon: <BarChart3 size={28} />,
+    icon: <BarChart3 size={32} />,
     color: "text-purple-600",
     gradient: "from-purple-50 to-purple-100",
     hoverColor: "hover:border-purple-300",
@@ -68,7 +67,7 @@ const defaultButtons: DashboardButton[] = [
     id: "client-retention",
     label: "Client Conversion & Retention",
     description: "Client Acquisition and Retention Analysis",
-    icon: <Users size={28} />,
+    icon: <Users size={32} />,
     color: "text-orange-600",
     gradient: "from-orange-50 to-orange-100",
     hoverColor: "hover:border-orange-300",
@@ -78,7 +77,7 @@ const defaultButtons: DashboardButton[] = [
     id: "trainer-performance",
     label: "Trainer Performance",
     description: "Instructor Productivity and Engagement Metrics",
-    icon: <UserCheck size={28} />,
+    icon: <UserCheck size={32} />,
     color: "text-cyan-600",
     gradient: "from-cyan-50 to-cyan-100",
     hoverColor: "hover:border-cyan-300",
@@ -88,7 +87,7 @@ const defaultButtons: DashboardButton[] = [
     id: "class-attendance",
     label: "Class Attendance",
     description: "Utilization and Attendance Trends",
-    icon: <Calendar size={28} />,
+    icon: <Calendar size={32} />,
     color: "text-indigo-600",
     gradient: "from-indigo-50 to-indigo-100",
     hoverColor: "hover:border-indigo-300",
@@ -98,7 +97,7 @@ const defaultButtons: DashboardButton[] = [
     id: "discounts-promotions",
     label: "Discounts & Promotions",
     description: "Promotional Impact and Discount Analysis",
-    icon: <Tag size={28} />,
+    icon: <Tag size={32} />,
     color: "text-pink-600",
     gradient: "from-pink-50 to-pink-100",
     hoverColor: "hover:border-pink-300",
@@ -108,7 +107,7 @@ const defaultButtons: DashboardButton[] = [
     id: "sessions",
     label: "Sessions Analytics",
     description: "Session Management and Performance Analytics",
-    icon: <BarChart3 size={28} />,
+    icon: <BarChart3 size={32} />,
     color: "text-violet-600",
     gradient: "from-violet-50 to-violet-100",
     hoverColor: "hover:border-violet-300",
@@ -134,132 +133,118 @@ export function DashboardGrid({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto space-y-16">
-      {/* Premium Header Section */}
-      <div className="text-center space-y-8">
-        <div className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-600 text-white px-6 py-3 rounded-full text-sm font-bold shadow-xl border border-white/20">
+    <div className="w-full max-w-7xl mx-auto space-y-12">
+      {/* Header Section */}
+      <div className="text-center space-y-6">
+        <div className="inline-flex items-center gap-2 bg-gradient-to-r from-rose-500 to-purple-600 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg">
           <Sparkles className="w-4 h-4" />
-          <span className="tracking-wide">Analytics Dashboard</span>
+          Analytics Dashboard
         </div>
         
-        <div className="space-y-6">
-          <h2 className="text-5xl md:text-6xl font-black bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 bg-clip-text text-transparent tracking-tight">
-            Choose Your Analytics
-          </h2>
-          
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed font-medium">
-            Select a category below to dive deep into your studio's performance metrics and gain actionable insights
-          </p>
-        </div>
+        <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-gray-800 via-gray-900 to-black bg-clip-text text-transparent">
+          Choose Your Analytics
+        </h2>
+        
+        <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
+          Select a category below to dive deep into your studio's performance metrics and gain actionable insights
+        </p>
       </div>
       
-      {/* Sophisticated Dashboard Grid */}
+      {/* Dashboard Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
         {buttons.map((button) => (
           <button
             key={button.id}
             className={cn(
               "group relative overflow-hidden",
-              "bg-white border-2 border-gray-100 rounded-3xl",
-              "p-10 text-left transition-all duration-700 ease-out",
-              "hover:shadow-2xl hover:shadow-gray-200/60",
-              "hover:-translate-y-4 hover:scale-[1.02]",
-              "focus:outline-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-300",
-              "active:scale-[0.98] active:transition-transform active:duration-150",
-              clickedButton === button.id && "scale-[0.98]",
-              hoveredButton === button.id && "border-gray-200 shadow-xl"
+              "bg-white/90 backdrop-blur-sm border-2 border-gray-100 rounded-3xl",
+              "p-8 text-left transition-all duration-500 ease-out",
+              "hover:shadow-2xl hover:shadow-gray-200/50",
+              "hover:-translate-y-3 hover:scale-[1.02]",
+              "focus:outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-300",
+              "active:scale-[0.97] active:transition-transform active:duration-100",
+              button.hoverColor,
+              clickedButton === button.id && "scale-[0.97]",
+              hoveredButton === button.id && "border-gray-200"
             )}
             onMouseEnter={() => setHoveredButton(button.id)}
             onMouseLeave={() => setHoveredButton(null)}
             onClick={() => handleButtonClick(button.id)}
           >
-            {/* Premium Gradient Background Overlay */}
+            {/* Gradient Background Overlay */}
             <div 
               className={cn(
-                "absolute inset-0 opacity-0 transition-all duration-700",
+                "absolute inset-0 opacity-0 transition-opacity duration-500",
                 `bg-gradient-to-br ${button.gradient}`,
-                hoveredButton === button.id && "opacity-40"
+                hoveredButton === button.id && "opacity-80"
               )}
             />
             
-            {/* Subtle Pattern Overlay */}
-            <div className={cn(
-              "absolute inset-0 opacity-0 transition-opacity duration-700",
-              hoveredButton === button.id && "opacity-5"
-            )}>
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(0,0,0,0.1),transparent_50%)]"></div>
-            </div>
-            
             {/* Content */}
-            <div className="relative z-10 space-y-8">
-              {/* Enhanced Icon Container */}
-              <div className="flex items-start justify-between">
-                <div className={cn(
-                  "inline-flex items-center justify-center",
-                  "w-20 h-20 rounded-2xl mb-2",
-                  "bg-gray-50 border-2 border-gray-100",
-                  "transition-all duration-700",
-                  button.color,
-                  hoveredButton === button.id && "shadow-2xl scale-110 border-white",
-                  hoveredButton === button.id && `bg-gradient-to-br ${button.bgGradient} text-white`
-                )}>
-                  {button.icon}
-                </div>
-                
-                {/* Floating Arrow - Always Visible but Transforms */}
-                <div className={cn(
-                  "transition-all duration-700",
-                  "opacity-40 translate-x-0 scale-90",
-                  hoveredButton === button.id && "opacity-100 translate-x-1 scale-100"
-                )}>
-                  <div className={cn(
-                    "flex items-center justify-center",
-                    "w-10 h-10 rounded-xl",
-                    "bg-gray-50 border border-gray-200",
-                    "transition-all duration-500",
-                    "text-gray-400",
-                    hoveredButton === button.id && `bg-gradient-to-br ${button.bgGradient} text-white border-transparent shadow-lg`
-                  )}>
-                    <ArrowUpRight size={16} />
-                  </div>
-                </div>
+            <div className="relative z-10 space-y-6">
+              {/* Icon Container */}
+              <div className={cn(
+                "inline-flex items-center justify-center",
+                "w-20 h-20 rounded-2xl mb-2",
+                "bg-white shadow-lg border border-gray-100",
+                "transition-all duration-500",
+                button.color,
+                hoveredButton === button.id && "shadow-2xl scale-110 -rotate-6",
+                hoveredButton === button.id && `bg-gradient-to-br ${button.bgGradient} text-white border-transparent`
+              )}>
+                {button.icon}
               </div>
               
-              {/* Enhanced Text Content */}
-              <div className="space-y-4">
+              {/* Text Content */}
+              <div className="space-y-3">
                 <h3 className={cn(
-                  "text-xl font-bold text-gray-900 leading-tight tracking-tight",
-                  "transition-colors duration-500",
+                  "text-xl font-bold text-gray-900 leading-tight",
+                  "transition-colors duration-300",
                   hoveredButton === button.id && button.color
                 )}>
                   {button.label}
                 </h3>
                 
-                <p className={cn(
-                  "text-sm text-gray-500 leading-relaxed font-medium",
-                  "transition-colors duration-500",
-                  hoveredButton === button.id && "text-gray-600"
-                )}>
+                <p className="text-sm text-gray-600 leading-relaxed">
                   {button.description}
                 </p>
               </div>
             </div>
             
-            {/* Premium Bottom Accent */}
+            {/* Floating Arrow */}
             <div className={cn(
-              "absolute bottom-0 left-0 right-0 h-1.5",
-              "bg-gradient-to-r transition-all duration-700",
+              "absolute top-6 right-6",
+              "transition-all duration-500",
+              "opacity-0 translate-x-4 scale-75",
+              hoveredButton === button.id && "opacity-100 translate-x-0 scale-100"
+            )}>
+              <div className={cn(
+                "flex items-center justify-center",
+                "w-10 h-10 rounded-full",
+                "bg-white shadow-lg border border-gray-200",
+                "transition-all duration-300",
+                button.color,
+                hoveredButton === button.id && `bg-gradient-to-br ${button.bgGradient} text-white border-transparent shadow-xl`
+              )}>
+                <ChevronRight size={18} />
+              </div>
+            </div>
+            
+            {/* Bottom Accent Line */}
+            <div className={cn(
+              "absolute bottom-0 left-0 right-0 h-1",
+              "bg-gradient-to-r transition-all duration-500",
               button.bgGradient,
-              "opacity-0 scale-x-0 rounded-b-3xl",
+              "opacity-0 scale-x-0",
               hoveredButton === button.id && "opacity-100 scale-x-100"
             )} />
 
-            {/* Enhanced Glow Effect */}
+            {/* Hover Glow Effect */}
             <div className={cn(
-              "absolute -inset-1 rounded-3xl transition-all duration-700 pointer-events-none",
-              "opacity-0 blur-xl",
-              hoveredButton === button.id && "opacity-20",
-              hoveredButton === button.id && `bg-gradient-to-r ${button.bgGradient}`
+              "absolute inset-0 rounded-3xl transition-all duration-500 pointer-events-none",
+              "opacity-0",
+              hoveredButton === button.id && "opacity-100 shadow-2xl",
+              hoveredButton === button.id && `shadow-${button.color.split('-')[1]}-200/30`
             )} />
           </button>
         ))}

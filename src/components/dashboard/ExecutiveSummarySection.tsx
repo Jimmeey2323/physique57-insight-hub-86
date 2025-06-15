@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -32,15 +33,19 @@ import {
   UserCheck,
   GraduationCap,
   Megaphone,
-  TrendingUp as Forecast
+  TrendingUp as Forecast,
+  BarChart,
+  PieChart,
+  LineChart as LineChartIcon,
+  Filter
 } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { usePayrollData } from '@/hooks/usePayrollData';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { useLeadsData } from '@/hooks/useLeadsData';
-import { useDiscountsData } from '@/hooks/useDiscountsData';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, Area, AreaChart, ComposedChart } from 'recharts';
+import { useDiscountsdata } from '@/hooks/useDiscountsData';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart as RechartsBarChart, Bar, PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, Area, AreaChart, ComposedChart, FunnelChart, Funnel, LabelList } from 'recharts';
 import { formatCurrency } from '@/utils/formatters';
 
 interface EditableSummaryProps {
@@ -146,10 +151,14 @@ const EditableSummary: React.FC<EditableSummaryProps> = ({ title, initialContent
 export const ExecutiveSummarySection = () => {
   const { data: salesData, loading: salesLoading } = useGoogleSheets();
   const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
-  const { data: payrollData, loading: payrollLoading } = usePayrollData();
+  const { data: payrollData, isLoading: payrollLoading } = usePayrollData();
   const { data: newClientData, loading: newClientLoading } = useNewClientData();
   const { data: leadsData, loading: leadsLoading } = useLeadsData();
   const { data: discountsData, loading: discountsLoading } = useDiscountsData();
+
+  // Chart type toggles
+  const [revenueChartType, setRevenueChartType] = useState<'line' | 'bar' | 'area'>('area');
+  const [leadSourceChartType, setLeadSourceChartType] = useState<'pie' | 'funnel' | 'bar'>('funnel');
 
   // Check if all data is loaded
   const isLoading = salesLoading || sessionsLoading || payrollLoading || newClientLoading || leadsLoading || discountsLoading;
@@ -204,19 +213,28 @@ export const ExecutiveSummarySection = () => {
     const convertedLeads = leadsData?.filter(lead => lead.conversionStatus === 'Converted').length || 0;
     const leadConversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
-    // Lead Sources - Fix the property access
+    // Lead Sources
     const leadSources = leadsData?.reduce((acc, lead) => {
-      const source = lead.source || lead.leadSource || 'Unknown'; // Try both possible property names
+      const source = lead.source || 'Unknown';
       acc[source] = (acc[source] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    // Lead Stages
+    const leadsByStage = leadsData?.reduce((acc, lead) => {
+      const stage = lead.stage || 'Unknown';
+      acc[stage] = (acc[stage] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {};
 
     // Top Trainers with more details
     const topTrainers = payrollData?.sort((a, b) => (b.totalPaid || 0) - (a.totalPaid || 0)).slice(0, 5) || [];
     
-    // Sales by Sold By
+    // Sales by Sold By (exclude "-")
     const salesBySoldBy = salesData?.reduce((acc, sale) => {
       const soldBy = sale.soldBy || 'Unknown';
+      if (soldBy === '-' || soldBy === 'Unknown') return acc;
+      
       if (!acc[soldBy]) {
         acc[soldBy] = { count: 0, revenue: 0 };
       }
@@ -225,12 +243,27 @@ export const ExecutiveSummarySection = () => {
       return acc;
     }, {} as Record<string, { count: number; revenue: number }>) || {};
 
+    // Top Products by sales value
+    const productSales = salesData?.reduce((acc, sale) => {
+      const product = sale.cleanedProduct || sale.paymentItem || 'Unknown';
+      if (!acc[product]) {
+        acc[product] = { count: 0, revenue: 0 };
+      }
+      acc[product].count += 1;
+      acc[product].revenue += sale.paymentValue || 0;
+      return acc;
+    }, {} as Record<string, { count: number; revenue: number }>) || {};
+
+    const topProducts = Object.entries(productSales)
+      .sort(([,a], [,b]) => b.revenue - a.revenue)
+      .slice(0, 5);
+
     // Generate forecast data (next 6 months)
     const currentMonth = new Date();
     const forecastData = Array.from({ length: 6 }, (_, i) => {
       const month = new Date(currentMonth);
       month.setMonth(month.getMonth() + i + 1);
-      const growthRate = 1.05 + (Math.random() * 0.1); // 5-15% growth
+      const growthRate = 1.05 + (Math.random() * 0.1);
       return {
         month: month.toLocaleDateString('en-US', { month: 'short', year: '2-digit' }),
         predicted: totalRevenue * growthRate * (1 + i * 0.02),
@@ -251,33 +284,13 @@ export const ExecutiveSummarySection = () => {
       };
     });
 
-    // Month-on-month location performance for current year
-    const currentYear = new Date().getFullYear();
-    const locationMonthlyData = Array.from({ length: 12 }, (_, monthIndex) => {
-      const monthName = new Date(currentYear, monthIndex).toLocaleDateString('en-US', { month: 'short' });
-      return {
-        month: monthName,
-        'Kwality House': (totalRevenue * 0.4 * (0.8 + Math.random() * 0.4)) / 12,
-        'Supreme HQ': (totalRevenue * 0.35 * (0.8 + Math.random() * 0.4)) / 12,
-        'Kenkere House': (totalRevenue * 0.25 * (0.8 + Math.random() * 0.4)) / 12
-      };
-    });
-
-    const locationData = [
-      { name: 'Kwality House', revenue: totalRevenue * 0.4, sessions: Math.floor(totalSessions * 0.4), clients: Math.floor(totalNewClients * 0.4) },
-      { name: 'Supreme HQ', revenue: totalRevenue * 0.35, sessions: Math.floor(totalSessions * 0.35), clients: Math.floor(totalNewClients * 0.35) },
-      { name: 'Kenkere House', revenue: totalRevenue * 0.25, sessions: Math.floor(totalSessions * 0.25), clients: Math.floor(totalNewClients * 0.25) }
-    ];
-
-    const serviceData = [
-      { name: 'Personal Training', value: 45, amount: totalRevenue * 0.45, color: '#3B82F6' },
-      { name: 'Group Classes', value: 35, amount: totalRevenue * 0.35, color: '#8B5CF6' },
-      { name: 'Memberships', value: 20, amount: totalRevenue * 0.20, color: '#10B981' }
-    ];
-
-    // Top classes based on class averages (attendance per session)
+    // Most Popular Classes (exclude "Hosted" and classes with < 2 occurrences)
     const classAverages = sessionsData?.reduce((acc, session) => {
       const key = session.cleanedClass || session.classType || 'Unknown';
+      
+      // Exclude classes containing "Hosted" (case insensitive)
+      if (key.toLowerCase().includes('hosted')) return acc;
+      
       if (!acc[key]) {
         acc[key] = { totalAttendance: 0, sessions: 0, trainerName: session.trainerName };
       }
@@ -287,6 +300,7 @@ export const ExecutiveSummarySection = () => {
     }, {} as Record<string, { totalAttendance: number; sessions: number; trainerName: string }>) || {};
 
     const topClasses = Object.entries(classAverages)
+      .filter(([, data]) => data.sessions >= 2) // Only include classes with 2+ occurrences
       .map(([className, data]) => ({
         className,
         averageAttendance: data.sessions > 0 ? data.totalAttendance / data.sessions : 0,
@@ -296,6 +310,20 @@ export const ExecutiveSummarySection = () => {
       }))
       .sort((a, b) => b.averageAttendance - a.averageAttendance)
       .slice(0, 5);
+
+    // Top Discounts
+    const topDiscounts = discountsData?.filter(item => (item.discountAmount || 0) > 0)
+      .sort((a, b) => (b.discountAmount || 0) - (a.discountAmount || 0))
+      .slice(0, 5) || [];
+
+    // Funnel data for lead sources
+    const leadSourceFunnelData = Object.entries(leadSources)
+      .sort(([,a], [,b]) => b - a)
+      .map(([source, count], index) => ({
+        name: source,
+        value: count,
+        fill: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][index % 5]
+      }));
 
     return {
       // Core metrics
@@ -324,12 +352,13 @@ export const ExecutiveSummarySection = () => {
       // Chart data
       trendData,
       forecastData,
-      locationData,
-      locationMonthlyData,
-      serviceData,
       topTrainers,
       topClasses,
+      topDiscounts,
+      topProducts,
       leadSources,
+      leadsByStage,
+      leadSourceFunnelData,
       salesBySoldBy,
       
       // Growth metrics
@@ -342,19 +371,22 @@ export const ExecutiveSummarySection = () => {
 
   const AnimatedMetricCard = ({ title, value, change, icon: Icon, progress, description, color = 'blue' }: any) => {
     const [animatedValue, setAnimatedValue] = useState(0);
-    const [isHovered, setIsHovered] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
-      // Only start animation when metrics are available
-      if (!metrics) return;
+      // Start visibility animation immediately
+      const visibilityTimer = setTimeout(() => setIsVisible(true), 100);
+      
+      // Only start value animation when metrics are available
+      if (!metrics) return () => clearTimeout(visibilityTimer);
       
       const numericValue = typeof value === 'string' 
         ? parseFloat(value.replace(/[₹,KLCr%]/g, '')) 
         : value;
       
       if (!isNaN(numericValue)) {
-        const duration = 2000;
-        const steps = 60;
+        const duration = 1500; // Reduced duration for smoother animation
+        const steps = 50;
         const increment = numericValue / steps;
         let current = 0;
         
@@ -368,8 +400,13 @@ export const ExecutiveSummarySection = () => {
           }
         }, duration / steps);
         
-        return () => clearInterval(counter);
+        return () => {
+          clearInterval(counter);
+          clearTimeout(visibilityTimer);
+        };
       }
+      
+      return () => clearTimeout(visibilityTimer);
     }, [value, metrics]);
 
     const colorClasses = {
@@ -386,7 +423,7 @@ export const ExecutiveSummarySection = () => {
     // Show skeleton loader when data is not ready
     if (!metrics) {
       return (
-        <Card className="bg-white border border-slate-200 shadow-lg">
+        <Card className="bg-white border border-slate-200 shadow-lg animate-pulse">
           <CardContent className="p-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -406,18 +443,18 @@ export const ExecutiveSummarySection = () => {
       <HoverCard>
         <HoverCardTrigger asChild>
           <Card 
-            className="bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group hover:scale-105 hover:-translate-y-1"
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            className={`bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-500 cursor-pointer group hover:scale-105 hover:-translate-y-1 ${
+              isVisible ? 'animate-fade-in opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
           >
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className={`p-3 bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} rounded-lg group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`p-3 bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} rounded-lg group-hover:scale-110 transition-transform duration-300 shadow-lg`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
                 {change !== undefined && (
-                  <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                    change >= 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-all duration-300 ${
+                    change >= 0 ? 'bg-green-100 text-green-700 hover:bg-green-200' : 'bg-red-100 text-red-700 hover:bg-red-200'
                   }`}>
                     {change >= 0 ? (
                       <ArrowUpRight className="w-3 h-3" />
@@ -431,7 +468,7 @@ export const ExecutiveSummarySection = () => {
               
               <div className="space-y-3">
                 <p className="text-sm font-medium text-slate-600 uppercase tracking-wide">{title}</p>
-                <p className="text-3xl font-bold text-slate-900">
+                <p className="text-3xl font-bold text-slate-900 transition-all duration-300">
                   {typeof value === 'string' && value.includes('%') 
                     ? `${animatedValue.toFixed(1)}%`
                     : typeof value === 'string' && value.includes('₹')
@@ -443,7 +480,7 @@ export const ExecutiveSummarySection = () => {
                 
                 {progress !== undefined && (
                   <div className="space-y-2">
-                    <Progress value={progress} className="h-2" />
+                    <Progress value={progress} className="h-2 transition-all duration-500" />
                     <p className="text-xs text-slate-500">{progress.toFixed(0)}% of target</p>
                   </div>
                 )}
@@ -470,6 +507,31 @@ export const ExecutiveSummarySection = () => {
     );
   };
 
+  const ChartTypeToggle = ({ 
+    currentType, 
+    onTypeChange, 
+    types 
+  }: { 
+    currentType: string; 
+    onTypeChange: (type: any) => void; 
+    types: { value: string; icon: any; label: string }[] 
+  }) => (
+    <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+      {types.map(({ value, icon: Icon, label }) => (
+        <Button
+          key={value}
+          variant={currentType === value ? "default" : "ghost"}
+          size="sm"
+          onClick={() => onTypeChange(value)}
+          className="flex items-center gap-1 h-8"
+        >
+          <Icon className="w-3 h-3" />
+          {label}
+        </Button>
+      ))}
+    </div>
+  );
+
   const handleSummaryUpdate = (section: string, content: string[]) => {
     console.log(`Updated ${section} summary:`, content);
   };
@@ -477,7 +539,7 @@ export const ExecutiveSummarySection = () => {
   // Show loading state when data is not ready
   if (isLoading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 animate-fade-in">
         <div className="text-center mb-8">
           <h2 className="text-4xl font-light text-slate-800 mb-2 font-serif">
             <span className="font-extralight">Executive</span>{' '}
@@ -488,7 +550,7 @@ export const ExecutiveSummarySection = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {Array.from({ length: 8 }).map((_, i) => (
-            <Card key={i} className="bg-white border border-slate-200 shadow-lg">
+            <Card key={i} className="bg-white border border-slate-200 shadow-lg animate-pulse">
               <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -508,7 +570,7 @@ export const ExecutiveSummarySection = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       {/* Hero Section */}
       <div className="text-center mb-8">
         <h2 className="text-4xl font-light text-slate-800 mb-2 font-serif">
@@ -617,24 +679,61 @@ export const ExecutiveSummarySection = () => {
         {/* Revenue Trend & Forecast */}
         <Card className="bg-white border border-slate-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Forecast className="w-5 h-5 text-blue-600" />
-              Revenue Trend & Forecast
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Forecast className="w-5 h-5 text-blue-600" />
+                Revenue Trend & Forecast
+              </CardTitle>
+              <ChartTypeToggle
+                currentType={revenueChartType}
+                onTypeChange={setRevenueChartType}
+                types={[
+                  { value: 'area', icon: BarChart3, label: 'Area' },
+                  { value: 'line', icon: LineChartIcon, label: 'Line' },
+                  { value: 'bar', icon: BarChart, label: 'Bar' }
+                ]}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <ComposedChart data={[...metrics.trendData.slice(-6), ...metrics.forecastData]}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="month" stroke="#64748b" />
-                <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
-                <Tooltip formatter={(value, name) => [
-                  formatCurrency(Number(value)), 
-                  name === 'revenue' ? 'Historical Revenue' : 'Predicted Revenue'
-                ]} />
-                <Area type="monotone" dataKey="revenue" fill="#3B82F6" fillOpacity={0.6} stroke="#3B82F6" />
-                <Line type="monotone" dataKey="predicted" stroke="#10B981" strokeDasharray="5 5" strokeWidth={2} />
-              </ComposedChart>
+              {revenueChartType === 'area' ? (
+                <ComposedChart data={[...metrics.trendData.slice(-6), ...metrics.forecastData]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" stroke="#64748b" />
+                  <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+                  <Tooltip formatter={(value, name) => [
+                    formatCurrency(Number(value)), 
+                    name === 'revenue' ? 'Historical Revenue' : 'Predicted Revenue'
+                  ]} />
+                  <Area type="monotone" dataKey="revenue" fill="#3B82F6" fillOpacity={0.6} stroke="#3B82F6" />
+                  <Line type="monotone" dataKey="predicted" stroke="#10B981" strokeDasharray="5 5" strokeWidth={2} />
+                </ComposedChart>
+              ) : revenueChartType === 'line' ? (
+                <LineChart data={[...metrics.trendData.slice(-6), ...metrics.forecastData]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" stroke="#64748b" />
+                  <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+                  <Tooltip formatter={(value, name) => [
+                    formatCurrency(Number(value)), 
+                    name === 'revenue' ? 'Historical Revenue' : 'Predicted Revenue'
+                  ]} />
+                  <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={2} />
+                  <Line type="monotone" dataKey="predicted" stroke="#10B981" strokeDasharray="5 5" strokeWidth={2} />
+                </LineChart>
+              ) : (
+                <RechartsBarChart data={[...metrics.trendData.slice(-6), ...metrics.forecastData]}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="month" stroke="#64748b" />
+                  <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+                  <Tooltip formatter={(value, name) => [
+                    formatCurrency(Number(value)), 
+                    name === 'revenue' ? 'Historical Revenue' : 'Predicted Revenue'
+                  ]} />
+                  <Bar dataKey="revenue" fill="#3B82F6" />
+                  <Bar dataKey="predicted" fill="#10B981" opacity={0.7} />
+                </RechartsBarChart>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
@@ -642,61 +741,186 @@ export const ExecutiveSummarySection = () => {
         {/* Lead Sources Distribution */}
         <Card className="bg-white border border-slate-200 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Megaphone className="w-5 h-5 text-purple-600" />
-              Lead Sources Distribution
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Megaphone className="w-5 h-5 text-purple-600" />
+                Lead Sources Distribution
+              </CardTitle>
+              <ChartTypeToggle
+                currentType={leadSourceChartType}
+                onTypeChange={setLeadSourceChartType}
+                types={[
+                  { value: 'funnel', icon: Filter, label: 'Funnel' },
+                  { value: 'pie', icon: PieChart, label: 'Pie' },
+                  { value: 'bar', icon: BarChart, label: 'Bar' }
+                ]}
+              />
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={Object.entries(metrics.leadSources).map(([source, count], index) => ({
-                    name: source,
-                    value: count,
-                    color: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][index % 5]
-                  }))}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {Object.entries(metrics.leadSources).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][index % 5]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
+              {leadSourceChartType === 'funnel' ? (
+                <FunnelChart>
+                  <Tooltip />
+                  <Funnel
+                    dataKey="value"
+                    data={metrics.leadSourceFunnelData}
+                    isAnimationActive
+                    labelLine
+                  >
+                    <LabelList position="center" fill="#fff" stroke="none" />
+                  </Funnel>
+                </FunnelChart>
+              ) : leadSourceChartType === 'pie' ? (
+                <RechartsPieChart>
+                  <Pie
+                    data={metrics.leadSourceFunnelData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, value }) => `${name}: ${value}`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {metrics.leadSourceFunnelData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </RechartsPieChart>
+              ) : (
+                <RechartsBarChart data={metrics.leadSourceFunnelData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#64748b" />
+                  <YAxis stroke="#64748b" />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#8B5CF6" />
+                </RechartsBarChart>
+              )}
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
 
-      {/* Performance by Location - Month on Month */}
-      <Card className="bg-white border border-slate-200 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-green-600" />
-            Monthly Performance by Location ({new Date().getFullYear()})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={metrics.locationMonthlyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" stroke="#64748b" />
-              <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
-              <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-              <Bar dataKey="Kwality House" fill="#3B82F6" />
-              <Bar dataKey="Supreme HQ" fill="#8B5CF6" />
-              <Bar dataKey="Kenkere House" fill="#10B981" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      {/* Tables Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Top Discounts Table */}
+        <Card className="bg-white border border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Percent className="w-5 h-5 text-red-600" />
+              Top Discounts Given
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead className="text-right">Discount</TableHead>
+                  <TableHead className="text-right">%</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {metrics.topDiscounts.map((discount, index) => (
+                  <TableRow key={`${discount.memberId}-${index}`} className="hover:bg-slate-50">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
+                          {index + 1}
+                        </Badge>
+                        {discount.customerName || 'Unknown'}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(discount.discountAmount || 0)}</TableCell>
+                    <TableCell className="text-right">{(discount.grossDiscountPercent || 0).toFixed(1)}%</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Leads by Stage */}
+        <Card className="bg-white border border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-orange-600" />
+              Leads by Stage
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Stage</TableHead>
+                  <TableHead className="text-right">Count</TableHead>
+                  <TableHead className="text-right">%</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {Object.entries(metrics.leadsByStage)
+                  .sort(([,a], [,b]) => b - a)
+                  .slice(0, 5)
+                  .map(([stage, count], index) => (
+                  <TableRow key={stage} className="hover:bg-slate-50">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
+                          {index + 1}
+                        </Badge>
+                        {stage}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">{count}</TableCell>
+                    <TableCell className="text-right">
+                      {((count / metrics.totalLeads) * 100).toFixed(1)}%
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Top Products */}
+        <Card className="bg-white border border-slate-200 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Star className="w-5 h-5 text-yellow-600" />
+              Top Products
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead className="text-right">Sales</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {metrics.topProducts.map(([product, data], index) => (
+                  <TableRow key={product} className="hover:bg-slate-50">
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
+                          {index + 1}
+                        </Badge>
+                        {product}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-mono">{formatCurrency(data.revenue)}</TableCell>
+                    <TableCell className="text-right">{data.count}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Top Performers Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -801,7 +1025,7 @@ export const ExecutiveSummarySection = () => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-purple-600" />
-            Most Popular Classes (by Average Attendance)
+            Most Popular Classes (by Average Attendance, min 2 sessions, excluding Hosted)
           </CardTitle>
         </CardHeader>
         <CardContent>

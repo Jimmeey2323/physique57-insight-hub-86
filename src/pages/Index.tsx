@@ -24,22 +24,31 @@ const Index = () => {
 
         {/* Main Loader Container */}
         <div className="relative z-10 text-center space-y-8">
-          {/* Cute Spinning 57 */}
+          {/* Enhanced Spinning 57 */}
           <div className="relative">
             <div className="w-32 h-32 mx-auto flex items-center justify-center">
               <div className="relative">
                 {/* Outer Ring - Subtle */}
                 <div className="absolute inset-0 w-32 h-32 border-2 border-slate-200 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
                 
-                {/* Inner Spinning 57 - Perfectly Circular */}
-                <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-full flex items-center justify-center animate-spin shadow-lg" style={{ animationDuration: '2s' }}>
-                  <span className="text-2xl font-bold text-white font-serif">57</span>
+                {/* Inner Spinning 57 - Enhanced */}
+                <div className="w-24 h-24 bg-gradient-to-br from-slate-800 via-slate-700 to-slate-900 rounded-full flex items-center justify-center animate-spin shadow-xl border-2 border-slate-600/20" style={{ animationDuration: '2s' }}>
+                  <div className="relative flex items-center justify-center">
+                    {/* Glowing background effect */}
+                    <div className="absolute inset-0 w-full h-full bg-white/10 rounded-full blur-sm"></div>
+                    {/* The 57 text */}
+                    <span className="relative text-2xl font-bold text-white font-serif tracking-tight" style={{ lineHeight: '1', transform: 'translateY(-1px)' }}>57</span>
+                  </div>
                 </div>
                 
-                {/* Cute Floating Dots */}
-                <div className="absolute -top-2 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-bounce"></div>
-                <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-purple-400 rounded-full animate-bounce animation-delay-1000"></div>
-                <div className="absolute top-1/2 -left-4 w-2 h-2 bg-indigo-400 rounded-full animate-bounce animation-delay-2000"></div>
+                {/* Cute Floating Dots with better positioning */}
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-bounce shadow-sm"></div>
+                <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-purple-400 rounded-full animate-bounce animation-delay-1000 shadow-sm"></div>
+                <div className="absolute top-1/2 -left-3 w-2 h-2 bg-indigo-400 rounded-full animate-bounce animation-delay-2000 shadow-sm"></div>
+                
+                {/* Additional sparkle effects */}
+                <div className="absolute top-6 right-2 w-1 h-1 bg-pink-300 rounded-full animate-pulse"></div>
+                <div className="absolute bottom-8 right-6 w-1 h-1 bg-cyan-300 rounded-full animate-pulse animation-delay-1000"></div>
               </div>
             </div>
           </div>

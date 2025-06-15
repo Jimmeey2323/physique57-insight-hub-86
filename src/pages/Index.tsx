@@ -19,16 +19,81 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 flex items-center justify-center">
-        <Card className="p-12 bg-white/95 backdrop-blur-sm shadow-2xl border-0 rounded-2xl">
-          <CardContent className="flex items-center gap-6">
-            <Loader2 className="w-10 h-10 animate-spin text-slate-700" />
-            <div>
-              <p className="text-xl font-semibold text-slate-800">Loading Analytics Dashboard</p>
-              <p className="text-sm text-slate-600 mt-1">Fetching latest business data from Google Sheets...</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 flex items-center justify-center relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl animate-pulse-slow"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-100/30 rounded-full blur-3xl animate-pulse-slow animation-delay-2000"></div>
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-indigo-100/30 rounded-full blur-3xl animate-pulse-slow animation-delay-4000"></div>
+        </div>
+
+        {/* Main Loader Container */}
+        <div className="relative z-10 text-center space-y-12">
+          {/* Logo Section */}
+          <div className="space-y-4">
+            <div className="mx-auto w-20 h-20 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center shadow-2xl animate-float">
+              <span className="text-2xl font-bold text-white font-serif">P57</span>
             </div>
-          </CardContent>
-        </Card>
+            <h1 className="text-3xl font-light text-slate-800 font-serif tracking-wide">
+              Physique <span className="font-bold animate-color-cycle">57</span>
+            </h1>
+          </div>
+
+          {/* Sophisticated Loading Animation */}
+          <div className="relative">
+            {/* Outer Ring */}
+            <div className="w-32 h-32 mx-auto relative">
+              <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
+              <div className="absolute inset-0 border-4 border-transparent border-t-blue-600 border-r-purple-600 rounded-full animate-spin"></div>
+              <div className="absolute inset-2 border-2 border-transparent border-b-indigo-500 border-l-pink-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2s' }}></div>
+              
+              {/* Inner Pulsing Core */}
+              <div className="absolute inset-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse flex items-center justify-center">
+                <div className="w-4 h-4 bg-white rounded-full animate-ping"></div>
+              </div>
+            </div>
+
+            {/* Floating Dots */}
+            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+              <div className="flex space-x-1">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce animation-delay-1000"></div>
+                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce animation-delay-2000"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Loading Text */}
+          <div className="space-y-3">
+            <h2 className="text-2xl font-semibold text-slate-800 tracking-wide">
+              Initializing Dashboard
+            </h2>
+            <p className="text-slate-600 font-light max-w-md mx-auto leading-relaxed">
+              Connecting to business intelligence systems and preparing analytics modules...
+            </p>
+            
+            {/* Progress Indicators */}
+            <div className="mt-8 space-y-3">
+              <div className="flex items-center justify-center space-x-2 text-sm text-slate-500">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span>Authenticating connections</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2 text-sm text-slate-500">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse animation-delay-1000"></div>
+                <span>Loading data streams</span>
+              </div>
+              <div className="flex items-center justify-center space-x-2 text-sm text-slate-500">
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse animation-delay-2000"></div>
+                <span>Preparing analytics</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Decorative Elements */}
+          <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 opacity-20">
+            <div className="w-64 h-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -104,8 +169,8 @@ const Index = () => {
           {/* Refined Header Section */}
           <header className="mb-20 text-center">
             {/* Business Badge - Full Width */}
-            <div className="inline-flex items-center justify-center mb-8 w-full max-w-md mx-auto">
-              <div className="bg-slate-800 text-white px-8 py-3 rounded-full text-sm font-medium shadow-lg w-full text-center">
+            <div className="inline-flex items-center justify-center mb-8 w-full max-w-4xl mx-auto">
+              <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-12 py-4 rounded-full text-base font-medium shadow-xl w-full text-center tracking-wide">
                 Business Intelligence Dashboard
               </div>
             </div>

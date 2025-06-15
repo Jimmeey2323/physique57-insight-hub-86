@@ -149,12 +149,12 @@ const EditableSummary: React.FC<EditableSummaryProps> = ({ title, initialContent
 };
 
 export const ExecutiveSummarySection = () => {
-  const { data: salesData, loading: salesLoading } = useGoogleSheets();
-  const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
-  const { data: payrollData, loading: payrollLoading } = usePayrollData();
-  const { data: newClientData, loading: newClientLoading } = useNewClientData();
-  const { data: leadsData, loading: leadsLoading } = useLeadsData();
-  const { data: discountsData, loading: discountsLoading } = useDiscountsData();
+  const { data: salesData, isLoading: salesLoading } = useGoogleSheets();
+  const { data: sessionsData, isLoading: sessionsLoading } = useSessionsData();
+  const { data: payrollData, isLoading: payrollLoading } = usePayrollData();
+  const { data: newClientData, isLoading: newClientLoading } = useNewClientData();
+  const { data: leadsData, isLoading: leadsLoading } = useLeadsData();
+  const { data: discountsData, isLoading: discountsLoading } = useDiscountsData();
 
   const [chartType, setChartType] = useState<'line' | 'bar' | 'area'>('line');
   const [showLabels, setShowLabels] = useState(true);

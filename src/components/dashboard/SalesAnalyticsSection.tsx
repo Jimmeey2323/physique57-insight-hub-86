@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -266,6 +267,17 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
     setCollapsedGroups(newCollapsed);
   };
 
+  const resetFilters = () => {
+    setFilters({
+      dateRange: { start: '', end: '' },
+      location: [],
+      category: [],
+      product: [],
+      soldBy: [],
+      paymentMethod: []
+    });
+  };
+
   return (
     <div className="space-y-8">
       {/* Filter and Location Tabs */}
@@ -292,52 +304,86 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
             <TabsContent key={location.id} value={location.id} className="space-y-8">
               {/* Filters */}
               <AutoCloseFilterSection 
-                data={filteredData}
                 filters={filters}
                 onFiltersChange={setFilters}
+                onReset={resetFilters}
               />
 
-              {/* Year-on-Year Table */}
-              <section className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-900">Year-on-Year Analysis</h2>
-                <EnhancedYearOnYearTable 
-                  data={allHistoricData}
-                  onRowClick={handleRowClick}
-                  selectedMetric={activeYoyMetric}
-                />
-              </section>
+              {/* Analytics Sections */}
+              <Tabs defaultValue="yearOnYear" className="w-full">
+                <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-4 w-full max-w-4xl mx-auto overflow-hidden">
+                  <TabsTrigger
+                    value="yearOnYear"
+                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                  >
+                    Year-on-Year
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="monthOnMonth"
+                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                  >
+                    Month-on-Month
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="productPerformance"
+                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                  >
+                    Product Performance
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="categoryPerformance"
+                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                  >
+                    Category Performance
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Month-on-Month Table */}
-              <section className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-900">Month-on-Month Analysis</h2>
-                <MonthOnMonthTable 
-                  data={allHistoricData}
-                  onRowClick={handleRowClick}
-                  collapsedGroups={collapsedGroups}
-                  onGroupToggle={handleGroupToggle}
-                  selectedMetric={activeYoyMetric}
-                />
-              </section>
+                <TabsContent value="yearOnYear" className="mt-8">
+                  <section className="space-y-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Year-on-Year Analysis</h2>
+                    <EnhancedYearOnYearTable 
+                      data={allHistoricData}
+                      onRowClick={handleRowClick}
+                      selectedMetric={activeYoyMetric}
+                    />
+                  </section>
+                </TabsContent>
 
-              {/* Product Performance Table */}
-              <section className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-900">Product Performance Analysis</h2>
-                <ProductPerformanceTable 
-                  data={allHistoricData}
-                  onRowClick={handleRowClick}
-                  selectedMetric={activeYoyMetric}
-                />
-              </section>
+                <TabsContent value="monthOnMonth" className="mt-8">
+                  <section className="space-y-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Month-on-Month Analysis</h2>
+                    <MonthOnMonthTable 
+                      data={allHistoricData}
+                      onRowClick={handleRowClick}
+                      collapsedGroups={collapsedGroups}
+                      onGroupToggle={handleGroupToggle}
+                      selectedMetric={activeYoyMetric}
+                    />
+                  </section>
+                </TabsContent>
 
-              {/* Category Performance Table */}
-              <section className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-900">Category Performance Analysis</h2>
-                <CategoryPerformanceTable 
-                  data={allHistoricData}
-                  onRowClick={handleRowClick}
-                  selectedMetric={activeYoyMetric}
-                />
-              </section>
+                <TabsContent value="productPerformance" className="mt-8">
+                  <section className="space-y-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Product Performance Analysis</h2>
+                    <ProductPerformanceTable 
+                      data={allHistoricData}
+                      onRowClick={handleRowClick}
+                      selectedMetric={activeYoyMetric}
+                    />
+                  </section>
+                </TabsContent>
+
+                <TabsContent value="categoryPerformance" className="mt-8">
+                  <section className="space-y-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Category Performance Analysis</h2>
+                    <CategoryPerformanceTable 
+                      data={allHistoricData}
+                      onRowClick={handleRowClick}
+                      selectedMetric={activeYoyMetric}
+                    />
+                  </section>
+                </TabsContent>
+              </Tabs>
             </TabsContent>
           ))}
         </Tabs>

@@ -29,7 +29,8 @@ export const SessionsQuickFilters: React.FC<QuickFiltersProps> = ({
   onClearAll
 }) => {
   const handleQuickSelect = (type: string, value: string) => {
-    const currentValues = [...filters[type as keyof typeof filters]];
+    console.log('Quick filter clicked:', { type, value, currentFilters: filters });
+    const currentValues = [...(filters[type as keyof typeof filters] || [])];
     const index = currentValues.indexOf(value);
     
     if (index > -1) {
@@ -38,10 +39,11 @@ export const SessionsQuickFilters: React.FC<QuickFiltersProps> = ({
       currentValues.push(value);
     }
     
+    console.log('Updated filter values:', currentValues);
     onFilterChange(type, currentValues);
   };
 
-  const totalActiveFilters = Object.values(filters).reduce((sum, arr) => sum + arr.length, 0);
+  const totalActiveFilters = Object.values(filters).reduce((sum, arr) => sum + (arr?.length || 0), 0);
 
   return (
     <Card className="bg-white/80 backdrop-blur-sm shadow-sm border border-gray-200">
@@ -79,7 +81,7 @@ export const SessionsQuickFilters: React.FC<QuickFiltersProps> = ({
             {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
               <Button
                 key={day}
-                variant={filters.days.includes(day) ? "default" : "outline"}
+                variant={filters.days?.includes(day) ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleQuickSelect('days', day)}
                 className="h-7 px-3 text-xs"
@@ -94,10 +96,10 @@ export const SessionsQuickFilters: React.FC<QuickFiltersProps> = ({
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-600">Popular Trainers</label>
           <div className="flex flex-wrap gap-1">
-            {options.trainers.slice(0, 6).map((trainer) => (
+            {options.trainers?.slice(0, 6).map((trainer) => (
               <Button
                 key={trainer}
-                variant={filters.trainers.includes(trainer) ? "default" : "outline"}
+                variant={filters.trainers?.includes(trainer) ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleQuickSelect('trainers', trainer)}
                 className="h-7 px-3 text-xs"
@@ -112,10 +114,10 @@ export const SessionsQuickFilters: React.FC<QuickFiltersProps> = ({
         <div className="space-y-2">
           <label className="text-xs font-medium text-gray-600">Popular Classes</label>
           <div className="flex flex-wrap gap-1">
-            {options.classes.slice(0, 8).map((className) => (
+            {options.classes?.slice(0, 8).map((className) => (
               <Button
                 key={className}
-                variant={filters.classes.includes(className) ? "default" : "outline"}
+                variant={filters.classes?.includes(className) ? "default" : "outline"}
                 size="sm"
                 onClick={() => handleQuickSelect('classes', className)}
                 className="h-7 px-3 text-xs"
@@ -132,7 +134,7 @@ export const SessionsQuickFilters: React.FC<QuickFiltersProps> = ({
             <div className="text-xs font-medium text-gray-600 mb-2">Active Filters:</div>
             <div className="flex flex-wrap gap-1">
               {Object.entries(filters).map(([type, values]) =>
-                values.map((value) => (
+                (values || []).map((value) => (
                   <Badge 
                     key={`${type}-${value}`} 
                     variant="secondary" 

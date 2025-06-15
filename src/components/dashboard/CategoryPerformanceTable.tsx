@@ -78,13 +78,14 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
     }
   };
 
-  // Generate monthly data from Jun 2025 to Jan 2024
+  // Generate monthly data from Jun 2025 to Jan 2024 (current date backwards)
   const monthlyData = useMemo(() => {
     const months = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // 2025 months (Jun to Dec)
-    for (let i = 5; i < 12; i++) {
+    // Start from Jun 2025 and go backwards to Jan 2024
+    // 2025 months (Jun to Jan) - descending
+    for (let i = 5; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
       months.push({
@@ -96,7 +97,7 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
       });
     }
     
-    // 2024 months (Dec to Jan) - in descending order
+    // 2024 months (Dec to Jan) - descending
     for (let i = 11; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
@@ -211,7 +212,7 @@ export const CategoryPerformanceTable: React.FC<CategoryPerformanceTableProps> =
                 Category Performance Analysis
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Monthly category performance metrics with quarterly grouping
+                Monthly category performance metrics with quarterly grouping (Jun 2025 - Jan 2024)
               </p>
             </div>
           </div>

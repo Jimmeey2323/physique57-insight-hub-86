@@ -3,9 +3,9 @@ import React, { useMemo, useState } from 'react';
 import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-import { ChevronDown, ChevronRight, Calendar, TrendingUp, TrendingDown, Edit3, Save, X } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Calendar, TrendingUp, TrendingDown, Star, Edit3, Save, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -13,25 +13,10 @@ interface MonthOnMonthTableProps {
   data: SalesData[];
   filters?: FilterOptions;
   onRowClick: (row: any) => void;
-  collapsedGroups?: Set<string>;
-  onGroupToggle?: (groupKey: string) => void;
+  collapsedGroups: Set<string>;
+  onGroupToggle: (groupKey: string) => void;
   selectedMetric?: YearOnYearMetricType;
 }
-
-const groupDataByCategory = (data: SalesData[]) => {
-  return data.reduce((acc: Record<string, any>, item) => {
-    const category = item.cleanedCategory || 'Uncategorized';
-    const product = item.cleanedProduct || 'Unspecified';
-    if (!acc[category]) {
-      acc[category] = {};
-    }
-    if (!acc[category][product]) {
-      acc[category][product] = [];
-    }
-    acc[category][product].push(item);
-    return acc;
-  }, {});
-};
 
 export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
   data,
@@ -44,13 +29,13 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     paymentMethod: []
   },
   onRowClick,
-  collapsedGroups = new Set(),
-  onGroupToggle = () => {},
+  collapsedGroups,
+  onGroupToggle,
   selectedMetric: initialMetric = 'revenue'
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<YearOnYearMetricType>(initialMetric);
   const [isEditingSummary, setIsEditingSummary] = useState(false);
-  const [summaryText, setSummaryText] = useState('• Strong performance in Q2 2025 with 15% growth\n• Product diversification showing positive results\n• Category mix optimization ongoing');
+  const [summaryText, setSummaryText] = useState('• Month-on-month analysis shows seasonal patterns\n• Strong performance in peak months with growth opportunities identified\n• Consistent upward trend in key metrics');
 
   const parseDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
@@ -98,13 +83,14 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     }
   };
 
-  // Generate monthly data from Jun 2025 to Jan 2024
+  // Generate monthly data from Jun 2025 to Jan 2024 (current date backwards)
   const monthlyData = useMemo(() => {
     const months = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // 2025 months (Jun to Dec) - reversed to start from Jun 2025
-    for (let i = 5; i < 12; i++) {
+    // Start from Jun 2025 and go backwards to Jan 2024
+    // 2025 months (Jun to Jan) - descending
+    for (let i = 5; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
       months.push({
@@ -116,7 +102,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       });
     }
     
-    // 2024 months (Dec to Jan) - in descending order
+    // 2024 months (Dec to Jan) - descending
     for (let i = 11; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
@@ -133,40 +119,27 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
   }, []);
 
   const processedData = useMemo(() => {
-    const grouped = groupDataByCategory(data);
-    return Object.entries(grouped).map(([category, products]) => {
-      const categoryData = {
-        category,
-        products: Object.entries(products).map(([product, items]) => {
-          const monthlyValues: Record<string, number> = {};
+    const months: Record<string, number> = {};
 
-          monthlyData.forEach(({ key, year, month }) => {
-            const monthItems = (items as SalesData[]).filter(item => {
-              const itemDate = parseDate(item.paymentDate);
-              return itemDate && itemDate.getFullYear() === year && itemDate.getMonth() + 1 === month;
-            });
-            monthlyValues[key] = getMetricValue(monthItems, selectedMetric);
-          });
-
-          return {
-            product,
-            monthlyValues,
-            rawData: items
-          };
-        })
-      };
-
-      const categoryMonthlyValues: Record<string, number> = {};
-      monthlyData.forEach(({ key }) => {
-        categoryMonthlyValues[key] = categoryData.products.reduce((sum, p) => sum + (p.monthlyValues[key] || 0), 0);
+    monthlyData.forEach(({ key, year, month }) => {
+      const monthItems = data.filter(item => {
+        const itemDate = parseDate(item.paymentDate);
+        return itemDate && itemDate.getFullYear() === year && itemDate.getMonth() + 1 === month;
       });
-
-      return {
-        ...categoryData,
-        monthlyValues: categoryMonthlyValues
-      };
+      months[key] = getMetricValue(monthItems, selectedMetric);
     });
+
+    return months;
   }, [data, selectedMetric, monthlyData]);
+
+  const getPerformanceIndicator = (value: number, previousValue: number) => {
+    if (previousValue === 0 && value === 0) return null;
+    if (previousValue === 0) return <Star className="w-4 h-4 text-yellow-500" />;
+    const growth = ((value - previousValue) / previousValue) * 100;
+    if (growth > 0) return <TrendingUp className="w-4 h-4 text-green-500" />;
+    if (growth < 0) return <TrendingDown className="w-4 h-4 text-red-500" />;
+    return null;
+  };
 
   const getGrowthIndicator = (current: number, previous: number) => {
     if (previous === 0 && current === 0) return null;
@@ -210,10 +183,10 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
             <div>
               <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-blue-600" />
-                Month-on-Month Performance Analysis
+                Month-on-Month Analysis
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Monthly performance from Jun 2025 to Jan 2024 with quarterly grouping
+                Monthly performance metrics with quarterly grouping (Jun 2025 - Jan 2024)
               </p>
             </div>
           </div>
@@ -227,9 +200,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
           <table className="min-w-full bg-white border-t border-gray-200 rounded-lg">
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
-                <th className="text-white font-semibold uppercase tracking-wider px-12 py-3 text-left text-sm rounded-tl-lg">
-                  Product/Category
-                </th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg">Metric</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -237,7 +208,6 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                 ))}
               </tr>
               <tr>
-                <th className="text-white font-semibold uppercase tracking-wider px-12 py-2 text-left text-xs bg-blue-800"></th>
                 {monthlyData.map(({ key, display }) => (
                   <th key={key} className="text-white font-semibold text-xs uppercase tracking-wider px-3 py-2 bg-blue-800 border-l border-blue-600">
                     <div className="flex flex-col">
@@ -249,58 +219,25 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
               </tr>
             </thead>
             <tbody>
-              {processedData.map(categoryGroup => (
-                <React.Fragment key={categoryGroup.category}>
-                  <tr onClick={() => onGroupToggle(categoryGroup.category)} className="bg-white hover:bg-blue-50 cursor-pointer border-b border-gray-200 group transition-colors duration-200 h-8 max-h-8">
-                    <td className="py-2 font-semibold text-gray-800 bg-white sticky left-0 z-10 px-[10px] min-w-80 text-sm h-8 max-h-8">
-                      <div className="flex justify-between items-center min-w-full text-md font-bold">
-                        <div className="flex items-center">
-                          {collapsedGroups.has(categoryGroup.category) ? 
-                            <ChevronRight className="w-4 h-4 mr-2 text-gray-500" /> : 
-                            <ChevronDown className="w-4 h-4 mr-2 text-gray-500" />
-                          }
-                          {categoryGroup.category}
-                        </div>
-                        <Badge variant="secondary" className="ml-auto text-sm text-white bg-blue-800 min-w-32 text-right py-1 capitalize rounded-lg px-3">
-                          {categoryGroup.products.length} products
-                        </Badge>
+              <tr className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors duration-200 h-8 max-h-8" onClick={() => onRowClick(data)}>
+                <td className="px-6 py-2 text-sm font-medium text-gray-900 h-8 max-h-8">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">{selectedMetric.toUpperCase()}</Badge>
+                  </div>
+                </td>
+                {monthlyData.map(({ key }, index) => {
+                  const current = processedData[key] || 0;
+                  const previous = index > 0 ? processedData[monthlyData[index - 1].key] || 0 : 0;
+                  return (
+                    <td key={key} className="px-3 py-2 text-center text-sm text-gray-900 font-mono h-8 max-h-8">
+                      <div className="flex items-center justify-center">
+                        {formatMetricValue(current, selectedMetric)}
+                        {getGrowthIndicator(current, previous)}
                       </div>
                     </td>
-                    {monthlyData.map(({ key }, index) => {
-                      const current = categoryGroup.monthlyValues[key] || 0;
-                      const previous = index > 0 ? categoryGroup.monthlyValues[monthlyData[index - 1].key] || 0 : 0;
-                      return (
-                        <td key={key} className="px-3 py-2 text-center font-semibold text-gray-900 text-sm h-8 max-h-8">
-                          <div className="flex items-center justify-center">
-                            {formatMetricValue(current, selectedMetric)}
-                            {getGrowthIndicator(current, previous)}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {!collapsedGroups.has(categoryGroup.category) && categoryGroup.products.map(product => (
-                    <tr key={`${categoryGroup.category}-${product.product}`} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 h-8 max-h-8" onClick={() => onRowClick && onRowClick(product.rawData)}>
-                      <td className="px-8 py-2 text-sm text-gray-700 hover:text-blue-700 sticky left-0 bg-white hover:bg-blue-50 z-10 h-8 max-h-8">
-                        {product.product}
-                      </td>
-                      {monthlyData.map(({ key }, index) => {
-                        const current = product.monthlyValues[key] || 0;
-                        const previous = index > 0 ? product.monthlyValues[monthlyData[index - 1].key] || 0 : 0;
-                        return (
-                          <td key={key} className="px-3 py-2 text-center text-sm text-gray-900 font-mono h-8 max-h-8">
-                            <div className="flex items-center justify-center">
-                              {formatMetricValue(current, selectedMetric)}
-                              {getGrowthIndicator(current, previous)}
-                            </div>
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </React.Fragment>
-              ))}
+                  );
+                })}
+              </tr>
             </tbody>
           </table>
         </div>
@@ -309,8 +246,8 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
         <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-slate-50 to-white rounded-b-lg">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              Key Insights & Summary
+              <Calendar className="w-5 h-5 text-blue-600" />
+              Month-on-Month Insights
             </h4>
             {!isEditingSummary ? (
               <Button variant="outline" size="sm" onClick={() => setIsEditingSummary(true)} className="gap-2">
@@ -335,7 +272,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
             <Textarea
               value={summaryText}
               onChange={(e) => setSummaryText(e.target.value)}
-              placeholder="Enter insights and summary using bullet points (• )"
+              placeholder="Enter month-on-month insights using bullet points (• )"
               className="min-h-32 text-sm"
             />
           ) : (

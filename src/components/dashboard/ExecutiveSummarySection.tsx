@@ -21,11 +21,13 @@ const ExecutiveSummarySection = () => {
 
   // Calculate key metrics from sales data
   const salesMetrics = React.useMemo(() => {
-    if (!salesData.length) return { revenue: 0, transactions: 0, members: 0, growth: 0 };
+    if (!salesData || !Array.isArray(salesData) || salesData.length === 0) {
+      return { revenue: 0, transactions: 0, members: 0, growth: 0 };
+    }
     
-    const totalRevenue = salesData.reduce((sum, item) => sum + item.paymentValue, 0);
+    const totalRevenue = salesData.reduce((sum, item) => sum + (item?.paymentValue || 0), 0);
     const totalTransactions = salesData.length;
-    const uniqueMembers = new Set(salesData.map(item => item.memberId)).size;
+    const uniqueMembers = new Set(salesData.map(item => item?.memberId).filter(Boolean)).size;
     
     return {
       revenue: totalRevenue,
@@ -37,11 +39,13 @@ const ExecutiveSummarySection = () => {
 
   // Calculate session metrics
   const sessionMetrics = React.useMemo(() => {
-    if (!sessionsData.length) return { totalSessions: 0, avgAttendance: 0, fillRate: 0 };
+    if (!sessionsData || !Array.isArray(sessionsData) || sessionsData.length === 0) {
+      return { totalSessions: 0, avgAttendance: 0, fillRate: 0 };
+    }
     
     const totalSessions = sessionsData.length;
-    const avgAttendance = sessionsData.reduce((sum, session) => sum + (session.checkedIn || 0), 0) / totalSessions;
-    const fillRate = sessionsData.reduce((sum, session) => sum + (session.fillPercentage || 0), 0) / totalSessions;
+    const avgAttendance = sessionsData.reduce((sum, session) => sum + (session?.checkedInCount || 0), 0) / totalSessions;
+    const fillRate = sessionsData.reduce((sum, session) => sum + (session?.fillPercentage || 0), 0) / totalSessions;
     
     return {
       totalSessions,
@@ -52,13 +56,15 @@ const ExecutiveSummarySection = () => {
 
   // Calculate trainer performance
   const trainerMetrics = React.useMemo(() => {
-    if (!payrollData.length) return { totalTrainers: 0, avgRevenue: 0, topPerformer: 'N/A' };
+    if (!payrollData || !Array.isArray(payrollData) || payrollData.length === 0) {
+      return { totalTrainers: 0, avgRevenue: 0, topPerformer: 'N/A' };
+    }
     
-    const totalTrainers = new Set(payrollData.map(item => item.teacherName)).size;
-    const avgRevenue = payrollData.reduce((sum, item) => sum + (item.totalPaid || 0), 0) / totalTrainers;
+    const totalTrainers = new Set(payrollData.map(item => item?.teacherName).filter(Boolean)).size;
+    const avgRevenue = payrollData.reduce((sum, item) => sum + (item?.totalPaid || 0), 0) / totalTrainers;
     const topPerformer = payrollData.reduce((prev, current) => 
-      (current.totalPaid || 0) > (prev.totalPaid || 0) ? current : prev
-    ).teacherName;
+      (current?.totalPaid || 0) > (prev?.totalPaid || 0) ? current : prev
+    )?.teacherName || 'N/A';
     
     return {
       totalTrainers,
@@ -69,12 +75,14 @@ const ExecutiveSummarySection = () => {
 
   // Calculate new client metrics
   const clientMetrics = React.useMemo(() => {
-    if (!newClientData.length) return { newClients: 0, conversionRate: 0, avgLTV: 0 };
+    if (!newClientData || !Array.isArray(newClientData) || newClientData.length === 0) {
+      return { newClients: 0, conversionRate: 0, avgLTV: 0 };
+    }
     
-    const newClients = newClientData.filter(client => client.isNew === 'Yes').length;
-    const converted = newClientData.filter(client => client.conversionStatus === 'Converted').length;
+    const newClients = newClientData.filter(client => client?.isNew === 'Yes').length;
+    const converted = newClientData.filter(client => client?.conversionStatus === 'Converted').length;
     const conversionRate = newClients > 0 ? (converted / newClients) * 100 : 0;
-    const avgLTV = newClientData.reduce((sum, client) => sum + (client.ltv || 0), 0) / newClientData.length;
+    const avgLTV = newClientData.reduce((sum, client) => sum + (client?.ltv || 0), 0) / newClientData.length;
     
     return {
       newClients,

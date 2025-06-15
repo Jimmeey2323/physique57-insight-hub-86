@@ -54,7 +54,7 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
       <FilterSection
         data={data}
         filters={filters}
-        onFilterChange={handleFilterChange}
+        onFiltersChange={handleFilterChange}
       />
 
       <Tabs defaultValue="overview" className="w-full">
@@ -98,8 +98,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
 
         <TabsContent value="overview" className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <InteractiveChart data={data} filters={filters} />
-            <TopBottomSellers data={data} filters={filters} />
+            <InteractiveChart title="Sales Overview" data={data} type="revenue" />
+            <TopBottomSellers data={data} type="product" />
           </div>
         </TabsContent>
 
@@ -156,8 +156,8 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <InteractiveChart data={data} filters={filters} />
-                <TopBottomSellers data={data} filters={filters} />
+                <InteractiveChart title="Category Performance" data={data} type="performance" />
+                <TopBottomSellers data={data} type="category" />
               </div>
             </CardContent>
           </Card>

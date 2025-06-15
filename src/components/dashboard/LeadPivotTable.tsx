@@ -1,12 +1,11 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, Settings, Download, RefreshCw } from 'lucide-react';
+import { BarChart3, Settings, Download, RefreshCw, Filter, Eye, Edit3, Save, X } from 'lucide-react';
 import { LeadsData, LeadsMetricType } from '@/types/leads';
 import { formatNumber, formatCurrency } from '@/utils/formatters';
 
@@ -19,6 +18,14 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
   const [columnDimension, setColumnDimension] = useState<'month' | 'stage' | 'source' | 'status'>('month');
   const [metric, setMetric] = useState<LeadsMetricType>('totalLeads');
   const [viewType, setViewType] = useState<'values' | 'percentages'>('values');
+  const [quickFilter, setQuickFilter] = useState<'all' | 'high' | 'low'>('all');
+  const [isEditingInsights, setIsEditingInsights] = useState(false);
+  const [insights, setInsights] = useState({
+    performance: "Cross-dimensional analysis shows strong Q4 performance across regions",
+    trends: "Month-over-month growth consistent with 15% average increase",
+    optimization: "Source-to-stage funnel optimization needed for better conversion",
+    forecast: "Current trajectory suggests 25% YoY growth by end of fiscal year"
+  });
 
   const pivotData = useMemo(() => {
     const result: Record<string, Record<string, number>> = {};
@@ -30,7 +37,6 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
       let rowKey: string;
       let colKey: string;
 
-      // Determine row key
       switch (rowDimension) {
         case 'source':
           rowKey = item.source || 'Unknown';
@@ -48,7 +54,6 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
           rowKey = 'Unknown';
       }
 
-      // Determine column key
       switch (columnDimension) {
         case 'month':
           if (item.createdAt) {
@@ -71,11 +76,9 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
           colKey = 'Unknown';
       }
 
-      // Initialize nested objects
       if (!result[rowKey]) result[rowKey] = {};
       if (!result[rowKey][colKey]) result[rowKey][colKey] = 0;
 
-      // Calculate metric value
       let value = 0;
       switch (metric) {
         case 'totalLeads':
@@ -94,7 +97,6 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
 
       result[rowKey][colKey] += value;
       
-      // Track totals
       if (!columnTotals[colKey]) columnTotals[colKey] = 0;
       if (!rowTotals[rowKey]) rowTotals[rowKey] = 0;
       columnTotals[colKey] += value;
@@ -102,7 +104,6 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
       grandTotal += value;
     });
 
-    // Convert to percentages if needed
     if (viewType === 'percentages' && grandTotal > 0) {
       Object.keys(result).forEach(rowKey => {
         Object.keys(result[rowKey]).forEach(colKey => {
@@ -134,6 +135,14 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
   const columns = Object.keys(pivotData.columnTotals).sort();
   const rows = Object.keys(pivotData.result).sort();
 
+  // Filter rows based on quick filter
+  const filteredRows = rows.filter(row => {
+    const total = pivotData.rowTotals[row] || 0;
+    if (quickFilter === 'high') return total > (pivotData.grandTotal / rows.length);
+    if (quickFilter === 'low') return total <= (pivotData.grandTotal / rows.length);
+    return true;
+  });
+
   const dimensionOptions = [
     { value: 'source', label: 'Source' },
     { value: 'stage', label: 'Stage' },
@@ -149,6 +158,17 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
     { value: 'trialToMembershipConversion', label: 'Trial to Member %' },
     { value: 'ltv', label: 'Average LTV' }
   ];
+
+  const quickFilters = [
+    { value: 'all', label: 'All Data', count: rows.length },
+    { value: 'high', label: 'Above Average', count: filteredRows.length },
+    { value: 'low', label: 'Below Average', count: rows.length - filteredRows.length }
+  ];
+
+  const handleSaveInsights = () => {
+    setIsEditingInsights(false);
+    console.log('Insights saved:', insights);
+  };
 
   return (
     <Card className="bg-white shadow-sm border border-gray-200">
@@ -224,59 +244,150 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({ data }) => {
             </Tabs>
           </div>
         </div>
+
+        {/* Quick Filter Buttons */}
+        <div className="flex gap-2">
+          {quickFilters.map(filter => (
+            <Button
+              key={filter.value}
+              variant={quickFilter === filter.value ? "default" : "outline"}
+              size="sm"
+              onClick={() => setQuickFilter(filter.value as any)}
+              className={`gap-2 text-xs ${
+                quickFilter === filter.value 
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                  : 'text-gray-600 hover:bg-blue-50'
+              }`}
+            >
+              <Filter className="w-3 h-3" />
+              {filter.label}
+              <Badge variant="outline" className="ml-1 text-xs">
+                {filter.count}
+              </Badge>
+            </Button>
+          ))}
+        </div>
       </CardHeader>
 
       <CardContent className="p-0">
         <div className="overflow-auto max-h-[500px]">
           <Table>
-            <TableHeader className="sticky top-0 z-10">
-              <TableRow className="bg-gradient-to-r from-blue-50 to-purple-50 h-[25px]">
-                <TableHead className="sticky left-0 bg-gradient-to-r from-blue-50 to-purple-50 z-20 min-w-[200px] w-[200px] font-bold text-gray-700 text-xs p-2">
+            <TableHeader className="sticky top-0 z-20">
+              <TableRow className="bg-gradient-to-r from-slate-800 via-slate-900 to-black text-white hover:bg-gradient-to-r hover:from-slate-800 hover:to-black">
+                <TableHead className="sticky left-0 bg-gradient-to-r from-slate-800 to-slate-900 z-30 min-w-[200px] w-[200px] font-bold text-white text-sm p-4">
                   {rowDimension.charAt(0).toUpperCase() + rowDimension.slice(1)}
                 </TableHead>
                 {columns.map(col => (
-                  <TableHead key={col} className="text-center font-bold text-gray-700 min-w-[80px] text-xs p-2">
+                  <TableHead key={col} className="text-center font-bold text-white min-w-[80px] text-sm p-3">
                     {col}
                   </TableHead>
                 ))}
-                <TableHead className="text-center font-bold text-gray-700 min-w-[80px] bg-slate-200 text-xs p-2">
+                <TableHead className="text-center font-bold text-white min-w-[80px] text-sm p-3">
                   Total
                 </TableHead>
               </TableRow>
             </TableHeader>
-            <TableBody>
-              {rows.map(row => (
-                <TableRow key={row} className="hover:bg-blue-50/50 h-[25px]">
-                  <TableCell className="font-medium text-gray-800 sticky left-0 bg-white z-10 border-r min-w-[200px] w-[200px] text-xs p-2 truncate">
+            <TableBody className="bg-white">
+              {filteredRows.map(row => (
+                <TableRow key={row} className="hover:bg-blue-50/50 border-b border-gray-200">
+                  <TableCell className="font-medium text-gray-800 sticky left-0 bg-white z-10 border-r border-gray-200 min-w-[200px] w-[200px] text-sm p-4">
                     {row}
                   </TableCell>
                   {columns.map(col => (
-                    <TableCell key={col} className="text-center font-mono text-xs p-2">
+                    <TableCell key={col} className="text-center align-middle font-mono text-sm p-3 text-gray-800">
                       {formatValue(pivotData.result[row]?.[col] || 0)}
                     </TableCell>
                   ))}
-                  <TableCell className="text-center font-bold text-blue-700 bg-slate-50 text-xs p-2">
+                  <TableCell className="text-center align-middle font-bold text-blue-700 text-sm p-3">
                     {formatValue(pivotData.rowTotals[row] || 0)}
                   </TableCell>
                 </TableRow>
               ))}
-              
-              {/* Totals Row */}
-              <TableRow className="bg-gradient-to-r from-slate-100 to-slate-200 font-bold border-t-2 h-[25px]">
-                <TableCell className="sticky left-0 bg-gradient-to-r from-slate-100 to-slate-200 z-10 text-xs p-2">
+            </TableBody>
+            <TableFooter className="sticky bottom-0 z-20">
+              <TableRow className="bg-gradient-to-r from-slate-800 via-slate-900 to-black text-white hover:bg-gradient-to-r hover:from-slate-800 hover:to-black">
+                <TableCell className="sticky left-0 bg-gradient-to-r from-slate-800 to-slate-900 z-30 text-sm p-4 font-bold text-white">
                   TOTAL
                 </TableCell>
                 {columns.map(col => (
-                  <TableCell key={col} className="text-center font-bold text-blue-700 text-xs p-2">
+                  <TableCell key={col} className="text-center align-middle font-bold text-white text-sm p-3">
                     {formatValue(pivotData.columnTotals[col] || 0)}
                   </TableCell>
                 ))}
-                <TableCell className="text-center font-bold text-blue-800 bg-slate-200 text-xs p-2">
+                <TableCell className="text-center align-middle font-bold text-white text-sm p-3">
                   {formatValue(pivotData.grandTotal)}
                 </TableCell>
               </TableRow>
-            </TableBody>
+            </TableFooter>
           </Table>
+        </div>
+
+        {/* Editable Summary and Insights Section */}
+        <div className="bg-muted/30 rounded-lg p-6 border-t">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold flex items-center gap-2">
+              <Eye className="w-5 h-5" />
+              Pivot Analysis Insights
+            </h3>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => isEditingInsights ? handleSaveInsights() : setIsEditingInsights(true)}
+              className="gap-2"
+            >
+              {isEditingInsights ? (
+                <>
+                  <Save className="w-4 h-4" />
+                  Save
+                </>
+              ) : (
+                <>
+                  <Edit3 className="w-4 h-4" />
+                  Edit
+                </>
+              )}
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {Object.entries(insights).map(([key, value], index) => {
+              const colors = ['bg-green-500', 'bg-blue-500', 'bg-yellow-500', 'bg-purple-500'];
+              return (
+                <div key={key} className="flex items-start gap-3">
+                  <div className={`w-2 h-2 rounded-full ${colors[index]} mt-2 flex-shrink-0`}></div>
+                  <div className="flex-1">
+                    {isEditingInsights ? (
+                      <textarea
+                        value={value}
+                        onChange={(e) => setInsights(prev => ({ ...prev, [key]: e.target.value }))}
+                        className="w-full text-xs border rounded p-2 resize-none"
+                        rows={2}
+                      />
+                    ) : (
+                      <>
+                        <p className="text-sm font-medium capitalize">{key}</p>
+                        <p className="text-xs text-muted-foreground">{value}</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          {isEditingInsights && (
+            <div className="flex justify-end mt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setIsEditingInsights(false)}
+                className="gap-2 mr-2"
+              >
+                <X className="w-4 h-4" />
+                Cancel
+              </Button>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

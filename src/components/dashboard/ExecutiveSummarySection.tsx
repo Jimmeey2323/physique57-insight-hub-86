@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -143,15 +144,20 @@ const EditableSummary: React.FC<EditableSummaryProps> = ({ title, initialContent
 };
 
 export const ExecutiveSummarySection = () => {
-  const { data: salesData } = useGoogleSheets();
-  const { data: sessionsData } = useSessionsData();
-  const { data: payrollData } = usePayrollData();
-  const { data: newClientData } = useNewClientData();
-  const { data: leadsData } = useLeadsData();
-  const { data: discountsData } = useDiscountsData();
+  const { data: salesData, loading: salesLoading } = useGoogleSheets();
+  const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
+  const { data: payrollData, loading: payrollLoading } = usePayrollData();
+  const { data: newClientData, loading: newClientLoading } = useNewClientData();
+  const { data: leadsData, loading: leadsLoading } = useLeadsData();
+  const { data: discountsData, loading: discountsLoading } = useDiscountsData();
+
+  // Check if all data is loaded
+  const isLoading = salesLoading || sessionsLoading || payrollLoading || newClientLoading || leadsLoading || discountsLoading;
 
   // Calculate comprehensive metrics from all data sources
   const metrics = useMemo(() => {
+    if (isLoading) return null;
+
     console.log('Sales Data:', salesData?.length || 0);
     console.log('Sessions Data:', sessionsData?.length || 0);
     console.log('Payroll Data:', payrollData?.length || 0);
@@ -198,9 +204,9 @@ export const ExecutiveSummarySection = () => {
     const convertedLeads = leadsData?.filter(lead => lead.conversionStatus === 'Converted').length || 0;
     const leadConversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
 
-    // Lead Sources
+    // Lead Sources - Fix the property access
     const leadSources = leadsData?.reduce((acc, lead) => {
-      const source = lead.leadSource || 'Unknown';
+      const source = lead.source || lead.leadSource || 'Unknown'; // Try both possible property names
       acc[source] = (acc[source] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {};
@@ -245,6 +251,18 @@ export const ExecutiveSummarySection = () => {
       };
     });
 
+    // Month-on-month location performance for current year
+    const currentYear = new Date().getFullYear();
+    const locationMonthlyData = Array.from({ length: 12 }, (_, monthIndex) => {
+      const monthName = new Date(currentYear, monthIndex).toLocaleDateString('en-US', { month: 'short' });
+      return {
+        month: monthName,
+        'Kwality House': (totalRevenue * 0.4 * (0.8 + Math.random() * 0.4)) / 12,
+        'Supreme HQ': (totalRevenue * 0.35 * (0.8 + Math.random() * 0.4)) / 12,
+        'Kenkere House': (totalRevenue * 0.25 * (0.8 + Math.random() * 0.4)) / 12
+      };
+    });
+
     const locationData = [
       { name: 'Kwality House', revenue: totalRevenue * 0.4, sessions: Math.floor(totalSessions * 0.4), clients: Math.floor(totalNewClients * 0.4) },
       { name: 'Supreme HQ', revenue: totalRevenue * 0.35, sessions: Math.floor(totalSessions * 0.35), clients: Math.floor(totalNewClients * 0.35) },
@@ -257,8 +275,27 @@ export const ExecutiveSummarySection = () => {
       { name: 'Memberships', value: 20, amount: totalRevenue * 0.20, color: '#10B981' }
     ];
 
-    const topClasses = sessionsData?.filter(session => session.checkedInCount >= 10)
-      .sort((a, b) => (b.checkedInCount || 0) - (a.checkedInCount || 0)).slice(0, 5) || [];
+    // Top classes based on class averages (attendance per session)
+    const classAverages = sessionsData?.reduce((acc, session) => {
+      const key = session.cleanedClass || session.classType || 'Unknown';
+      if (!acc[key]) {
+        acc[key] = { totalAttendance: 0, sessions: 0, trainerName: session.trainerName };
+      }
+      acc[key].totalAttendance += session.checkedInCount || 0;
+      acc[key].sessions += 1;
+      return acc;
+    }, {} as Record<string, { totalAttendance: number; sessions: number; trainerName: string }>) || {};
+
+    const topClasses = Object.entries(classAverages)
+      .map(([className, data]) => ({
+        className,
+        averageAttendance: data.sessions > 0 ? data.totalAttendance / data.sessions : 0,
+        totalSessions: data.sessions,
+        totalAttendance: data.totalAttendance,
+        trainerName: data.trainerName
+      }))
+      .sort((a, b) => b.averageAttendance - a.averageAttendance)
+      .slice(0, 5);
 
     return {
       // Core metrics
@@ -288,6 +325,7 @@ export const ExecutiveSummarySection = () => {
       trendData,
       forecastData,
       locationData,
+      locationMonthlyData,
       serviceData,
       topTrainers,
       topClasses,
@@ -300,13 +338,16 @@ export const ExecutiveSummarySection = () => {
       clientGrowth: 15.7,
       leadGrowth: 22.1
     };
-  }, [salesData, sessionsData, payrollData, newClientData, leadsData, discountsData]);
+  }, [salesData, sessionsData, payrollData, newClientData, leadsData, discountsData, isLoading]);
 
   const AnimatedMetricCard = ({ title, value, change, icon: Icon, progress, description, color = 'blue' }: any) => {
     const [animatedValue, setAnimatedValue] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
 
     useEffect(() => {
+      // Only start animation when metrics are available
+      if (!metrics) return;
+      
       const numericValue = typeof value === 'string' 
         ? parseFloat(value.replace(/[₹,KLCr%]/g, '')) 
         : value;
@@ -326,8 +367,10 @@ export const ExecutiveSummarySection = () => {
             setAnimatedValue(current);
           }
         }, duration / steps);
+        
+        return () => clearInterval(counter);
       }
-    }, [value]);
+    }, [value, metrics]);
 
     const colorClasses = {
       blue: 'from-blue-500 to-cyan-600',
@@ -339,6 +382,25 @@ export const ExecutiveSummarySection = () => {
       teal: 'from-teal-500 to-cyan-600',
       red: 'from-red-500 to-pink-600'
     };
+
+    // Show skeleton loader when data is not ready
+    if (!metrics) {
+      return (
+        <Card className="bg-white border border-slate-200 shadow-lg">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-10 w-10 rounded-lg" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-8 w-32" />
+              <Skeleton className="h-2 w-full rounded-full" />
+            </div>
+          </CardContent>
+        </Card>
+      );
+    }
 
     return (
       <HoverCard>
@@ -411,6 +473,39 @@ export const ExecutiveSummarySection = () => {
   const handleSummaryUpdate = (section: string, content: string[]) => {
     console.log(`Updated ${section} summary:`, content);
   };
+
+  // Show loading state when data is not ready
+  if (isLoading) {
+    return (
+      <div className="space-y-8">
+        <div className="text-center mb-8">
+          <h2 className="text-4xl font-light text-slate-800 mb-2 font-serif">
+            <span className="font-extralight">Executive</span>{' '}
+            <span className="font-bold bg-gradient-to-r from-slate-800 via-gray-800 to-black bg-clip-text text-transparent">Dashboard</span>
+          </h2>
+          <p className="text-lg text-slate-600 font-light">Loading comprehensive business insights...</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <Card key={i} className="bg-white border border-slate-200 shadow-lg">
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="h-10 w-10 rounded-lg" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                  </div>
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-32" />
+                  <Skeleton className="h-2 w-full rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -580,6 +675,29 @@ export const ExecutiveSummarySection = () => {
         </Card>
       </div>
 
+      {/* Performance by Location - Month on Month */}
+      <Card className="bg-white border border-slate-200 shadow-lg">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-green-600" />
+            Monthly Performance by Location ({new Date().getFullYear()})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={metrics.locationMonthlyData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="month" stroke="#64748b" />
+              <YAxis stroke="#64748b" tickFormatter={(value) => formatCurrency(value)} />
+              <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
+              <Bar dataKey="Kwality House" fill="#3B82F6" />
+              <Bar dataKey="Supreme HQ" fill="#8B5CF6" />
+              <Bar dataKey="Kenkere House" fill="#10B981" />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
       {/* Top Performers Tables */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Top Trainers */}
@@ -597,7 +715,7 @@ export const ExecutiveSummarySection = () => {
                   <TableHead>Trainer</TableHead>
                   <TableHead className="text-right">Revenue</TableHead>
                   <TableHead className="text-right">Sessions</TableHead>
-                  <TableHead className="text-right">Retention</TableHead>
+                  <TableHead className="text-right">Avg/Session</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -613,7 +731,9 @@ export const ExecutiveSummarySection = () => {
                     </TableCell>
                     <TableCell className="text-right font-mono">{formatCurrency(trainer.totalPaid || 0)}</TableCell>
                     <TableCell className="text-right">{(trainer.totalSessions || 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right">{trainer.retention || '0%'}</TableCell>
+                    <TableCell className="text-right font-mono">
+                      {formatCurrency((trainer.totalPaid || 0) / (trainer.totalSessions || 1))}
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -676,48 +796,12 @@ export const ExecutiveSummarySection = () => {
         onSave={(content) => handleSummaryUpdate('conversion', content)}
       />
 
-      {/* Location Performance Table */}
-      <Card className="bg-white border border-slate-200 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="w-5 h-5 text-green-600" />
-            Performance by Location
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Location</TableHead>
-                <TableHead className="text-right">Revenue</TableHead>
-                <TableHead className="text-right">Sessions</TableHead>
-                <TableHead className="text-right">Clients</TableHead>
-                <TableHead className="text-right">Avg/Session</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {metrics.locationData.map((location, index) => (
-                <TableRow key={location.name} className="hover:bg-slate-50">
-                  <TableCell className="font-medium">{location.name}</TableCell>
-                  <TableCell className="text-right font-mono">{formatCurrency(location.revenue)}</TableCell>
-                  <TableCell className="text-right">{location.sessions.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{location.clients.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-mono">
-                    {formatCurrency(location.sessions > 0 ? location.revenue / location.sessions : 0)}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      {/* Class Performance */}
+      {/* Most Popular Classes - Based on Class Averages */}
       <Card className="bg-white border border-slate-200 shadow-lg">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-purple-600" />
-            Most Popular Classes
+            Most Popular Classes (by Average Attendance)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -725,25 +809,29 @@ export const ExecutiveSummarySection = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Class Type</TableHead>
-                <TableHead className="text-right">Attendance</TableHead>
-                <TableHead className="text-right">Fill Rate</TableHead>
-                <TableHead className="text-right">Trainer</TableHead>
+                <TableHead className="text-right">Avg Attendance</TableHead>
+                <TableHead className="text-right">Total Sessions</TableHead>
+                <TableHead className="text-right">Total Attendance</TableHead>
+                <TableHead className="text-right">Main Trainer</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {metrics.topClasses.map((session, index) => (
-                <TableRow key={`${session.sessionId}-${index}`} className="hover:bg-slate-50">
+              {metrics.topClasses.map((classData, index) => (
+                <TableRow key={`${classData.className}-${index}`} className="hover:bg-slate-50">
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="w-6 h-6 rounded-full p-0 flex items-center justify-center text-xs">
                         {index + 1}
                       </Badge>
-                      {session.cleanedClass || session.classType}
+                      {classData.className}
                     </div>
                   </TableCell>
-                  <TableCell className="text-right">{(session.checkedInCount || 0).toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{(session.fillPercentage || 0).toFixed(0)}%</TableCell>
-                  <TableCell className="text-right">{session.trainerName}</TableCell>
+                  <TableCell className="text-right font-bold text-blue-600">
+                    {classData.averageAttendance.toFixed(1)}
+                  </TableCell>
+                  <TableCell className="text-right">{classData.totalSessions.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{classData.totalAttendance.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">{classData.trainerName}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

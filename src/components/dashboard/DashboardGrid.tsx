@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   BarChart3, 
@@ -51,7 +50,7 @@ const defaultButtons: DashboardButton[] = [
     id: "funnel-leads",
     label: "Funnel & Lead Performance",
     description: "Lead Pipeline Efficiency and Conversion Metrics",
-    icon: <Funnel size={28} />,
+    icon: <BarChart3 size={28} />,
     color: "text-purple-600",
     gradient: "from-purple-50 to-purple-100"
   },

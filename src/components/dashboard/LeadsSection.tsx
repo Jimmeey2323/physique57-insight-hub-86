@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -414,18 +415,18 @@ const LeadsSectionContent: React.FC = () => {
   const availableSources = [...new Set(filteredData.map(item => item.source))].filter(Boolean);
 
   return (
-    <div className="space-y-6 bg-gray-50/30 min-h-screen">
-      {/* Modern Header Section - Updated to match Sales tab */}
+    <div className="space-y-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 min-h-screen">
+      {/* Modern Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 border-b border-slate-200">
         <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-blue-50/20 to-purple-50/20" />
         <div className="relative px-8 py-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <div className="space-y-2">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-purple-700 bg-clip-text text-transparent">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-purple-700 bg-clip-text text-transparent animate-fade-in">
                   Lead Performance Analytics
                 </h1>
-                <p className="text-lg text-slate-600 max-w-2xl">
+                <p className="text-lg text-slate-600 max-w-2xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
                   Transform prospects into customers with advanced analytics and conversion tracking
                 </p>
               </div>
@@ -453,7 +454,7 @@ const LeadsSectionContent: React.FC = () => {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <Users className="w-5 h-5 text-blue-600" />
@@ -465,7 +466,7 @@ const LeadsSectionContent: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in" style={{ animationDelay: '0.1s' }}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Target className="w-5 h-5 text-green-600" />
@@ -479,7 +480,7 @@ const LeadsSectionContent: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in" style={{ animationDelay: '0.2s' }}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-purple-100 rounded-lg">
                     <TrendingUp className="w-5 h-5 text-purple-600" />
@@ -496,7 +497,7 @@ const LeadsSectionContent: React.FC = () => {
                 </div>
               </div>
               
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in" style={{ animationDelay: '0.3s' }}>
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-orange-100 rounded-lg">
                     <CreditCard className="w-5 h-5 text-orange-600" />
@@ -520,7 +521,7 @@ const LeadsSectionContent: React.FC = () => {
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Collapsible Filter Section */}
         {!isFilterCollapsed && (
-          <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden">
+          <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden animate-fade-in">
             <CardContent className="p-6">
               <LeadDetailedFilterSection />
             </CardContent>
@@ -528,33 +529,37 @@ const LeadsSectionContent: React.FC = () => {
         )}
 
         {/* Enhanced Location Tabs */}
-        <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden">
-          <CardContent className="p-2">
+        <Card className="bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
+          <CardContent className="p-4">
             <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl h-auto gap-2">
-                {locations.map((location) => (
+              <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 via-blue-50 to-purple-50 p-3 rounded-3xl h-auto gap-3 shadow-inner">
+                {locations.map((location, index) => (
                   <TabsTrigger
                     key={location.id}
                     value={location.id}
                     className={`
-                      relative group overflow-hidden rounded-xl px-6 py-4 font-semibold text-sm 
-                      transition-all duration-300 ease-out hover:scale-105
-                      data-[state=active]:bg-gradient-to-r data-[state=active]:${location.gradient}
-                      data-[state=active]:text-white data-[state=active]:shadow-lg
-                      data-[state=active]:border-0 hover:bg-white/80
+                      relative group overflow-hidden rounded-2xl px-6 py-4 font-bold text-sm 
+                      transition-all duration-500 ease-out hover:scale-105 hover:shadow-lg
+                      data-[state=active]:bg-gradient-to-br data-[state=active]:${location.gradient}
+                      data-[state=active]:text-white data-[state=active]:shadow-2xl
+                      data-[state=active]:border-0 hover:bg-white/80 animate-fade-in
+                      border-2 border-transparent data-[state=active]:border-white/20
                     `}
+                    style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="relative z-10">
+                    <div className="flex items-center gap-3 relative z-10">
+                      <div className="relative transition-transform duration-300 group-hover:scale-110">
                         {location.icon}
                       </div>
-                      <div className="relative z-10 text-left">
-                        <div className="font-bold">{location.name.split(',')[0]}</div>
+                      <div className="text-left">
+                        <div className="font-bold transition-all duration-300">{location.name.split(',')[0]}</div>
                         {location.name.includes(',') && (
-                          <div className="text-xs opacity-75">{location.name.split(',')[1]?.trim()}</div>
+                          <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
                         )}
                       </div>
                     </div>
+                    {/* Animated background effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -562,9 +567,9 @@ const LeadsSectionContent: React.FC = () => {
               {/* Tab Content */}
               {locations.map((location) => (
                 <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-                  <Card className="bg-white shadow-sm border border-gray-200">
-                    <CardHeader className="border-b border-gray-100">
-                      <CardTitle className="text-gray-800 text-xl">Lead Conversion Funnel</CardTitle>
+                  <Card className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
+                    <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
+                      <CardTitle className="text-gray-800 text-xl font-bold">Lead Conversion Funnel</CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
                       <LeadsFunnelVisualization
@@ -635,7 +640,7 @@ const LeadsSectionContent: React.FC = () => {
                     />
 
                     <LeadYearOnYearSourceTable
-                      data={filteredData}
+                      allData={data} // Pass unfiltered data for year-on-year comparison
                       activeMetric={yoyMetric as LeadsMetricType}
                       onMetricChange={(metric) => setYoyMetric(metric as any)}
                     />

@@ -4,28 +4,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, Download, RefreshCw } from 'lucide-react';
+import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, Download } from 'lucide-react';
 import { LeadMetricTabs } from './LeadMetricTabs';
 import { LeadsMetricType, LeadsData } from '@/types/leads';
 import { formatNumber, formatCurrency, formatPercentage } from '@/utils/formatters';
 
 interface LeadYearOnYearSourceTableProps {
-  data: LeadsData[];
+  allData: LeadsData[]; // Use unfiltered data for year-on-year comparison
   activeMetric: LeadsMetricType;
   onMetricChange: (metric: LeadsMetricType) => void;
 }
 
 export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps> = ({
-  data,
+  allData,
   activeMetric,
   onMetricChange
 }) => {
-  const [sortField, setSortField] = useState<string>('source');
+  const [sortField, setSortField] = useState<string>('growth');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
-  // Process data for year-on-year comparison by source
+  // Process data for year-on-year comparison by source using ALL data (ignoring filters)
   const processedData = useMemo(() => {
-    const sourceStats = data.reduce((acc, item) => {
+    const sourceStats = allData.reduce((acc, item) => {
       if (!item.createdAt || !item.source) return acc;
       
       const date = new Date(item.createdAt);
@@ -140,7 +140,39 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       return sourceResult;
     });
 
-    return result.sort((a, b) => {
+    // Calculate totals row
+    const totalsRow = {
+      source: 'TOTAL',
+      months: {} as any,
+      totals: { total2024: 0, total2025: 0, growth: 0 }
+    };
+
+    const months = [];
+    for (let month = 6; month >= 1; month--) {
+      months.push(month);
+    }
+
+    months.forEach(month => {
+      const monthTotals2024 = result.reduce((sum, item) => sum + (item.months[month]?.value2024 || 0), 0);
+      const monthTotals2025 = result.reduce((sum, item) => sum + (item.months[month]?.value2025 || 0), 0);
+      const monthGrowth = monthTotals2024 > 0 ? ((monthTotals2025 - monthTotals2024) / monthTotals2024) * 100 : 0;
+      
+      totalsRow.months[month] = {
+        display: new Date(2025, month - 1).toLocaleString('default', { month: 'short' }),
+        value2024: monthTotals2024,
+        value2025: monthTotals2025,
+        growth: monthGrowth
+      };
+      
+      totalsRow.totals.total2024 += monthTotals2024;
+      totalsRow.totals.total2025 += monthTotals2025;
+    });
+
+    totalsRow.totals.growth = totalsRow.totals.total2024 > 0 
+      ? ((totalsRow.totals.total2025 - totalsRow.totals.total2024) / totalsRow.totals.total2024) * 100 
+      : 0;
+
+    const sortedResult = result.sort((a, b) => {
       if (sortField === 'source') {
         return sortDirection === 'asc' ? a.source.localeCompare(b.source) : b.source.localeCompare(a.source);
       }
@@ -149,7 +181,9 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       }
       return sortDirection === 'asc' ? a.totals.total2025 - b.totals.total2025 : b.totals.total2025 - a.totals.total2025;
     });
-  }, [data, activeMetric, sortField, sortDirection]);
+
+    return [...sortedResult, totalsRow];
+  }, [allData, activeMetric, sortField, sortDirection]);
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -177,20 +211,20 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
   };
 
   return (
-    <Card className="bg-white shadow-lg border-0 overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200 space-y-4">
+    <Card className="bg-white shadow-xl border-0 overflow-hidden rounded-2xl">
+      <CardHeader className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 border-b border-slate-200 space-y-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-gray-800 flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-blue-600" />
+          <CardTitle className="text-white flex items-center gap-2 text-xl font-bold">
+            <Calendar className="w-6 h-6 text-white" />
             Year-on-Year Source Performance (2024 vs 2025)
           </CardTitle>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleExport} className="gap-2">
+            <Button variant="secondary" size="sm" onClick={handleExport} className="gap-2 bg-white/20 border-white/30 text-white hover:bg-white/30">
               <Download className="w-4 h-4" />
               Export
             </Button>
-            <Badge variant="outline" className="text-blue-600 border-blue-600 bg-blue-50">
-              {processedData.length} Sources
+            <Badge variant="secondary" className="text-indigo-600 border-white bg-white/90">
+              {processedData.length - 1} Sources
             </Badge>
           </div>
         </div>
@@ -203,15 +237,15 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       </CardHeader>
       
       <CardContent className="p-0">
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <div className="overflow-x-auto max-h-[700px] overflow-y-auto">
           <Table>
             <TableHeader className="sticky top-0 z-20">
-              <TableRow className="bg-gradient-to-r from-purple-700 to-purple-900 text-white hover:bg-gradient-to-r hover:from-purple-700 hover:to-purple-900">
+              <TableRow className="bg-gradient-to-r from-slate-800 via-slate-900 to-black text-white hover:bg-gradient-to-r hover:from-slate-800 hover:to-black">
                 <TableHead 
-                  className="cursor-pointer hover:bg-purple-800 transition-colors font-bold text-white sticky left-0 bg-gradient-to-r from-purple-700 to-purple-900 z-30 min-w-[200px] p-3"
+                  className="cursor-pointer hover:bg-slate-700 transition-colors font-bold text-white sticky left-0 bg-gradient-to-r from-slate-800 to-slate-900 z-30 min-w-[200px] p-4"
                   onClick={() => handleSort('source')}
                 >
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm font-bold">
                     Lead Source <SortIcon field="source" />
                   </div>
                 </TableHead>
@@ -219,82 +253,97 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
                   const monthName = new Date(2025, month - 1).toLocaleString('default', { month: 'short' });
                   return (
                     <React.Fragment key={month}>
-                      <TableHead className="text-center font-bold text-white min-w-[100px] p-2">
+                      <TableHead className="text-center font-bold text-slate-300 min-w-[100px] p-3 border-r border-slate-600">
                         <div className="text-xs">
                           <div>{monthName} 2024</div>
                         </div>
                       </TableHead>
-                      <TableHead className="text-center font-bold text-white min-w-[100px] p-2">
+                      <TableHead className="text-center font-bold text-white min-w-[100px] p-3 border-r border-slate-600">
                         <div className="text-xs">
                           <div>{monthName} 2025</div>
                         </div>
                       </TableHead>
-                      <TableHead className="text-center font-bold text-yellow-200 min-w-[80px] p-2">
-                        <div className="text-xs">Growth</div>
+                      <TableHead className="text-center font-bold text-amber-300 min-w-[90px] p-3 border-r-2 border-slate-500">
+                        <div className="text-xs">Growth %</div>
                       </TableHead>
                     </React.Fragment>
                   );
                 })}
                 <TableHead 
-                  className="cursor-pointer hover:bg-purple-800 transition-colors text-center font-bold text-yellow-200 min-w-[100px] p-2"
+                  className="cursor-pointer hover:bg-slate-700 transition-colors text-center font-bold text-amber-200 min-w-[120px] p-3"
                   onClick={() => handleSort('growth')}
                 >
-                  <div className="flex items-center justify-center gap-1 text-xs">
+                  <div className="flex items-center justify-center gap-1 text-sm font-bold">
                     Total Growth <SortIcon field="growth" />
                   </div>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {processedData.map((sourceData, index) => (
-                <TableRow 
-                  key={sourceData.source}
-                  className="hover:bg-blue-50/50 transition-colors border-b border-gray-100"
-                >
-                  <TableCell className="font-medium text-gray-800 sticky left-0 bg-white z-10 border-r border-gray-200 min-w-[200px] p-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0"></div>
-                      <span className="truncate text-sm font-semibold">{sourceData.source}</span>
-                    </div>
-                  </TableCell>
-                  {[6, 5, 4, 3, 2, 1].map(month => {
-                    const monthData = sourceData.months[month];
-                    return (
-                      <React.Fragment key={month}>
-                        <TableCell className="text-center font-mono text-sm p-2">
-                          <span className="text-gray-700">{formatValue(monthData.value2024)}</span>
-                        </TableCell>
-                        <TableCell className="text-center font-mono text-sm p-2">
-                          <span className="text-gray-800 font-semibold">{formatValue(monthData.value2025)}</span>
-                        </TableCell>
-                        <TableCell className="text-center p-2">
-                          <div className={`flex items-center justify-center gap-1 text-xs font-semibold ${
-                            monthData.growth > 0 ? 'text-green-600' : monthData.growth < 0 ? 'text-red-600' : 'text-gray-500'
-                          }`}>
-                            {monthData.growth > 0 ? <TrendingUp className="w-3 h-3" /> : monthData.growth < 0 ? <TrendingDown className="w-3 h-3" /> : null}
-                            {monthData.growth.toFixed(1)}%
-                          </div>
-                        </TableCell>
-                      </React.Fragment>
-                    );
-                  })}
-                  <TableCell className="text-center p-2">
-                    <div className={`flex items-center justify-center gap-1 text-sm font-bold ${
-                      sourceData.totals.growth > 0 ? 'text-green-600' : sourceData.totals.growth < 0 ? 'text-red-600' : 'text-gray-500'
+              {processedData.map((sourceData, index) => {
+                const isTotal = sourceData.source === 'TOTAL';
+                return (
+                  <TableRow 
+                    key={sourceData.source}
+                    className={`transition-all duration-200 border-b ${
+                      isTotal 
+                        ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 font-bold hover:from-amber-100 hover:to-orange-100' 
+                        : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 border-slate-200'
+                    }`}
+                  >
+                    <TableCell className={`font-medium sticky left-0 z-10 border-r border-slate-200 min-w-[200px] p-4 ${
+                      isTotal 
+                        ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-900 font-bold text-lg' 
+                        : 'bg-white text-slate-800'
                     }`}>
-                      {sourceData.totals.growth > 0 ? <TrendingUp className="w-4 h-4" /> : sourceData.totals.growth < 0 ? <TrendingDown className="w-4 h-4" /> : null}
-                      {sourceData.totals.growth.toFixed(1)}%
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      <div className="flex items-center gap-2">
+                        {!isTotal && <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex-shrink-0"></div>}
+                        <span className={`truncate ${isTotal ? 'text-lg font-bold' : 'text-sm font-semibold'}`}>
+                          {sourceData.source}
+                        </span>
+                      </div>
+                    </TableCell>
+                    {[6, 5, 4, 3, 2, 1].map(month => {
+                      const monthData = sourceData.months[month];
+                      return (
+                        <React.Fragment key={month}>
+                          <TableCell className={`text-center font-mono p-3 border-r border-slate-100 ${isTotal ? 'font-bold text-base' : 'text-sm'}`}>
+                            <span className="text-slate-600">{formatValue(monthData.value2024)}</span>
+                          </TableCell>
+                          <TableCell className={`text-center font-mono p-3 border-r border-slate-100 ${isTotal ? 'font-bold text-base' : 'text-sm'}`}>
+                            <span className={`font-semibold ${isTotal ? 'text-slate-900' : 'text-slate-800'}`}>
+                              {formatValue(monthData.value2025)}
+                            </span>
+                          </TableCell>
+                          <TableCell className={`text-center p-3 border-r-2 border-slate-100 ${isTotal ? 'border-r-amber-200' : ''}`}>
+                            <div className={`flex items-center justify-center gap-1 font-bold ${
+                              monthData.growth > 0 ? 'text-emerald-600' : monthData.growth < 0 ? 'text-red-600' : 'text-slate-500'
+                            } ${isTotal ? 'text-base' : 'text-xs'}`}>
+                              {monthData.growth > 0 ? <TrendingUp className="w-3 h-3" /> : monthData.growth < 0 ? <TrendingDown className="w-3 h-3" /> : null}
+                              {monthData.growth.toFixed(1)}%
+                            </div>
+                          </TableCell>
+                        </React.Fragment>
+                      );
+                    })}
+                    <TableCell className="text-center p-3">
+                      <div className={`flex items-center justify-center gap-1 font-bold ${
+                        sourceData.totals.growth > 0 ? 'text-emerald-600' : sourceData.totals.growth < 0 ? 'text-red-600' : 'text-slate-500'
+                      } ${isTotal ? 'text-lg' : 'text-sm'}`}>
+                        {sourceData.totals.growth > 0 ? <TrendingUp className="w-4 h-4" /> : sourceData.totals.growth < 0 ? <TrendingDown className="w-4 h-4" /> : null}
+                        {sourceData.totals.growth.toFixed(1)}%
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
         
-        {processedData.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+        {processedData.length <= 1 && (
+          <div className="text-center py-12 text-slate-500">
+            <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-3" />
             <p className="font-medium">No year-on-year data available</p>
             <p className="text-sm">Data comparison requires leads from both 2024 and 2025</p>
           </div>

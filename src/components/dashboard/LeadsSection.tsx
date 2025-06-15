@@ -23,42 +23,43 @@ import { LeadDetailedFilterSection } from './LeadDetailedFilterSection';
 import { LeadPivotTable } from './LeadPivotTable';
 import { LeadYearOnYearSourceTable } from './LeadYearOnYearSourceTable';
 import { RefinedLoader } from '@/components/ui/RefinedLoader';
-
-const locations = [
-  { 
-    id: 'all', 
-    name: 'All Locations', 
-    fullName: 'All Locations',
-    icon: <Building2 className="w-4 h-4" />,
-    gradient: 'from-blue-500 to-indigo-600'
-  },
-  { 
-    id: 'Kwality House, Kemps Corner', 
-    name: 'Kwality House', 
-    fullName: 'Kwality House, Kemps Corner',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-emerald-500 to-teal-600'
-  },
-  { 
-    id: 'Supreme HQ, Bandra', 
-    name: 'Supreme HQ', 
-    fullName: 'Supreme HQ, Bandra',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-purple-500 to-violet-600'
-  },
-  { 
-    id: 'Kenkere House', 
-    name: 'Kenkere House', 
-    fullName: 'Kenkere House',
-    icon: <MapPin className="w-4 h-4" />,
-    gradient: 'from-orange-500 to-red-600'
-  }
-];
-
+const locations = [{
+  id: 'all',
+  name: 'All Locations',
+  fullName: 'All Locations',
+  icon: <Building2 className="w-4 h-4" />,
+  gradient: 'from-blue-500 to-indigo-600'
+}, {
+  id: 'Kwality House, Kemps Corner',
+  name: 'Kwality House',
+  fullName: 'Kwality House, Kemps Corner',
+  icon: <MapPin className="w-4 h-4" />,
+  gradient: 'from-emerald-500 to-teal-600'
+}, {
+  id: 'Supreme HQ, Bandra',
+  name: 'Supreme HQ',
+  fullName: 'Supreme HQ, Bandra',
+  icon: <MapPin className="w-4 h-4" />,
+  gradient: 'from-purple-500 to-violet-600'
+}, {
+  id: 'Kenkere House',
+  name: 'Kenkere House',
+  fullName: 'Kenkere House',
+  icon: <MapPin className="w-4 h-4" />,
+  gradient: 'from-orange-500 to-red-600'
+}];
 const LeadsSectionContent: React.FC = () => {
-  const { data, loading, error, refetch } = useLeadsData();
+  const {
+    data,
+    loading,
+    error,
+    refetch
+  } = useLeadsData();
   const [activeLocation, setActiveLocation] = useState('all');
-  const { filters, setOptions } = useLeads();
+  const {
+    filters,
+    setOptions
+  } = useLeads();
   const [activeMetric, setActiveMetric] = useState<LeadsMetricType>('totalLeads');
   const [stageMetric, setStageMetric] = useState<LeadsMetricType>('totalLeads');
   const [sourceMetric, setSourceMetric] = useState<LeadsMetricType>('totalLeads');
@@ -76,14 +77,12 @@ const LeadsSectionContent: React.FC = () => {
         associateOptions: [...new Set(data.map(item => item.associate))].filter(Boolean),
         centerOptions: [...new Set(data.map(item => item.center))].filter(Boolean),
         stageOptions: [...new Set(data.map(item => item.stage))].filter(Boolean),
-        statusOptions: [...new Set(data.map(item => item.status))].filter(Boolean),
+        statusOptions: [...new Set(data.map(item => item.status))].filter(Boolean)
       });
     }
   }, [data, setOptions]);
-
   const filteredData = useMemo(() => {
     if (!data) return [];
-    
     let filtered = data;
 
     // Apply location filter using 'center' field
@@ -95,19 +94,15 @@ const LeadsSectionContent: React.FC = () => {
     if (filters.source.length > 0) {
       filtered = filtered.filter(item => filters.source.includes(item.source));
     }
-
     if (filters.stage.length > 0) {
       filtered = filtered.filter(item => filters.stage.includes(item.stage));
     }
-
     if (filters.status.length > 0) {
       filtered = filtered.filter(item => filters.status.includes(item.status));
     }
-
     if (filters.associate.length > 0) {
       filtered = filtered.filter(item => filters.associate.includes(item.associate));
     }
-
     if (filters.center.length > 0) {
       filtered = filtered.filter(item => filters.center.includes(item.center));
     }
@@ -117,58 +112,49 @@ const LeadsSectionContent: React.FC = () => {
       filtered = filtered.filter(item => {
         if (!item.createdAt) return false;
         const itemDate = new Date(item.createdAt);
-        
         if (filters.dateRange.start && itemDate < filters.dateRange.start) return false;
         if (filters.dateRange.end && itemDate > filters.dateRange.end) return false;
         return true;
       });
     }
-
     return filtered;
   }, [data, activeLocation, filters]);
-
   const metrics = useMemo((): MetricCardData[] => {
     const totalLeads = filteredData.length;
     const trialsCompleted = filteredData.filter(item => item.stage === 'Trial Completed').length;
     const membershipsSold = filteredData.filter(item => item.conversionStatus === 'Converted').length;
     const avgLTV = totalLeads > 0 ? filteredData.reduce((sum, item) => sum + item.ltv, 0) / totalLeads : 0;
-    const leadToTrialRate = totalLeads > 0 ? (trialsCompleted / totalLeads) * 100 : 0;
-    const trialToMembershipRate = trialsCompleted > 0 ? (membershipsSold / trialsCompleted) * 100 : 0;
-
-    return [
-      {
-        title: "Total Leads",
-        value: formatNumber(totalLeads),
-        change: 12.5,
-        description: "Leads in funnel with strong pipeline growth",
-        calculation: "Total lead count across all sources",
-        icon: "users"
-      },
-      {
-        title: "Lead to Trial Rate",
-        value: `${leadToTrialRate.toFixed(1)}%`,
-        change: 8.2,
-        description: "Trial conversion rate showing healthy interest",
-        calculation: "Trials completed / Total leads",
-        icon: "target"
-      },
-      {
-        title: "Trial to Membership",
-        value: `${trialToMembershipRate.toFixed(1)}%`,
-        change: 15.3,
-        description: "Final conversion rate indicating sales effectiveness",
-        calculation: "Memberships sold / Trials completed",
-        icon: "credit-card"
-      },
-      {
-        title: "Average LTV",
-        value: formatCurrency(avgLTV),
-        change: 7.4,
-        description: "Customer lifetime value per converted lead",
-        calculation: "Total LTV / Converted customers",
-        icon: "trending-up"
-      }
-    ];
+    const leadToTrialRate = totalLeads > 0 ? trialsCompleted / totalLeads * 100 : 0;
+    const trialToMembershipRate = trialsCompleted > 0 ? membershipsSold / trialsCompleted * 100 : 0;
+    return [{
+      title: "Total Leads",
+      value: formatNumber(totalLeads),
+      change: 12.5,
+      description: "Leads in funnel with strong pipeline growth",
+      calculation: "Total lead count across all sources",
+      icon: "users"
+    }, {
+      title: "Lead to Trial Rate",
+      value: `${leadToTrialRate.toFixed(1)}%`,
+      change: 8.2,
+      description: "Trial conversion rate showing healthy interest",
+      calculation: "Trials completed / Total leads",
+      icon: "target"
+    }, {
+      title: "Trial to Membership",
+      value: `${trialToMembershipRate.toFixed(1)}%`,
+      change: 15.3,
+      description: "Final conversion rate indicating sales effectiveness",
+      calculation: "Memberships sold / Trials completed",
+      icon: "credit-card"
+    }, {
+      title: "Average LTV",
+      value: formatCurrency(avgLTV),
+      change: 7.4,
+      description: "Customer lifetime value per converted lead",
+      calculation: "Total LTV / Converted customers",
+      icon: "trending-up"
+    }];
   }, [filteredData]);
 
   // Top sources with proper metrics
@@ -176,7 +162,11 @@ const LeadsSectionContent: React.FC = () => {
     const sourceStats = filteredData.reduce((acc, item) => {
       const source = item.source || 'Unknown';
       if (!acc[source]) {
-        acc[source] = { leads: 0, conversions: 0, ltv: 0 };
+        acc[source] = {
+          leads: 0,
+          conversions: 0,
+          ltv: 0
+        };
       }
       acc[source].leads++;
       if (item.conversionStatus === 'Converted') {
@@ -184,18 +174,18 @@ const LeadsSectionContent: React.FC = () => {
       }
       acc[source].ltv += item.ltv;
       return acc;
-    }, {} as Record<string, { leads: number; conversions: number; ltv: number }>);
-
-    return Object.entries(sourceStats)
-      .map(([source, stats]) => ({
-        name: source,
-        value: stats.leads,
-        extra: `${((stats.conversions / stats.leads) * 100).toFixed(1)}%`,
-        conversionRate: (stats.conversions / stats.leads) * 100,
-        ltv: stats.ltv / stats.leads,
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
+    }, {} as Record<string, {
+      leads: number;
+      conversions: number;
+      ltv: number;
+    }>);
+    return Object.entries(sourceStats).map(([source, stats]) => ({
+      name: source,
+      value: stats.leads,
+      extra: `${(stats.conversions / stats.leads * 100).toFixed(1)}%`,
+      conversionRate: stats.conversions / stats.leads * 100,
+      ltv: stats.ltv / stats.leads
+    })).sort((a, b) => b.value - a.value).slice(0, 5);
   }, [filteredData]);
 
   // Top associates
@@ -203,7 +193,11 @@ const LeadsSectionContent: React.FC = () => {
     const associateStats = filteredData.reduce((acc, item) => {
       const associate = item.associate || 'Unknown';
       if (!acc[associate]) {
-        acc[associate] = { leads: 0, conversions: 0, ltv: 0 };
+        acc[associate] = {
+          leads: 0,
+          conversions: 0,
+          ltv: 0
+        };
       }
       acc[associate].leads++;
       if (item.conversionStatus === 'Converted') {
@@ -211,18 +205,18 @@ const LeadsSectionContent: React.FC = () => {
       }
       acc[associate].ltv += item.ltv;
       return acc;
-    }, {} as Record<string, { leads: number; conversions: number; ltv: number }>);
-
-    return Object.entries(associateStats)
-      .map(([associate, stats]) => ({
-        name: associate,
-        value: stats.leads,
-        extra: `${((stats.conversions / stats.leads) * 100).toFixed(1)}%`,
-        conversionRate: (stats.conversions / stats.leads) * 100,
-        ltv: stats.ltv / stats.leads,
-      }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 5);
+    }, {} as Record<string, {
+      leads: number;
+      conversions: number;
+      ltv: number;
+    }>);
+    return Object.entries(associateStats).map(([associate, stats]) => ({
+      name: associate,
+      value: stats.leads,
+      extra: `${(stats.conversions / stats.leads * 100).toFixed(1)}%`,
+      conversionRate: stats.conversions / stats.leads * 100,
+      ltv: stats.ltv / stats.leads
+    })).sort((a, b) => b.value - a.value).slice(0, 5);
   }, [filteredData]);
 
   // Pivot table data for source vs stage performance
@@ -230,7 +224,6 @@ const LeadsSectionContent: React.FC = () => {
     const pivotStats = filteredData.reduce((acc, item) => {
       const source = item.source || 'Unknown';
       const stage = item.stage || 'Unknown';
-      
       if (!acc[source]) {
         acc[source] = {};
       }
@@ -243,7 +236,6 @@ const LeadsSectionContent: React.FC = () => {
           visits: 0
         };
       }
-      
       acc[source][stage].totalLeads++;
       if (item.stage === 'Trial Completed') {
         acc[source][stage].trialsCompleted++;
@@ -253,7 +245,6 @@ const LeadsSectionContent: React.FC = () => {
       }
       acc[source][stage].ltvSum += item.ltv || 0;
       acc[source][stage].visits += item.visits || 0;
-      
       return acc;
     }, {} as Record<string, Record<string, any>>);
 
@@ -267,10 +258,10 @@ const LeadsSectionContent: React.FC = () => {
             result[source][stage] = stats.totalLeads;
             break;
           case 'leadToTrialConversion':
-            result[source][stage] = stats.totalLeads > 0 ? (stats.trialsCompleted / stats.totalLeads) * 100 : 0;
+            result[source][stage] = stats.totalLeads > 0 ? stats.trialsCompleted / stats.totalLeads * 100 : 0;
             break;
           case 'trialToMembershipConversion':
-            result[source][stage] = stats.trialsCompleted > 0 ? (stats.membershipsSold / stats.trialsCompleted) * 100 : 0;
+            result[source][stage] = stats.trialsCompleted > 0 ? stats.membershipsSold / stats.trialsCompleted * 100 : 0;
             break;
           case 'ltv':
             result[source][stage] = stats.totalLeads > 0 ? stats.ltvSum / stats.totalLeads : 0;
@@ -283,7 +274,6 @@ const LeadsSectionContent: React.FC = () => {
         }
       });
     });
-
     return result;
   }, [filteredData, pivotMetric]);
 
@@ -291,13 +281,10 @@ const LeadsSectionContent: React.FC = () => {
   const stagePerformanceData = useMemo(() => {
     const monthlyStageStats = filteredData.reduce((acc, item) => {
       if (!item.createdAt) return acc;
-      
       const date = new Date(item.createdAt);
       if (isNaN(date.getTime())) return acc;
-      
       const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const stage = item.stage || 'Unknown';
-      
       if (!acc[stage]) {
         acc[stage] = {};
       }
@@ -309,7 +296,6 @@ const LeadsSectionContent: React.FC = () => {
           ltvSum: 0
         };
       }
-      
       acc[stage][month].totalLeads++;
       if (item.stage === 'Trial Completed') {
         acc[stage][month].trialsCompleted++;
@@ -318,7 +304,6 @@ const LeadsSectionContent: React.FC = () => {
         acc[stage][month].membershipsSold++;
       }
       acc[stage][month].ltvSum += item.ltv;
-      
       return acc;
     }, {} as Record<string, Record<string, any>>);
 
@@ -332,10 +317,10 @@ const LeadsSectionContent: React.FC = () => {
             result[stage][month] = stats.totalLeads;
             break;
           case 'leadToTrialConversion':
-            result[stage][month] = stats.totalLeads > 0 ? (stats.trialsCompleted / stats.totalLeads) * 100 : 0;
+            result[stage][month] = stats.totalLeads > 0 ? stats.trialsCompleted / stats.totalLeads * 100 : 0;
             break;
           case 'trialToMembershipConversion':
-            result[stage][month] = stats.trialsCompleted > 0 ? (stats.membershipsSold / stats.trialsCompleted) * 100 : 0;
+            result[stage][month] = stats.trialsCompleted > 0 ? stats.membershipsSold / stats.trialsCompleted * 100 : 0;
             break;
           case 'ltv':
             result[stage][month] = stats.totalLeads > 0 ? stats.ltvSum / stats.totalLeads : 0;
@@ -345,7 +330,6 @@ const LeadsSectionContent: React.FC = () => {
         }
       });
     });
-
     return result;
   }, [filteredData, stageMetric]);
 
@@ -353,13 +337,10 @@ const LeadsSectionContent: React.FC = () => {
   const sourcePerformanceData = useMemo(() => {
     const monthlySourceStats = filteredData.reduce((acc, item) => {
       if (!item.createdAt) return acc;
-      
       const date = new Date(item.createdAt);
       if (isNaN(date.getTime())) return acc;
-      
       const month = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       const source = item.source || 'Unknown';
-      
       if (!acc[source]) {
         acc[source] = {};
       }
@@ -373,7 +354,6 @@ const LeadsSectionContent: React.FC = () => {
           revenue: 0
         };
       }
-      
       acc[source][month].totalLeads++;
       if (item.stage === 'Trial Completed') {
         acc[source][month].trialsCompleted++;
@@ -384,10 +364,8 @@ const LeadsSectionContent: React.FC = () => {
       acc[source][month].ltvSum += item.ltv || 0;
       acc[source][month].visits += item.visits || 0;
       acc[source][month].revenue += item.ltv || 0;
-      
       return acc;
     }, {} as Record<string, Record<string, any>>);
-
     const result: Record<string, Record<string, number>> = {};
     Object.entries(monthlySourceStats).forEach(([source, months]) => {
       result[source] = {};
@@ -397,10 +375,10 @@ const LeadsSectionContent: React.FC = () => {
             result[source][month] = stats.totalLeads;
             break;
           case 'leadToTrialConversion':
-            result[source][month] = stats.totalLeads > 0 ? (stats.trialsCompleted / stats.totalLeads) * 100 : 0;
+            result[source][month] = stats.totalLeads > 0 ? stats.trialsCompleted / stats.totalLeads * 100 : 0;
             break;
           case 'trialToMembershipConversion':
-            result[source][month] = stats.trialsCompleted > 0 ? (stats.membershipsSold / stats.trialsCompleted) * 100 : 0;
+            result[source][month] = stats.trialsCompleted > 0 ? stats.membershipsSold / stats.trialsCompleted * 100 : 0;
             break;
           case 'ltv':
             result[source][month] = stats.totalLeads > 0 ? stats.ltvSum / stats.totalLeads : 0;
@@ -416,17 +394,13 @@ const LeadsSectionContent: React.FC = () => {
         }
       });
     });
-
     return result;
   }, [filteredData, sourceMetric]);
-
   if (loading) {
     return <RefinedLoader subtitle="Fetching lead performance metrics..." />;
   }
-
   if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50/30 flex items-center justify-center p-4">
+    return <div className="min-h-screen bg-gray-50/30 flex items-center justify-center p-4">
         <Card className="p-8 bg-white shadow-lg max-w-md">
           <CardContent className="text-center space-y-4">
             <RefreshCw className="w-12 h-12 text-red-600 mx-auto" />
@@ -440,155 +414,73 @@ const LeadsSectionContent: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
-    );
+      </div>;
   }
-
   if (!data || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
+    return <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-slate-600">No leads data available</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   const availableMonths = [...new Set(filteredData.map(item => {
     if (!item.createdAt) return null;
     const date = new Date(item.createdAt);
     if (isNaN(date.getTime())) return null;
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   }).filter(Boolean))].sort().reverse();
-  
   const availableAssociates = [...new Set(filteredData.map(item => item.associate))].filter(Boolean);
   const availableStages = [...new Set(filteredData.map(item => item.stage))].filter(Boolean);
   const availableSources = [...new Set(filteredData.map(item => item.source))].filter(Boolean);
-
-  return (
-    <div className="space-y-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 min-h-screen">
+  return <div className="space-y-6 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20 min-h-screen">
       {/* Modern Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 border-b border-slate-200">
         <div className="absolute inset-0 bg-gradient-to-r from-white/40 via-blue-50/20 to-purple-50/20" />
-        <div className="relative px-8 py-8">
+        <div className="relative px-8 py-[12px]">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <div className="space-y-2">
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-purple-700 bg-clip-text text-transparent animate-fade-in">
                   Lead Performance Analytics
                 </h1>
-                <p className="text-lg text-slate-600 max-w-2xl animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <p className="text-lg text-slate-600 max-w-2xl animate-fade-in" style={{
+                animationDelay: '0.2s'
+              }}>
                   Transform prospects into customers with advanced analytics and conversion tracking
                 </p>
               </div>
               
               <div className="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
-                  className="gap-2 border-slate-300 hover:bg-slate-50"
-                >
+                <Button variant="outline" size="sm" onClick={() => setIsFilterCollapsed(!isFilterCollapsed)} className="gap-2 border-slate-300 hover:bg-slate-50">
                   {isFilterCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                   {isFilterCollapsed ? 'Show Filters' : 'Hide Filters'}
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={refetch}
-                  className="gap-2 border-slate-300 hover:bg-slate-50"
-                >
+                <Button variant="outline" size="sm" onClick={refetch} className="gap-2 border-slate-300 hover:bg-slate-50">
                   <RefreshCw className="w-4 h-4" />
                   Refresh
                 </Button>
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Users className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-800">{formatNumber(data?.length || 0)}</div>
-                    <div className="text-sm text-slate-600">Total Leads</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in" style={{ animationDelay: '0.1s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Target className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {data ? formatNumber(data.filter(item => item.conversionStatus === 'Converted').length) : '0'}
-                    </div>
-                    <div className="text-sm text-slate-600">Conversions</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in" style={{ animationDelay: '0.2s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {data && data.length > 0 ? 
-                        `${((data.filter(item => item.conversionStatus === 'Converted').length / data.length) * 100).toFixed(1)}%` : 
-                        '0%'
-                      }
-                    </div>
-                    <div className="text-sm text-slate-600">Conversion Rate</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-slate-200 shadow-sm animate-scale-in" style={{ animationDelay: '0.3s' }}>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <CreditCard className="w-5 h-5 text-orange-600" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-slate-800">
-                      {data && data.length > 0 ? 
-                        formatCurrency(data.reduce((sum, item) => sum + item.ltv, 0) / data.length) : 
-                        formatCurrency(0)
-                      }
-                    </div>
-                    <div className="text-sm text-slate-600">Avg LTV</div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Collapsible Filter Section */}
-        {!isFilterCollapsed && (
-          <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden animate-fade-in">
+        {!isFilterCollapsed && <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden animate-fade-in">
             <CardContent className="p-6">
               <LeadDetailedFilterSection />
             </CardContent>
-          </Card>
-        )}
+          </Card>}
 
         {/* Enhanced Location Tabs */}
         <Card className="bg-white shadow-2xl border-0 overflow-hidden rounded-3xl">
           <CardContent className="p-4">
             <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
               <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 via-blue-50 to-purple-50 p-3 rounded-3xl h-auto gap-3 shadow-inner">
-                {locations.map((location, index) => (
-                  <TabsTrigger
-                    key={location.id}
-                    value={location.id}
-                    className={`
+                {locations.map((location, index) => <TabsTrigger key={location.id} value={location.id} className={`
                       relative group overflow-hidden rounded-2xl px-6 py-4 font-bold text-sm 
                       transition-all duration-500 ease-out hover:scale-105 hover:shadow-lg
                       data-[state=active]:bg-gradient-to-br data-[state=active]:from-slate-800 data-[state=active]:to-slate-900
@@ -596,126 +488,71 @@ const LeadsSectionContent: React.FC = () => {
                       data-[state=active]:border-0 hover:bg-white/80 animate-fade-in
                       border-2 border-transparent data-[state=active]:border-white/20
                       text-slate-700 data-[state=active]:text-white
-                    `}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
+                    `} style={{
+                animationDelay: `${index * 0.1}s`
+              }}>
                     <div className="flex items-center gap-3 relative z-10">
                       <div className="relative transition-transform duration-300 group-hover:scale-110">
                         {location.icon}
                       </div>
                       <div className="text-left">
                         <div className="font-bold transition-all duration-300">{location.name.split(',')[0]}</div>
-                        {location.name.includes(',') && (
-                          <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
-                        )}
+                        {location.name.includes(',') && <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>}
                       </div>
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </TabsTrigger>
-                ))}
+                  </TabsTrigger>)}
               </TabsList>
 
               {/* Tab Content */}
-              {locations.map((location) => (
-                <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
+              {locations.map(location => <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
                   <Card className="bg-white shadow-sm border border-gray-200 rounded-2xl overflow-hidden">
                     <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
                       <CardTitle className="text-gray-800 text-xl font-bold">Lead Conversion Funnel</CardTitle>
                     </CardHeader>
                     <CardContent className="p-6">
-                      <LeadsFunnelVisualization
-                        data={{
-                          totalLeads: filteredData.length,
-                          trialScheduled: filteredData.filter(item => item.trialStatus !== 'Not Tried').length,
-                          trialCompleted: filteredData.filter(item => item.stage === 'Trial Completed').length,
-                          membershipsSold: filteredData.filter(item => item.conversionStatus === 'Converted').length,
-                        }}
-                      />
+                      <LeadsFunnelVisualization data={{
+                    totalLeads: filteredData.length,
+                    trialScheduled: filteredData.filter(item => item.trialStatus !== 'Not Tried').length,
+                    trialCompleted: filteredData.filter(item => item.stage === 'Trial Completed').length,
+                    membershipsSold: filteredData.filter(item => item.conversionStatus === 'Converted').length
+                  }} />
                     </CardContent>
                   </Card>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {metrics.map((metric, index) => (
-                      <MetricCard
-                        key={metric.title}
-                        data={metric}
-                        delay={index * 100}
-                      />
-                    ))}
+                    {metrics.map((metric, index) => <MetricCard key={metric.title} data={metric} delay={index * 100} />)}
                   </div>
 
-                  <LeadInteractiveChart
-                    data={filteredData}
-                    title="Lead Performance Trends"
-                    activeMetric={activeMetric}
-                  />
+                  <LeadInteractiveChart data={filteredData} title="Lead Performance Trends" activeMetric={activeMetric} />
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <LeadTopBottomLists
-                      title="Lead Source Performance"
-                      items={topSources}
-                      variant="top"
-                      type="source"
-                    />
+                    <LeadTopBottomLists title="Lead Source Performance" items={topSources} variant="top" type="source" />
                     
-                    <LeadTopBottomLists
-                      title="Associate Performance"
-                      items={topAssociates}
-                      variant="top"
-                      type="associate"
-                    />
+                    <LeadTopBottomLists title="Associate Performance" items={topAssociates} variant="top" type="associate" />
                   </div>
 
                   <div className="space-y-8">
-                    <LeadPivotTable 
-                      data={pivotTableData}
-                      rowLabels={availableSources}
-                      columnLabels={availableStages}
-                      activeMetric={pivotMetric}
-                      onMetricChange={setPivotMetric}
-                    />
+                    <LeadPivotTable data={pivotTableData} rowLabels={availableSources} columnLabels={availableStages} activeMetric={pivotMetric} onMetricChange={setPivotMetric} />
                     
-                    <LeadDataTable
-                      title="Lead Performance Analysis"
-                      data={filteredData}
-                    />
+                    <LeadDataTable title="Lead Performance Analysis" data={filteredData} />
                     
-                    <LeadMonthOnMonthTable
-                      data={stagePerformanceData}
-                      months={availableMonths}
-                      stages={availableStages}
-                      activeMetric={stageMetric}
-                      onMetricChange={setStageMetric}
-                    />
+                    <LeadMonthOnMonthTable data={stagePerformanceData} months={availableMonths} stages={availableStages} activeMetric={stageMetric} onMetricChange={setStageMetric} />
 
-                    <LeadSourceMonthOnMonthTable
-                      data={sourcePerformanceData}
-                      months={availableMonths}
-                      sources={availableSources}
-                      activeMetric={sourceMetric}
-                      onMetricChange={setSourceMetric}
-                    />
+                    <LeadSourceMonthOnMonthTable data={sourcePerformanceData} months={availableMonths} sources={availableSources} activeMetric={sourceMetric} onMetricChange={setSourceMetric} />
 
-                    <LeadYearOnYearSourceTable
-                      allData={data} // Pass unfiltered data for year-on-year comparison
-                      activeMetric={yoyMetric as LeadsMetricType}
-                      onMetricChange={(metric) => setYoyMetric(metric as any)}
-                    />
+                    <LeadYearOnYearSourceTable allData={data} // Pass unfiltered data for year-on-year comparison
+                activeMetric={yoyMetric as LeadsMetricType} onMetricChange={metric => setYoyMetric(metric as any)} />
                   </div>
-                </TabsContent>
-              ))}
+                </TabsContent>)}
             </Tabs>
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export const LeadsSection: React.FC = () => {
-  return (
-    <LeadProvider>
+  return <LeadProvider>
       <LeadsSectionContent />
-    </LeadProvider>
-  );
+    </LeadProvider>;
 };

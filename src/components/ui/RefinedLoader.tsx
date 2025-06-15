@@ -50,7 +50,7 @@ export const RefinedLoader: React.FC<RefinedLoaderProps> = ({
           
           {/* 5 Number */}
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 64 64" height="64" width="64" className="inline-block">
-            <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="10" stroke="url(#c)" d="M 32 32 m 0 -27 a 27 27 0 1 1 0 54 a 27 27 0 1 1 0 -54" className="spin" pathLength="360"></path>
+            <path strokeLinejoin="round" strokeLinecap="round" strokeWidth="8" stroke="url(#c)" d="M 52,4 H 12 V 32 H 36 c 8.836556,0 16,7.163444 16,16 0,8.836556 -7.163444,16 -16,16 H 20 c -8.836556,0 -16,-7.163444 -16,-16 H 12 c 0,4.418278 3.581722,8 8,8 H 36 c 4.418278,0 8,-3.581722 8,-8 0,-4.418278 -3.581722,-8 -8,-8 H 4 V 4 H 52 Z" className="spin" pathLength="360"></path>
           </svg>
           
           <div className="w-2"></div>

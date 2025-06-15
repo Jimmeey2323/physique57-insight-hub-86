@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -77,18 +76,18 @@ const ExecutiveSummarySection = () => {
       (current?.totalPaid || 0) > (prev?.totalPaid || 0) ? current : prev
     );
 
-    // Client Metrics - Fixed calculation
+    // Client Metrics - Fixed calculation using correct property names
     const validNewClientData = newClientData.filter(client => client && typeof client === 'object');
     const newClients = validNewClientData.filter(client => 
-      client.isNew === 'Yes' || client.isNew === true || client.isNew === 1
+      client.isNew === 'Yes' || client.isNew === 'True'
     ).length;
     
     const convertedClients = validNewClientData.filter(client => 
-      client.conversionStatus === 'Converted' || client.converted === true || client.converted === 1
+      client.conversionStatus === 'Converted'
     ).length;
     
     const retainedClients = validNewClientData.filter(client => 
-      client.retentionStatus === 'Retained' || client.retained === true || client.retained === 1
+      client.retentionStatus === 'Retained'
     ).length;
 
     // Use fallback calculations if no specific conversion data
@@ -588,7 +587,7 @@ const ExecutiveSummarySection = () => {
                           <TableCell className="text-right font-bold text-yellow-600">
                             {formatCurrency(trainer.totalPaid || 0)}
                           </TableCell>
-                          <TableCell className="text-right">{trainer.sessionCount || 'N/A'}</TableCell>
+                          <TableCell className="text-right">{trainer.totalSessions || 'N/A'}</TableCell>
                           <TableCell className="text-right">
                             <Badge className={index < 2 ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"}>
                               {index < 2 ? "Excellent" : "Good"}

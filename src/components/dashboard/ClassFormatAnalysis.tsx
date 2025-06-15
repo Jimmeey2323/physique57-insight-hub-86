@@ -50,14 +50,42 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
     });
   }, [data]);
 
+  // Function to normalize class names to group similar formats
+  const normalizeClassName = (className: string): string => {
+    const normalized = className.toLowerCase().trim();
+    
+    // Group Barre variations
+    if (normalized.includes('barre 57') || normalized.includes('barre57')) {
+      return 'Barre 57';
+    }
+    
+    // Group Power Cycle variations
+    if (normalized.includes('power cycle') || normalized.includes('powercycle')) {
+      return 'Power Cycle';
+    }
+    
+    // Group other common variations
+    if (normalized.includes('cycle') && !normalized.includes('power')) {
+      return 'Cycle';
+    }
+    
+    if (normalized.includes('barre') && !normalized.includes('57')) {
+      return 'Barre';
+    }
+    
+    // Return the original if no grouping applies
+    return className;
+  };
+
   const formatAnalysis = useMemo(() => {
-    // Group by exact class names from cleanedClass column
+    // Group by normalized class names
     const classGroups = filteredData.reduce((acc, session) => {
-      const className = session.cleanedClass || 'Unknown';
+      const originalClassName = session.cleanedClass || 'Unknown';
+      const normalizedClassName = normalizeClassName(originalClassName);
       
-      if (!acc[className]) {
-        acc[className] = {
-          className,
+      if (!acc[normalizedClassName]) {
+        acc[normalizedClassName] = {
+          className: normalizedClassName,
           classes: new Map(),
           totalSessions: 0,
           totalAttendees: 0,
@@ -70,11 +98,11 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
         };
       }
       
-      const classKey = `${className}|${session.dayOfWeek}|${session.time}|${session.location}`;
+      const classKey = `${originalClassName}|${session.dayOfWeek}|${session.time}|${session.location}`;
       
-      if (!acc[className].classes.has(classKey)) {
-        acc[className].classes.set(classKey, {
-          className,
+      if (!acc[normalizedClassName].classes.has(classKey)) {
+        acc[normalizedClassName].classes.set(classKey, {
+          className: originalClassName, // Keep original name for display
           dayOfWeek: session.dayOfWeek,
           time: session.time,
           location: session.location,
@@ -91,7 +119,7 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
         });
       }
       
-      const classGroup = acc[className].classes.get(classKey)!;
+      const classGroup = acc[normalizedClassName].classes.get(classKey)!;
       classGroup.sessions++;
       classGroup.attendees += session.checkedInCount;
       classGroup.revenue += session.totalPaid;
@@ -103,16 +131,16 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
       // Count empty classes (sessions with 0 check-ins)
       if (session.checkedInCount === 0) {
         classGroup.emptyClasses++;
-        acc[className].totalEmptyClasses++;
+        acc[normalizedClassName].totalEmptyClasses++;
       }
       
-      acc[className].totalSessions++;
-      acc[className].totalAttendees += session.checkedInCount;
-      acc[className].totalRevenue += session.totalPaid;
-      acc[className].totalCapacity += session.capacity;
-      acc[className].totalLateCancellations += session.lateCancelledCount;
-      acc[className].totalComplimentary += session.complimentaryCount;
-      acc[className].totalNonPaid += session.nonPaidCount;
+      acc[normalizedClassName].totalSessions++;
+      acc[normalizedClassName].totalAttendees += session.checkedInCount;
+      acc[normalizedClassName].totalRevenue += session.totalPaid;
+      acc[normalizedClassName].totalCapacity += session.capacity;
+      acc[normalizedClassName].totalLateCancellations += session.lateCancelledCount;
+      acc[normalizedClassName].totalComplimentary += session.complimentaryCount;
+      acc[normalizedClassName].totalNonPaid += session.nonPaidCount;
       
       return acc;
     }, {} as Record<string, any>);

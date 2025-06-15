@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   ChevronDown, 
   ChevronRight, 
@@ -32,7 +33,7 @@ interface ClassFormatAnalysisProps {
 
 export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }) => {
   const [selectedFormat, setSelectedFormat] = useState<string>('all');
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [openFormats, setOpenFormats] = useState<Set<string>>(new Set());
 
   // Filter out unwanted sessions
   const filteredData = useMemo(() => {
@@ -137,14 +138,14 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
     return formatAnalysis.filter((format: any) => format.className === selectedFormat);
   }, [formatAnalysis, selectedFormat]);
 
-  const toggleGroup = (formatName: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(formatName)) {
-      newExpanded.delete(formatName);
+  const toggleFormat = (formatName: string) => {
+    const newOpenFormats = new Set(openFormats);
+    if (newOpenFormats.has(formatName)) {
+      newOpenFormats.delete(formatName);
     } else {
-      newExpanded.add(formatName);
+      newOpenFormats.add(formatName);
     }
-    setExpandedGroups(newExpanded);
+    setOpenFormats(newOpenFormats);
   };
 
   const availableFormats = ['all', ...formatAnalysis.map((f: any) => f.className)];
@@ -170,7 +171,7 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
                   <ChevronDown className="h-4 w-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white shadow-lg border-0 max-h-96 overflow-auto">
+              <DropdownMenuContent className="bg-white shadow-lg border-0 max-h-96 overflow-auto z-50">
                 {availableFormats.map(format => (
                   <DropdownMenuItem
                     key={format}
@@ -187,169 +188,153 @@ export const ClassFormatAnalysis: React.FC<ClassFormatAnalysisProps> = ({ data }
         </CardHeader>
         
         <CardContent className="p-0">
-          <div className="max-h-[800px] overflow-auto">
-            <Table>
-              <TableHeader className="sticky top-0 bg-gradient-to-r from-gray-50 to-purple-50 z-10">
-                <TableRow>
-                  <TableHead className="w-80 sticky left-0 bg-gradient-to-r from-gray-50 to-purple-50 z-20 border-r font-semibold">
-                    Class Type / Schedule Details
-                  </TableHead>
-                  <TableHead className="text-center min-w-32 font-semibold">Class Name</TableHead>
-                  <TableHead className="text-center min-w-24 font-semibold">Day</TableHead>
-                  <TableHead className="text-center min-w-24 font-semibold">Time</TableHead>
-                  <TableHead className="text-center min-w-32 font-semibold">Location</TableHead>
-                  <TableHead className="text-center min-w-28 font-semibold">Trainer</TableHead>
-                  <TableHead className="text-center min-w-20 font-semibold">
-                    <Tooltip>
-                      <TooltipTrigger>Sessions</TooltipTrigger>
-                      <TooltipContent>Number of sessions conducted</TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                  <TableHead className="text-center min-w-28 font-semibold">
-                    <Tooltip>
-                      <TooltipTrigger>Class Average</TooltipTrigger>
-                      <TooltipContent>Average attendees per session</TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                  <TableHead className="text-center min-w-24 font-semibold">
-                    <Tooltip>
-                      <TooltipTrigger>Fill Rate %</TooltipTrigger>
-                      <TooltipContent>Average capacity utilization</TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                  <TableHead className="text-center min-w-32 font-semibold">
-                    <Tooltip>
-                      <TooltipTrigger>Total Revenue</TooltipTrigger>
-                      <TooltipContent>Total revenue generated</TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                  <TableHead className="text-center min-w-24 font-semibold">
-                    <Tooltip>
-                      <TooltipTrigger>Late Cancellations</TooltipTrigger>
-                      <TooltipContent>Average late cancellations per session</TooltipContent>
-                    </Tooltip>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredFormats.map((format: any) => (
-                  <React.Fragment key={format.className}>
-                    <TableRow 
-                      className="cursor-pointer hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 border-b-2 border-gray-200 bg-gradient-to-r from-purple-50/50 to-pink-50/50 transition-all duration-200"
-                      onClick={() => toggleGroup(format.className)}
-                    >
-                      <TableCell className="sticky left-0 bg-gradient-to-r from-purple-50/50 to-pink-50/50 z-10 border-r h-12 py-2">
-                        <div className="flex items-center gap-3">
-                          {expandedGroups.has(format.className) ? 
-                            <ChevronDown className="h-4 w-4 text-gray-500" /> : 
-                            <ChevronRight className="h-4 w-4 text-gray-500" />
+          <div className="max-h-[800px] overflow-auto space-y-4 p-4">
+            {filteredFormats.map((format: any) => (
+              <Card key={format.className} className="border shadow-sm">
+                <Collapsible open={openFormats.has(format.className)}>
+                  <CollapsibleTrigger
+                    onClick={() => toggleFormat(format.className)}
+                    className="w-full"
+                  >
+                    <CardHeader className="hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 transition-all duration-200 cursor-pointer">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          {openFormats.has(format.className) ? 
+                            <ChevronDown className="h-5 w-5 text-gray-500" /> : 
+                            <ChevronRight className="h-5 w-5 text-gray-500" />
                           }
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                              <Star className="w-4 h-4 text-white" />
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
+                              <Star className="w-5 h-5 text-white" />
                             </div>
-                            <span className="font-semibold text-sm">{format.className}</span>
+                            <div className="text-left">
+                              <h3 className="text-lg font-semibold text-gray-800">{format.className}</h3>
+                              <p className="text-sm text-gray-600">{format.classesArray.length} schedules • {format.totalSessions} sessions</p>
+                            </div>
                           </div>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm font-medium">
-                        <Badge variant="secondary" className="bg-purple-100 text-purple-700">
-                          {format.classesArray.length} schedules
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm">-</TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm">-</TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm">-</TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm">-</TableCell>
-                      <TableCell className="text-center h-12 py-2">
-                        <Badge variant="default" className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
-                          {format.totalSessions}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm font-bold text-purple-600">
-                        {format.classAverage.toFixed(1)}
-                      </TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm font-medium">
-                        <Badge 
-                          variant={format.avgFillRate > 80 ? 'default' : format.avgFillRate > 60 ? 'secondary' : 'outline'}
-                          className={format.avgFillRate > 80 ? 'bg-green-100 text-green-700' : format.avgFillRate > 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}
-                        >
-                          {format.avgFillRate.toFixed(1)}%
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm font-medium">
-                        {formatCurrency(format.totalRevenue)}
-                      </TableCell>
-                      <TableCell className="text-center h-12 py-2 text-sm font-medium">
-                        {format.totalLateCancellations}
-                      </TableCell>
-                    </TableRow>
-                    
-                    {expandedGroups.has(format.className) && format.classesArray.map((classGroup: any, index: number) => (
-                      <TableRow key={`${format.className}-${index}`} className="bg-gradient-to-r from-gray-50/80 to-purple-50/80 hover:from-gray-100/80 hover:to-purple-100/80">
-                        <TableCell className="sticky left-0 bg-gradient-to-r from-gray-50/80 to-purple-50/80 z-10 border-r h-10 py-1 pl-12">
-                          <div className="flex items-center gap-2">
-                            <Users className="w-3 h-3 text-purple-500" />
-                            <span className="text-xs text-gray-700 truncate font-medium">
-                              {classGroup.className} Schedule
-                            </span>
+                        <div className="flex items-center gap-6 text-sm">
+                          <div className="text-center">
+                            <div className="font-bold text-purple-600">{format.classAverage.toFixed(1)}</div>
+                            <div className="text-gray-500">Avg Attendance</div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs font-medium">
-                          <Badge variant="outline" className="text-xs bg-white">
-                            {classGroup.className}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs">
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700">
-                            {classGroup.dayOfWeek}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs">
-                          <div className="flex items-center justify-center gap-1">
-                            <Clock className="w-3 h-3 text-gray-500" />
-                            <span className="text-xs">{classGroup.time}</span>
+                          <div className="text-center">
+                            <Badge 
+                              variant={format.avgFillRate > 80 ? 'default' : format.avgFillRate > 60 ? 'secondary' : 'outline'}
+                              className={format.avgFillRate > 80 ? 'bg-green-100 text-green-700' : format.avgFillRate > 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}
+                            >
+                              {format.avgFillRate.toFixed(1)}%
+                            </Badge>
+                            <div className="text-gray-500 mt-1">Fill Rate</div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs">
-                          <div className="flex items-center justify-center gap-1">
-                            <MapPin className="w-3 h-3 text-gray-500" />
-                            <span className="truncate text-xs max-w-28">{classGroup.location}</span>
+                          <div className="text-center">
+                            <div className="font-bold text-green-600">{formatCurrency(format.totalRevenue)}</div>
+                            <div className="text-gray-500">Revenue</div>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs">
-                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
-                            {classGroup.trainerName}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs font-medium">
-                          {classGroup.sessions}
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs font-bold text-green-600">
-                          {classGroup.classAverage.toFixed(1)}
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs">
-                          <Badge 
-                            variant={classGroup.fillRate > 80 ? 'default' : classGroup.fillRate > 60 ? 'secondary' : 'outline'}
-                            className={`text-xs ${classGroup.fillRate > 80 ? 'bg-green-100 text-green-700' : classGroup.fillRate > 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}
-                          >
-                            {classGroup.fillRate.toFixed(1)}%
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs">
-                          {formatCurrency(classGroup.revenue)}
-                        </TableCell>
-                        <TableCell className="text-center h-10 py-1 text-xs">
-                          <Badge variant="outline" className="text-xs">
-                            {classGroup.avgLateCancellations.toFixed(1)}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
+                        </div>
+                      </div>
+                    </CardHeader>
+                  </CollapsibleTrigger>
+                  
+                  <CollapsibleContent>
+                    <CardContent className="pt-0">
+                      <Table>
+                        <TableHeader>
+                          <TableRow className="bg-gradient-to-r from-gray-50 to-purple-50">
+                            <TableHead className="font-semibold">Day</TableHead>
+                            <TableHead className="font-semibold">Time</TableHead>
+                            <TableHead className="font-semibold">Location</TableHead>
+                            <TableHead className="font-semibold">Trainer</TableHead>
+                            <TableHead className="text-center font-semibold">
+                              <Tooltip>
+                                <TooltipTrigger>Sessions</TooltipTrigger>
+                                <TooltipContent>Number of sessions conducted</TooltipContent>
+                              </Tooltip>
+                            </TableHead>
+                            <TableHead className="text-center font-semibold">
+                              <Tooltip>
+                                <TooltipTrigger>Class Average</TooltipTrigger>
+                                <TooltipContent>Average attendees per session</TooltipContent>
+                              </Tooltip>
+                            </TableHead>
+                            <TableHead className="text-center font-semibold">
+                              <Tooltip>
+                                <TooltipTrigger>Fill Rate %</TooltipTrigger>
+                                <TooltipContent>Average capacity utilization</TooltipContent>
+                              </Tooltip>
+                            </TableHead>
+                            <TableHead className="text-center font-semibold">
+                              <Tooltip>
+                                <TooltipTrigger>Revenue</TooltipTrigger>
+                                <TooltipContent>Total revenue generated</TooltipContent>
+                              </Tooltip>
+                            </TableHead>
+                            <TableHead className="text-center font-semibold">
+                              <Tooltip>
+                                <TooltipTrigger>Late Cancellations</TooltipTrigger>
+                                <TooltipContent>Average late cancellations per session</TooltipContent>
+                              </Tooltip>
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {format.classesArray.map((classGroup: any, index: number) => (
+                            <TableRow key={`${format.className}-${index}`} className="hover:bg-gray-50/80">
+                              <TableCell>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                  {classGroup.dayOfWeek}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <Clock className="w-4 h-4 text-gray-500" />
+                                  <span>{classGroup.time}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-1">
+                                  <MapPin className="w-4 h-4 text-gray-500" />
+                                  <span className="truncate max-w-32">{classGroup.location}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="bg-green-50 text-green-700">
+                                  {classGroup.trainerName}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center font-medium">
+                                <Badge variant="default" className="bg-gray-100 text-gray-700">
+                                  {classGroup.sessions}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center font-bold text-green-600">
+                                {classGroup.classAverage.toFixed(1)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge 
+                                  variant={classGroup.fillRate > 80 ? 'default' : classGroup.fillRate > 60 ? 'secondary' : 'outline'}
+                                  className={classGroup.fillRate > 80 ? 'bg-green-100 text-green-700' : classGroup.fillRate > 60 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}
+                                >
+                                  {classGroup.fillRate.toFixed(1)}%
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center font-medium">
+                                {formatCurrency(classGroup.revenue)}
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline">
+                                  {classGroup.avgLateCancellations.toFixed(1)}
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+            ))}
           </div>
         </CardContent>
       </Card>

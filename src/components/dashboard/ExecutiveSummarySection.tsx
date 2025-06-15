@@ -33,13 +33,13 @@ export const ExecutiveSummarySection: React.FC = () => {
   const [activeView, setActiveView] = useState('overview');
   const [dateRange, setDateRange] = useState('last-30-days');
   
-  // Data hooks
-  const { data: salesData, isLoading: salesLoading } = useGoogleSheets();
-  const { data: newClientData, isLoading: clientsLoading } = useNewClientData();
-  const { data: payrollData, isLoading: payrollLoading } = usePayrollData();
-  const { data: sessionsData, isLoading: sessionsLoading } = useSessionsData();
-  const { data: leadsData, isLoading: leadsLoading } = useLeadsData();
-  const { data: discountsData, isLoading: discountsLoading } = useDiscountsData();
+  // Data hooks - using 'loading' instead of 'isLoading'
+  const { data: salesData, loading: salesLoading } = useGoogleSheets();
+  const { data: newClientData, loading: clientsLoading } = useNewClientData();
+  const { data: payrollData, loading: payrollLoading } = usePayrollData();
+  const { data: sessionsData, loading: sessionsLoading } = useSessionsData();
+  const { data: leadsData, loading: leadsLoading } = useLeadsData();
+  const { data: discountsData, loading: discountsLoading } = useDiscountsData();
 
   const isLoading = salesLoading || clientsLoading || payrollLoading || sessionsLoading || leadsLoading || discountsLoading;
 
@@ -54,9 +54,9 @@ export const ExecutiveSummarySection: React.FC = () => {
     const uniqueMembers = new Set(salesData.map((item: SalesData) => item.memberId)).size;
     const newMembers = newClientData?.length || 0;
     const totalSessions = sessionsData?.length || 0;
-    const avgClassSize = sessionsData?.reduce((sum: number, session: SessionData) => sum + session.checkedIn, 0) / totalSessions || 0;
-    const retentionRate = newClientData?.filter((client: NewClientData) => client.retentionStatus === 'Retained').length / newMembers * 100 || 0;
-    const conversionRate = newClientData?.filter((client: NewClientData) => client.conversionStatus === 'Converted').length / newMembers * 100 || 0;
+    const avgClassSize = totalSessions > 0 ? sessionsData?.reduce((sum: number, session: SessionData) => sum + session.checkedIn, 0) / totalSessions || 0 : 0;
+    const retentionRate = newMembers > 0 ? newClientData?.filter((client: NewClientData) => client.retentionStatus === 'Retained').length / newMembers * 100 || 0 : 0;
+    const conversionRate = newMembers > 0 ? newClientData?.filter((client: NewClientData) => client.conversionStatus === 'Converted').length / newMembers * 100 || 0 : 0;
 
     return [
       {
@@ -142,7 +142,7 @@ export const ExecutiveSummarySection: React.FC = () => {
       }));
   }, [payrollData]);
 
-  // Revenue trend data
+  // Revenue trend data - using proper chart data format
   const revenueTrend = useMemo(() => {
     if (!salesData?.length) return [];
     
@@ -319,12 +319,12 @@ export const ExecutiveSummarySection: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <InteractiveChart
               title="Revenue Performance"
-              data={revenueTrend}
+              data={salesData || []}
               type="revenue"
             />
             <InteractiveChart
               title="Member Growth"
-              data={revenueTrend}
+              data={newClientData || []}
               type="performance"
             />
           </div>

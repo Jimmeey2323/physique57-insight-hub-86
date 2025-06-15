@@ -3,7 +3,8 @@ import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, RefreshCw, Percent, TrendingDown, MapPin, Building2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, RefreshCw, Percent, TrendingDown, MapPin, Building2, Tag, DollarSign, Users, ShoppingCart, Target, Gift, Zap, Award } from 'lucide-react';
 import { useDiscountsData } from '@/hooks/useDiscountsData';
 import { MetricCard } from './MetricCard';
 import { AutoCloseFilterSection } from './AutoCloseFilterSection';
@@ -120,7 +121,7 @@ export const DiscountsSection: React.FC = () => {
     return applyFilters(data);
   }, [data, activeLocation, filters]);
 
-  const metrics = useMemo((): MetricCardData[] => {
+  const discountMetrics = useMemo((): MetricCardData[] => {
     const totalRevenue = filteredData.reduce((sum, item) => sum + (item.grossRevenue || 0), 0);
     const totalDiscounts = filteredData.reduce((sum, item) => sum + (item.discountAmount || 0), 0);
     const discountedTransactions = filteredData.filter(item => (item.discountAmount || 0) > 0).length;
@@ -134,19 +135,11 @@ export const DiscountsSection: React.FC = () => {
 
     return [
       {
-        title: 'Total Revenue',
-        value: formatCurrency(totalRevenue),
-        change: 12.5,
-        description: 'Gross revenue across all transactions for the selected period',
-        calculation: 'Sum of all Gross Revenue values',
-        icon: 'revenue'
-      },
-      {
-        title: 'Total Discounts',
+        title: 'Total Discounts Given',
         value: formatCurrency(totalDiscounts),
         change: -8.2,
-        description: 'Total discount amount given to customers',
-        calculation: 'Sum of all Discount Amount values',
+        description: 'Total discount amount provided to customers',
+        calculation: 'Sum of all discount amounts',
         icon: 'trending-down'
       },
       {
@@ -154,15 +147,15 @@ export const DiscountsSection: React.FC = () => {
         value: totalRevenue > 0 ? `${((totalDiscounts / totalRevenue) * 100).toFixed(1)}%` : '0%',
         change: -3.1,
         description: 'Percentage of revenue given as discounts',
-        calculation: 'Total Discounts / Total Revenue * 100',
+        calculation: 'Total Discounts / Total Revenue × 100',
         icon: 'percent'
       },
       {
         title: 'Avg Discount %',
         value: `${avgDiscountPercent.toFixed(1)}%`,
         change: -2.1,
-        description: 'Average discount percentage for discounted transactions',
-        calculation: 'Average of Gross Discount % for transactions with discounts',
+        description: 'Average discount percentage per discounted transaction',
+        calculation: 'Average of all discount percentages',
         icon: 'percent'
       },
       {
@@ -170,7 +163,7 @@ export const DiscountsSection: React.FC = () => {
         value: formatNumber(discountedTransactions),
         change: 5.7,
         description: 'Number of transactions with discounts applied',
-        calculation: 'Count of transactions where Discount Amount > 0',
+        calculation: 'Count of transactions with discount > 0',
         icon: 'transactions'
       },
       {
@@ -178,27 +171,97 @@ export const DiscountsSection: React.FC = () => {
         value: `${discountPenetration.toFixed(1)}%`,
         change: 4.3,
         description: 'Percentage of transactions that received discounts',
-        calculation: 'Discounted Transactions / Total Transactions * 100',
+        calculation: 'Discounted Transactions / Total Transactions × 100',
         icon: 'percent'
       },
       {
-        title: 'Net Revenue',
-        value: formatCurrency(netRevenue),
-        change: 8.9,
-        description: 'Revenue after deducting all discounts',
-        calculation: 'Total Revenue - Total Discounts',
-        icon: 'net'
-      },
-      {
-        title: 'Avg Discount/Transaction',
+        title: 'Avg Discount Amount',
         value: formatCurrency(avgDiscountPerTransaction),
         change: -1.8,
         description: 'Average discount amount per discounted transaction',
         calculation: 'Total Discounts / Discounted Transactions',
         icon: 'auv'
+      },
+      {
+        title: 'Revenue Impact',
+        value: formatCurrency(totalRevenue - totalDiscounts),
+        change: 8.9,
+        description: 'Net revenue after discount deductions',
+        calculation: 'Gross Revenue - Total Discounts',
+        icon: 'net'
+      },
+      {
+        title: 'Discount Efficiency',
+        value: discountedTransactions > 0 ? `${(totalRevenue / discountedTransactions).toFixed(0)}` : '0',
+        change: 12.4,
+        description: 'Average revenue per discounted transaction',
+        calculation: 'Total Revenue / Discounted Transactions',
+        icon: 'revenue'
       }
     ];
   }, [filteredData]);
+
+  const getTopDiscountedProducts = () => {
+    const productDiscounts = filteredData
+      .filter(item => (item.discountAmount || 0) > 0)
+      .reduce((acc, item) => {
+        const product = item.cleanedProduct || 'Unknown Product';
+        if (!acc[product]) {
+          acc[product] = {
+            product,
+            totalDiscount: 0,
+            transactions: 0,
+            avgDiscount: 0,
+            totalRevenue: 0
+          };
+        }
+        acc[product].totalDiscount += item.discountAmount || 0;
+        acc[product].transactions += 1;
+        acc[product].totalRevenue += item.grossRevenue || 0;
+        return acc;
+      }, {} as Record<string, any>);
+
+    return Object.values(productDiscounts)
+      .map((item: any) => ({
+        ...item,
+        avgDiscount: item.totalDiscount / item.transactions,
+        discountRate: (item.totalDiscount / item.totalRevenue) * 100
+      }))
+      .sort((a, b) => b.totalDiscount - a.totalDiscount)
+      .slice(0, 10);
+  };
+
+  const getDiscountTrends = () => {
+    const monthlyData = filteredData.reduce((acc, item) => {
+      if (!item.paymentDate || (item.discountAmount || 0) === 0) return acc;
+      
+      const date = new Date(item.paymentDate);
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          month: monthKey,
+          totalDiscounts: 0,
+          transactions: 0,
+          revenue: 0
+        };
+      }
+      
+      acc[monthKey].totalDiscounts += item.discountAmount || 0;
+      acc[monthKey].transactions += 1;
+      acc[monthKey].revenue += item.grossRevenue || 0;
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(monthlyData)
+      .map((item: any) => ({
+        ...item,
+        avgDiscount: item.totalDiscounts / item.transactions,
+        discountRate: (item.totalDiscounts / item.revenue) * 100
+      }))
+      .sort((a, b) => a.month.localeCompare(b.month));
+  };
 
   const resetFilters = () => {
     setFilters({
@@ -224,7 +287,7 @@ export const DiscountsSection: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-orange-50 flex items-center justify-center">
-        <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-xl">
+        <Card className="p-8 bg-white/80 backdrop-blur-sm shadow-xl border-0">
           <CardContent className="flex items-center gap-4">
             <Loader2 className="w-8 h-8 animate-spin text-red-600" />
             <div>
@@ -240,14 +303,14 @@ export const DiscountsSection: React.FC = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-red-50 to-red-100 flex items-center justify-center p-4">
-        <Card className="p-8 bg-white/90 backdrop-blur-sm shadow-xl max-w-md">
+        <Card className="p-8 bg-white/90 backdrop-blur-sm shadow-xl max-w-md border-0">
           <CardContent className="text-center space-y-4">
             <RefreshCw className="w-12 h-12 text-red-600 mx-auto" />
             <div>
               <p className="text-lg font-semibold text-slate-800">Connection Error</p>
               <p className="text-sm text-slate-600 mt-2">{error}</p>
             </div>
-            <Button onClick={refetch} className="gap-2">
+            <Button onClick={refetch} className="gap-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700">
               <RefreshCw className="w-4 h-4" />
               Retry Connection
             </Button>
@@ -257,125 +320,245 @@ export const DiscountsSection: React.FC = () => {
     );
   }
 
+  const topDiscountedProducts = getTopDiscountedProducts();
+  const discountTrends = getDiscountTrends();
+
   return (
-    <div className={cn("space-y-6", isDarkMode && "dark")}>
-      <div className="text-center mb-8">
-        <h2 className="text-5xl font-bold bg-gradient-to-r from-red-600 via-orange-600 to-red-800 bg-clip-text text-transparent animate-pulse mb-4">
-          Discount Analytics Dashboard
-        </h2>
-        <p className="text-xl text-slate-600 font-medium">
-          Comprehensive discount performance analysis and promotional campaign effectiveness
-        </p>
-        <div className="w-32 h-1 bg-gradient-to-r from-red-500 to-orange-500 mx-auto mt-4 rounded-full animate-fade-in"></div>
+    <div className={cn("min-h-screen bg-gradient-to-br from-slate-50 via-red-50/30 to-orange-50/20", isDarkMode && "dark")}>
+      {/* Enhanced Header Section */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-red-900/90 to-orange-900/80">
+        <div className="absolute inset-0 bg-gradient-to-r from-red-600/20 via-orange-600/20 to-red-600/20" />
+        <div className="absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,_rgba(239,68,68,0.3),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_rgba(251,146,60,0.2),_transparent_50%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,_rgba(220,38,38,0.2),_transparent_50%)]" />
+        </div>
+        
+        <div className="relative px-8 py-16">
+          <div className="max-w-7xl mx-auto text-center space-y-6">
+            <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
+              <Tag className="w-5 h-5 text-red-300" />
+              <span className="font-semibold text-white">Discount Analytics</span>
+            </div>
+            
+            <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-white via-red-100 to-orange-200 bg-clip-text text-transparent">
+              Discount Performance
+            </h1>
+            
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+              Comprehensive analysis of discount strategies, promotional effectiveness, and revenue impact across all studio locations
+            </p>
+            
+            {/* Key Discount Insights */}
+            {discountMetrics.length > 0 && (
+              <div className="flex items-center justify-center gap-12 mt-12">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-white mb-2">
+                    {discountMetrics[0]?.value || '₹0'}
+                  </div>
+                  <div className="text-sm text-slate-300 font-medium">Total Discounts</div>
+                </div>
+                <div className="w-px h-16 bg-white/20" />
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-white mb-2">
+                    {discountMetrics[1]?.value || '0%'}
+                  </div>
+                  <div className="text-sm text-slate-300 font-medium">Discount Rate</div>
+                </div>
+                <div className="w-px h-16 bg-white/20" />
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-white mb-2">
+                    {discountMetrics[4]?.value || '0%'}
+                  </div>
+                  <div className="text-sm text-slate-300 font-medium">Penetration Rate</div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      <ThemeSelector
-        currentTheme={currentTheme}
-        isDarkMode={isDarkMode}
-        onThemeChange={setCurrentTheme}
-        onModeChange={setIsDarkMode}
-      />
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+        <ThemeSelector
+          currentTheme={currentTheme}
+          isDarkMode={isDarkMode}
+          onThemeChange={setCurrentTheme}
+          onModeChange={setIsDarkMode}
+        />
 
-      <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-100 via-white to-slate-100 p-2 rounded-2xl shadow-lg">
+        <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
+          <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-slate-100 via-white to-slate-100 p-2 rounded-2xl shadow-lg">
+            {locations.map((location) => (
+              <TabsTrigger
+                key={location.id}
+                value={location.id}
+                className={cn(
+                  "relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500",
+                  "data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-orange-600",
+                  "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105",
+                  "hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 hover:scale-102",
+                  "focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                )}
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <div className="text-center">
+                    <div className="font-bold">{location.name.split(',')[0]}</div>
+                    <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
+                  </div>
+                </span>
+                {activeLocation === location.id && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-orange-400/20 animate-pulse" />
+                )}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
           {locations.map((location) => (
-            <TabsTrigger
-              key={location.id}
-              value={location.id}
-              className={cn(
-                "relative overflow-hidden rounded-xl px-8 py-4 font-semibold text-sm transition-all duration-500",
-                "data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-500 data-[state=active]:to-orange-600",
-                "data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105",
-                "hover:bg-gradient-to-r hover:from-red-50 hover:to-orange-50 hover:scale-102",
-                "focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-              )}
-            >
-              <span className="relative z-10 block text-center">
-                <div className="font-bold">{location.name.split(',')[0]}</div>
-                <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
-              </span>
-              {activeLocation === location.id && (
-                <div className="absolute inset-0 bg-gradient-to-r from-red-400/20 to-orange-400/20 animate-pulse" />
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+            <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
+              <AutoCloseFilterSection
+                filters={filters}
+                onFiltersChange={setFilters}
+                onReset={resetFilters}
+              />
 
-        {locations.map((location) => (
-          <TabsContent key={location.id} value={location.id} className="space-y-8 mt-8">
-            <AutoCloseFilterSection
-              filters={filters}
-              onFiltersChange={setFilters}
-              onReset={resetFilters}
-            />
+              {/* Enhanced Metric Cards Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {discountMetrics.map((metric, index) => (
+                  <div key={metric.title} className="animate-fade-in" style={{ animationDelay: `${index * 100}ms` }}>
+                    <MetricCard
+                      data={metric}
+                      delay={index * 100}
+                      onClick={() => handleMetricClick(metric)}
+                    />
+                  </div>
+                ))}
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {metrics.map((metric, index) => (
-                <MetricCard
-                  key={metric.title}
-                  data={metric}
-                  delay={index * 100}
-                  onClick={() => handleMetricClick(metric)}
+              {/* Discount Insights Cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Discounted Products */}
+                <Card className="bg-gradient-to-br from-white via-red-50/30 to-orange-50/20 border-0 shadow-xl animate-fade-in">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold bg-gradient-to-r from-red-700 to-orange-700 bg-clip-text text-transparent flex items-center gap-2">
+                      <Gift className="w-6 h-6 text-red-600" />
+                      Top Discounted Products
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {topDiscountedProducts.map((product, index) => (
+                        <div key={product.product} className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300 hover:scale-102">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-slate-800">{product.product}</p>
+                              <p className="text-xs text-slate-600">{product.transactions} transactions</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-red-600">{formatCurrency(product.totalDiscount)}</div>
+                            <div className="text-xs text-slate-600">{product.discountRate.toFixed(1)}% rate</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Discount Trends */}
+                <Card className="bg-gradient-to-br from-white via-orange-50/30 to-red-50/20 border-0 shadow-xl animate-fade-in">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold bg-gradient-to-r from-orange-700 to-red-700 bg-clip-text text-transparent flex items-center gap-2">
+                      <Zap className="w-6 h-6 text-orange-600" />
+                      Monthly Discount Trends
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-80 overflow-y-auto">
+                      {discountTrends.map((trend, index) => (
+                        <div key={trend.month} className="flex items-center justify-between p-3 bg-white/60 rounded-lg hover:bg-white/80 transition-all duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                              {new Date(trend.month + '-01').toLocaleDateString('en-US', { month: 'short' })}
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-slate-800">{trend.month}</p>
+                              <p className="text-xs text-slate-600">{trend.transactions} discounted transactions</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-orange-600">{formatCurrency(trend.totalDiscounts)}</div>
+                            <div className="text-xs text-slate-600">{trend.discountRate.toFixed(1)}% rate</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Enhanced Charts */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <InteractiveChart
+                  title="Discount Impact on Revenue"
+                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
+                  type="revenue"
                 />
-              ))}
-            </div>
+                <InteractiveChart
+                  title="Discount Penetration by Category"
+                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
+                  type="performance"
+                />
+              </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <InteractiveChart
-                title="Revenue vs Discount Trends"
-                data={filteredData}
-                type="revenue"
-              />
-              <InteractiveChart
-                title="Discount Performance by Category"
-                data={filteredData}
-                type="performance"
-              />
-            </div>
+              {/* Enhanced Data Tables */}
+              <div className="space-y-8">
+                <DataTable
+                  title="Monthly Discount Performance Analysis"
+                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
+                  type="monthly"
+                  filters={filters}
+                  onRowClick={handleTableRowClick}
+                />
+                
+                <DataTable
+                  title="Product-wise Discount Breakdown"
+                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
+                  type="product"
+                  filters={filters}
+                  onRowClick={handleTableRowClick}
+                />
+                
+                <DataTable
+                  title="Category Discount Analysis"
+                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
+                  type="category"
+                  filters={filters}
+                  onRowClick={handleTableRowClick}
+                />
+                
+                <DataTable
+                  title="Staff Discount Distribution"
+                  data={filteredData.filter(item => (item.discountAmount || 0) > 0)}
+                  type="yearly"
+                  filters={filters}
+                  onRowClick={handleTableRowClick}
+                />
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
 
-            <div className="space-y-8">
-              <DataTable
-                title="Month-on-Month Discount Analysis"
-                data={filteredData}
-                type="monthly"
-                filters={filters}
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Product Discount Performance"
-                data={filteredData}
-                type="product"
-                filters={filters}
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Category Discount Breakdown"
-                data={filteredData}
-                type="category"
-                filters={filters}
-                onRowClick={handleTableRowClick}
-              />
-              
-              <DataTable
-                title="Sales Rep Discount Analysis"
-                data={filteredData}
-                type="yearly"
-                filters={filters}
-                onRowClick={handleTableRowClick}
-              />
-            </div>
-          </TabsContent>
-        ))}
-      </Tabs>
-
-      <DrillDownModal
-        isOpen={!!drillDownData}
-        onClose={() => setDrillDownData(null)}
-        data={drillDownData}
-        type={drillDownType}
-      />
+        <DrillDownModal
+          isOpen={!!drillDownData}
+          onClose={() => setDrillDownData(null)}
+          data={drillDownData}
+          type={drillDownType}
+        />
+      </div>
     </div>
   );
 };

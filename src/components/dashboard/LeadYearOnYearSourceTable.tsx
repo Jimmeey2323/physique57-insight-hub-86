@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,13 +7,11 @@ import { ChevronDown, ChevronUp, TrendingUp, TrendingDown, Calendar, Download } 
 import { LeadMetricTabs } from './LeadMetricTabs';
 import { LeadsMetricType, LeadsData } from '@/types/leads';
 import { formatNumber, formatCurrency, formatPercentage } from '@/utils/formatters';
-
 interface LeadYearOnYearSourceTableProps {
   allData: LeadsData[]; // Use unfiltered data for year-on-year comparison
   activeMetric: LeadsMetricType;
   onMetricChange: (metric: LeadsMetricType) => void;
 }
-
 export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps> = ({
   allData,
   activeMetric,
@@ -27,19 +24,15 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
   const processedData = useMemo(() => {
     const sourceStats = allData.reduce((acc, item) => {
       if (!item.createdAt || !item.source) return acc;
-      
       const date = new Date(item.createdAt);
       if (isNaN(date.getTime())) return acc;
-      
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
       const source = item.source;
-      
+
       // Only include 2024 and 2025 data
       if (year !== 2024 && year !== 2025) return acc;
-      
       const key = `${year}-${String(month).padStart(2, '0')}`;
-      
       if (!acc[source]) {
         acc[source] = {};
       }
@@ -53,7 +46,6 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
           revenue: 0
         };
       }
-      
       acc[source][key].totalLeads++;
       if (item.stage === 'Trial Completed') {
         acc[source][key].trialsCompleted++;
@@ -64,7 +56,6 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       acc[source][key].ltvSum += item.ltv || 0;
       acc[source][key].visits += item.visits || 0;
       acc[source][key].revenue += item.ltv || 0;
-      
       return acc;
     }, {} as Record<string, Record<string, any>>);
 
@@ -74,34 +65,59 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       const monthKey = String(month).padStart(2, '0');
       months.push({
         month,
-        display: new Date(2025, month - 1).toLocaleString('default', { month: 'short' }),
+        display: new Date(2025, month - 1).toLocaleString('default', {
+          month: 'short'
+        }),
         key2024: `2024-${monthKey}`,
         key2025: `2025-${monthKey}`
       });
     }
-
     const result = Object.entries(sourceStats).map(([source, monthData]) => {
-      const sourceResult = { source, months: {} as any, totals: { total2024: 0, total2025: 0, growth: 0 } };
-      
-      months.forEach(({ month, display, key2024, key2025 }) => {
-        const data2024 = monthData[key2024] || { totalLeads: 0, trialsCompleted: 0, membershipsSold: 0, ltvSum: 0, visits: 0, revenue: 0 };
-        const data2025 = monthData[key2025] || { totalLeads: 0, trialsCompleted: 0, membershipsSold: 0, ltvSum: 0, visits: 0, revenue: 0 };
-        
+      const sourceResult = {
+        source,
+        months: {} as any,
+        totals: {
+          total2024: 0,
+          total2025: 0,
+          growth: 0
+        }
+      };
+      months.forEach(({
+        month,
+        display,
+        key2024,
+        key2025
+      }) => {
+        const data2024 = monthData[key2024] || {
+          totalLeads: 0,
+          trialsCompleted: 0,
+          membershipsSold: 0,
+          ltvSum: 0,
+          visits: 0,
+          revenue: 0
+        };
+        const data2025 = monthData[key2025] || {
+          totalLeads: 0,
+          trialsCompleted: 0,
+          membershipsSold: 0,
+          ltvSum: 0,
+          visits: 0,
+          revenue: 0
+        };
         let value2024 = 0;
         let value2025 = 0;
-        
         switch (activeMetric) {
           case 'totalLeads':
             value2024 = data2024.totalLeads;
             value2025 = data2025.totalLeads;
             break;
           case 'leadToTrialConversion':
-            value2024 = data2024.totalLeads > 0 ? (data2024.trialsCompleted / data2024.totalLeads) * 100 : 0;
-            value2025 = data2025.totalLeads > 0 ? (data2025.trialsCompleted / data2025.totalLeads) * 100 : 0;
+            value2024 = data2024.totalLeads > 0 ? data2024.trialsCompleted / data2024.totalLeads * 100 : 0;
+            value2025 = data2025.totalLeads > 0 ? data2025.trialsCompleted / data2025.totalLeads * 100 : 0;
             break;
           case 'trialToMembershipConversion':
-            value2024 = data2024.trialsCompleted > 0 ? (data2024.membershipsSold / data2024.trialsCompleted) * 100 : 0;
-            value2025 = data2025.trialsCompleted > 0 ? (data2025.membershipsSold / data2025.trialsCompleted) * 100 : 0;
+            value2024 = data2024.trialsCompleted > 0 ? data2024.membershipsSold / data2024.trialsCompleted * 100 : 0;
+            value2025 = data2025.trialsCompleted > 0 ? data2025.membershipsSold / data2025.trialsCompleted * 100 : 0;
             break;
           case 'ltv':
             value2024 = data2024.totalLeads > 0 ? data2024.ltvSum / data2024.totalLeads : 0;
@@ -119,24 +135,17 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
             value2024 = data2024.totalLeads;
             value2025 = data2025.totalLeads;
         }
-        
-        const growth = value2024 > 0 ? ((value2025 - value2024) / value2024) * 100 : 0;
-        
+        const growth = value2024 > 0 ? (value2025 - value2024) / value2024 * 100 : 0;
         sourceResult.months[month] = {
           display,
           value2024,
           value2025,
           growth
         };
-        
         sourceResult.totals.total2024 += value2024;
         sourceResult.totals.total2025 += value2025;
       });
-      
-      sourceResult.totals.growth = sourceResult.totals.total2024 > 0 
-        ? ((sourceResult.totals.total2025 - sourceResult.totals.total2024) / sourceResult.totals.total2024) * 100 
-        : 0;
-      
+      sourceResult.totals.growth = sourceResult.totals.total2024 > 0 ? (sourceResult.totals.total2025 - sourceResult.totals.total2024) / sourceResult.totals.total2024 * 100 : 0;
       return sourceResult;
     });
 
@@ -144,34 +153,32 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
     const totalsRow = {
       source: 'TOTAL',
       months: {} as any,
-      totals: { total2024: 0, total2025: 0, growth: 0 }
+      totals: {
+        total2024: 0,
+        total2025: 0,
+        growth: 0
+      }
     };
-
     const monthNumbers = [];
     for (let month = 6; month >= 1; month--) {
       monthNumbers.push(month);
     }
-
     monthNumbers.forEach(month => {
       const monthTotals2024 = result.reduce((sum, item) => sum + (item.months[month]?.value2024 || 0), 0);
       const monthTotals2025 = result.reduce((sum, item) => sum + (item.months[month]?.value2025 || 0), 0);
-      const monthGrowth = monthTotals2024 > 0 ? ((monthTotals2025 - monthTotals2024) / monthTotals2024) * 100 : 0;
-      
+      const monthGrowth = monthTotals2024 > 0 ? (monthTotals2025 - monthTotals2024) / monthTotals2024 * 100 : 0;
       totalsRow.months[month] = {
-        display: new Date(2025, month - 1).toLocaleString('default', { month: 'short' }),
+        display: new Date(2025, month - 1).toLocaleString('default', {
+          month: 'short'
+        }),
         value2024: monthTotals2024,
         value2025: monthTotals2025,
         growth: monthGrowth
       };
-      
       totalsRow.totals.total2024 += monthTotals2024;
       totalsRow.totals.total2025 += monthTotals2025;
     });
-
-    totalsRow.totals.growth = totalsRow.totals.total2024 > 0 
-      ? ((totalsRow.totals.total2025 - totalsRow.totals.total2024) / totalsRow.totals.total2024) * 100 
-      : 0;
-
+    totalsRow.totals.growth = totalsRow.totals.total2024 > 0 ? (totalsRow.totals.total2025 - totalsRow.totals.total2024) / totalsRow.totals.total2024 * 100 : 0;
     const sortedResult = result.sort((a, b) => {
       if (sortField === 'source') {
         return sortDirection === 'asc' ? a.source.localeCompare(b.source) : b.source.localeCompare(a.source);
@@ -181,10 +188,8 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       }
       return sortDirection === 'asc' ? a.totals.total2025 - b.totals.total2025 : b.totals.total2025 - a.totals.total2025;
     });
-
     return [...sortedResult, totalsRow];
   }, [allData, activeMetric, sortField, sortDirection]);
-
   const handleSort = (field: string) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -193,26 +198,25 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
       setSortDirection('desc');
     }
   };
-
   const formatValue = (value: number) => {
     if (activeMetric === 'ltv' || activeMetric === 'totalRevenue') return formatCurrency(value);
     if (activeMetric.includes('Conversion')) return `${value.toFixed(1)}%`;
     if (activeMetric === 'visitFrequency') return value.toFixed(1);
     return formatNumber(value);
   };
-
-  const SortIcon = ({ field }: { field: string }) => {
+  const SortIcon = ({
+    field
+  }: {
+    field: string;
+  }) => {
     if (sortField !== field) return null;
     return sortDirection === 'asc' ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />;
   };
-
   const handleExport = () => {
     console.log('Exporting year-on-year source data...');
   };
-
-  return (
-    <Card className="bg-white shadow-xl border-0 overflow-hidden rounded-2xl">
-      <CardHeader className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 border-b border-slate-200 space-y-4">
+  return <Card className="bg-white shadow-xl border-0 overflow-hidden rounded-2xl">
+      <CardHeader className="bg-gradient-to-br from-indigo-800 to-pink-900 border-b border-slate-200 space-y-1">
         <div className="flex items-center justify-between">
           <CardTitle className="text-white flex items-center gap-2 text-xl font-bold">
             <Calendar className="w-6 h-6 text-white" />
@@ -229,30 +233,24 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
           </div>
         </div>
         
-        <LeadMetricTabs
-          value={activeMetric}
-          onValueChange={onMetricChange}
-          className="w-full"
-        />
+        <LeadMetricTabs value={activeMetric} onValueChange={onMetricChange} className="w-full" />
       </CardHeader>
       
       <CardContent className="p-0">
         <div className="overflow-x-auto max-h-[700px] overflow-y-auto">
-          <Table>
+          <Table className="rounded-lg">
             <TableHeader className="sticky top-0 z-20">
-              <TableRow className="bg-gradient-to-r from-slate-800 via-slate-900 to-black text-white hover:bg-gradient-to-r hover:from-slate-800 hover:to-black">
-                <TableHead 
-                  className="cursor-pointer hover:bg-slate-700 transition-colors font-bold text-white sticky left-0 bg-gradient-to-r from-slate-800 to-slate-900 z-30 min-w-[200px] p-4"
-                  onClick={() => handleSort('source')}
-                >
+              <TableRow className="bg-gradient-to-r from-gray-700 via-gray-900 to-black text-white hover:bg-gradient-to-r hover:from-gray-700 hover:to-black">
+                <TableHead className="cursor-pointer hover:bg-slate-700 transition-colors font-bold text-white sticky left-0 bg-gradient-to-r from-slate-800 to-slate-900 z-30 min-w-[200px] p-4" onClick={() => handleSort('source')}>
                   <div className="flex items-center gap-2 text-sm font-bold">
                     Lead Source <SortIcon field="source" />
                   </div>
                 </TableHead>
                 {[6, 5, 4, 3, 2, 1].map(month => {
-                  const monthName = new Date(2025, month - 1).toLocaleString('default', { month: 'short' });
-                  return (
-                    <React.Fragment key={month}>
+                const monthName = new Date(2025, month - 1).toLocaleString('default', {
+                  month: 'short'
+                });
+                return <React.Fragment key={month}>
                       <TableHead className="text-center font-bold text-slate-300 min-w-[100px] p-3 border-r border-slate-600">
                         <div className="text-xs">
                           <div>{monthName} 2024</div>
@@ -266,13 +264,9 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
                       <TableHead className="text-center font-bold text-amber-300 min-w-[90px] p-3 border-r-2 border-slate-500">
                         <div className="text-xs">Growth %</div>
                       </TableHead>
-                    </React.Fragment>
-                  );
-                })}
-                <TableHead 
-                  className="cursor-pointer hover:bg-slate-700 transition-colors text-center font-bold text-amber-200 min-w-[120px] p-3"
-                  onClick={() => handleSort('growth')}
-                >
+                    </React.Fragment>;
+              })}
+                <TableHead className="cursor-pointer hover:bg-slate-700 transition-colors text-center font-bold text-amber-200 min-w-[120px] p-3" onClick={() => handleSort('growth')}>
                   <div className="flex items-center justify-center gap-1 text-sm font-bold">
                     Total Growth <SortIcon field="growth" />
                   </div>
@@ -281,21 +275,9 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
             </TableHeader>
             <TableBody>
               {processedData.map((sourceData, index) => {
-                const isTotal = sourceData.source === 'TOTAL';
-                return (
-                  <TableRow 
-                    key={sourceData.source}
-                    className={`transition-all duration-200 border-b ${
-                      isTotal 
-                        ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 font-bold hover:from-amber-100 hover:to-orange-100' 
-                        : 'hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 border-slate-200'
-                    }`}
-                  >
-                    <TableCell className={`font-medium sticky left-0 z-10 border-r border-slate-200 min-w-[200px] p-4 ${
-                      isTotal 
-                        ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-900 font-bold text-lg' 
-                        : 'bg-white text-slate-800'
-                    }`}>
+              const isTotal = sourceData.source === 'TOTAL';
+              return <TableRow key={sourceData.source} className="">
+                    <TableCell className={`font-medium sticky left-0 z-10 border-r border-slate-200 min-w-[200px] p-4 ${isTotal ? 'bg-gradient-to-r from-amber-100 to-orange-100 text-amber-900 font-bold text-lg' : 'bg-white text-slate-800'}`}>
                       <div className="flex items-center gap-2">
                         {!isTotal && <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex-shrink-0"></div>}
                         <span className={`truncate ${isTotal ? 'text-lg font-bold' : 'text-sm font-semibold'}`}>
@@ -304,9 +286,8 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
                       </div>
                     </TableCell>
                     {[6, 5, 4, 3, 2, 1].map(month => {
-                      const monthData = sourceData.months[month];
-                      return (
-                        <React.Fragment key={month}>
+                  const monthData = sourceData.months[month];
+                  return <React.Fragment key={month}>
                           <TableCell className={`text-center font-mono p-3 border-r border-slate-100 ${isTotal ? 'font-bold text-base' : 'text-sm'}`}>
                             <span className="text-slate-600">{formatValue(monthData.value2024)}</span>
                           </TableCell>
@@ -316,39 +297,30 @@ export const LeadYearOnYearSourceTable: React.FC<LeadYearOnYearSourceTableProps>
                             </span>
                           </TableCell>
                           <TableCell className={`text-center p-3 border-r-2 border-slate-100 ${isTotal ? 'border-r-amber-200' : ''}`}>
-                            <div className={`flex items-center justify-center gap-1 font-bold ${
-                              monthData.growth > 0 ? 'text-emerald-600' : monthData.growth < 0 ? 'text-red-600' : 'text-slate-500'
-                            } ${isTotal ? 'text-base' : 'text-xs'}`}>
+                            <div className={`flex items-center justify-center gap-1 font-bold ${monthData.growth > 0 ? 'text-emerald-600' : monthData.growth < 0 ? 'text-red-600' : 'text-slate-500'} ${isTotal ? 'text-base' : 'text-xs'}`}>
                               {monthData.growth > 0 ? <TrendingUp className="w-3 h-3" /> : monthData.growth < 0 ? <TrendingDown className="w-3 h-3" /> : null}
                               {monthData.growth.toFixed(1)}%
                             </div>
                           </TableCell>
-                        </React.Fragment>
-                      );
-                    })}
+                        </React.Fragment>;
+                })}
                     <TableCell className="text-center p-3">
-                      <div className={`flex items-center justify-center gap-1 font-bold ${
-                        sourceData.totals.growth > 0 ? 'text-emerald-600' : sourceData.totals.growth < 0 ? 'text-red-600' : 'text-slate-500'
-                      } ${isTotal ? 'text-lg' : 'text-sm'}`}>
+                      <div className={`flex items-center justify-center gap-1 font-bold ${sourceData.totals.growth > 0 ? 'text-emerald-600' : sourceData.totals.growth < 0 ? 'text-red-600' : 'text-slate-500'} ${isTotal ? 'text-lg' : 'text-sm'}`}>
                         {sourceData.totals.growth > 0 ? <TrendingUp className="w-4 h-4" /> : sourceData.totals.growth < 0 ? <TrendingDown className="w-4 h-4" /> : null}
                         {sourceData.totals.growth.toFixed(1)}%
                       </div>
                     </TableCell>
-                  </TableRow>
-                );
-              })}
+                  </TableRow>;
+            })}
             </TableBody>
           </Table>
         </div>
         
-        {processedData.length <= 1 && (
-          <div className="text-center py-12 text-slate-500">
+        {processedData.length <= 1 && <div className="text-center py-12 text-slate-500">
             <Calendar className="w-12 h-12 text-slate-400 mx-auto mb-3" />
             <p className="font-medium">No year-on-year data available</p>
             <p className="text-sm">Data comparison requires leads from both 2024 and 2025</p>
-          </div>
-        )}
+          </div>}
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };

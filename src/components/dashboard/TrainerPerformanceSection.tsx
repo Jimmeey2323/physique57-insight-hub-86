@@ -1,9 +1,8 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Users, TrendingUp, BarChart3, Calendar, Target, Award, DollarSign, Activity, Building2, MapPin } from 'lucide-react';
+import { Users, TrendingUp, BarChart3, Calendar, Target, Award, DollarSign, Activity, Building2, MapPin, Crown, Trophy, Star } from 'lucide-react';
 import { MetricCard } from './MetricCard';
 import { TrainerFilterSection } from './TrainerFilterSection';
 import { TopBottomSellers } from './TopBottomSellers';
@@ -76,21 +75,36 @@ export const TrainerPerformanceSection = () => {
     const totalNonEmptySessions = filteredData.reduce((sum, item) => sum + (item.totalNonEmptySessions || 0), 0);
     const avgClassSize = totalNonEmptySessions > 0 ? totalCustomers / totalNonEmptySessions : 0;
     
-    const avgRetention = filteredData.length > 0 ? 
-      filteredData.reduce((sum, item) => {
+    // Fix NaN issues by properly parsing and validating retention/conversion values
+    const validRetentionData = filteredData.filter(item => {
+      const retentionValue = typeof item.retention === 'string' 
+        ? parseFloat(item.retention.replace('%', '') || '0') 
+        : (item.retention || 0);
+      return !isNaN(retentionValue) && isFinite(retentionValue);
+    });
+    
+    const validConversionData = filteredData.filter(item => {
+      const conversionValue = typeof item.conversion === 'string' 
+        ? parseFloat(item.conversion.replace('%', '') || '0') 
+        : (item.conversion || 0);
+      return !isNaN(conversionValue) && isFinite(conversionValue);
+    });
+    
+    const avgRetention = validRetentionData.length > 0 ? 
+      validRetentionData.reduce((sum, item) => {
         const retentionValue = typeof item.retention === 'string' 
           ? parseFloat(item.retention.replace('%', '') || '0') 
           : (item.retention || 0);
         return sum + retentionValue;
-      }, 0) / filteredData.length : 0;
+      }, 0) / validRetentionData.length : 0;
       
-    const avgConversion = filteredData.length > 0 ? 
-      filteredData.reduce((sum, item) => {
+    const avgConversion = validConversionData.length > 0 ? 
+      validConversionData.reduce((sum, item) => {
         const conversionValue = typeof item.conversion === 'string' 
           ? parseFloat(item.conversion.replace('%', '') || '0') 
           : (item.conversion || 0);
         return sum + conversionValue;
-      }, 0) / filteredData.length : 0;
+      }, 0) / validConversionData.length : 0;
 
     const totalNewMembers = filteredData.reduce((sum, item) => sum + (item.new || 0), 0);
     const totalRetained = filteredData.reduce((sum, item) => sum + (item.retained || 0), 0);
@@ -113,8 +127,8 @@ export const TrainerPerformanceSection = () => {
       totalEmptySessions,
       totalNonEmptySessions,
       avgClassSize,
-      avgRetention,
-      avgConversion,
+      avgRetention: isNaN(avgRetention) || !isFinite(avgRetention) ? 0 : avgRetention,
+      avgConversion: isNaN(avgConversion) || !isFinite(avgConversion) ? 0 : avgConversion,
       totalNewMembers,
       totalRetained,
       totalConverted,
@@ -199,6 +213,30 @@ export const TrainerPerformanceSection = () => {
     ];
   };
 
+  // Enhanced conversion chart data
+  const getConversionChartData = () => {
+    if (!filteredData.length) return [];
+
+    return filteredData.map(trainer => {
+      const conversionValue = typeof trainer.conversion === 'string' 
+        ? parseFloat(trainer.conversion.replace('%', '') || '0') 
+        : (trainer.conversion || 0);
+      
+      const retentionValue = typeof trainer.retention === 'string' 
+        ? parseFloat(trainer.retention.replace('%', '') || '0') 
+        : (trainer.retention || 0);
+
+      return {
+        name: trainer.teacherName,
+        conversion: isNaN(conversionValue) || !isFinite(conversionValue) ? 0 : conversionValue,
+        retention: isNaN(retentionValue) || !isFinite(retentionValue) ? 0 : retentionValue,
+        revenue: trainer.totalPaid || 0,
+        sessions: trainer.totalSessions || 0,
+        customers: trainer.totalCustomers || 0
+      };
+    }).sort((a, b) => b.conversion - a.conversion);
+  };
+
   const getMonthOnMonthData = () => {
     if (!filteredData.length) return { data: {}, months: [], trainers: [] };
 
@@ -245,13 +283,13 @@ export const TrainerPerformanceSection = () => {
             const retentionValue = typeof trainerData?.retention === 'string' 
               ? parseFloat(trainerData.retention.replace('%', '') || '0') 
               : (trainerData?.retention || 0);
-            data[trainer][month] = retentionValue;
+            data[trainer][month] = isNaN(retentionValue) || !isFinite(retentionValue) ? 0 : retentionValue;
             break;
           case 'conversion':
             const conversionValue = typeof trainerData?.conversion === 'string' 
               ? parseFloat(trainerData.conversion.replace('%', '') || '0') 
               : (trainerData?.conversion || 0);
-            data[trainer][month] = conversionValue;
+            data[trainer][month] = isNaN(conversionValue) || !isFinite(conversionValue) ? 0 : conversionValue;
             break;
           case 'emptySessions':
             data[trainer][month] = trainerData?.totalEmptySessions || 0;
@@ -357,6 +395,7 @@ export const TrainerPerformanceSection = () => {
   const topBottomData = getTopBottomTrainers();
   const insightsData = getInsightsData();
   const wordCloudData = getWordCloudData();
+  const conversionChartData = getConversionChartData();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
@@ -372,7 +411,7 @@ export const TrainerPerformanceSection = () => {
         <div className="relative px-8 py-16">
           <div className="max-w-7xl mx-auto text-center space-y-6">
             <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-              <Target className="w-5 h-5 text-blue-300" />
+              <BarChart3 className="w-5 h-5 text-blue-300" />
               <span className="font-semibold text-white">Performance Analytics</span>
             </div>
             
@@ -479,6 +518,85 @@ export const TrainerPerformanceSection = () => {
               />
             ))}
           </div>
+        )}
+
+        {/* Enhanced Conversion & Performance Chart */}
+        {conversionChartData.length > 0 && (
+          <Card className="bg-gradient-to-br from-white via-slate-50/30 to-white border-0 shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-xl font-bold bg-gradient-to-r from-slate-700 to-slate-900 bg-clip-text text-transparent flex items-center gap-2">
+                <Trophy className="w-6 h-6 text-yellow-600" />
+                Trainer Performance Leaderboard
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Top 3 Performers */}
+                <div className="lg:col-span-1">
+                  <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-yellow-500" />
+                    Top Performers
+                  </h3>
+                  <div className="space-y-3">
+                    {conversionChartData.slice(0, 3).map((trainer, index) => (
+                      <div key={trainer.name} className={cn(
+                        "p-4 rounded-lg border-2 transition-all duration-300",
+                        index === 0 && "bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200",
+                        index === 1 && "bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200",
+                        index === 2 && "bg-gradient-to-r from-orange-50 to-red-50 border-orange-200"
+                      )}>
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <Crown className="w-4 h-4 text-yellow-500" />}
+                            {index === 1 && <Star className="w-4 h-4 text-gray-500" />}
+                            {index === 2 && <Star className="w-4 h-4 text-orange-500" />}
+                            <span className="font-semibold text-sm">{trainer.name}</span>
+                          </div>
+                          <Badge variant="secondary" className="text-xs">
+                            #{index + 1}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-600">Conversion:</span>
+                            <span className="font-bold ml-1">{trainer.conversion.toFixed(1)}%</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Revenue:</span>
+                            <span className="font-bold ml-1">{formatCurrency(trainer.revenue)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Performance Metrics Grid */}
+                <div className="lg:col-span-2">
+                  <h3 className="text-lg font-semibold mb-4">Performance Overview</h3>
+                  <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
+                    {conversionChartData.map((trainer, index) => (
+                      <div key={trainer.name} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                            {index + 1}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">{trainer.name}</p>
+                            <p className="text-xs text-gray-600">{trainer.sessions} sessions</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-sm font-bold text-green-600">{trainer.conversion.toFixed(1)}%</div>
+                          <div className="text-xs text-gray-600">{formatCurrency(trainer.revenue)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* Insights and Word Cloud */}

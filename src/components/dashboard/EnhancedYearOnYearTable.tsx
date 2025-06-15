@@ -1,16 +1,7 @@
 import React, { useMemo } from 'react';
-import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
+import { SalesData, FilterOptions, YearOnYearMetricType, EnhancedYearOnYearTableProps } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-
-interface EnhancedYearOnYearTableProps {
-  data: SalesData[];
-  filters: FilterOptions;
-  onRowClick: (row: any) => void;
-  collapsedGroups?: Set<string>;
-  onGroupToggle?: (groupKey: string) => void;
-  selectedMetric?: YearOnYearMetricType;
-}
 
 const groupDataByCategory = (data: SalesData[]) => {
   return data.reduce((acc: Record<string, any>, item) => {
@@ -32,7 +23,7 @@ const groupDataByCategory = (data: SalesData[]) => {
 
 export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = ({
   data,
-  filters,
+  filters = { dateRange: { start: '', end: '' }, location: [], category: [], product: [], soldBy: [], paymentMethod: [] },
   onRowClick,
   collapsedGroups = new Set(),
   onGroupToggle = () => {},
@@ -90,22 +81,24 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
   };
 
   const filteredData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+    
     return data.filter(item => {
       const paymentDate = new Date(item.paymentDate);
-      const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
-      const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
+      const startDate = filters?.dateRange?.start ? new Date(filters.dateRange.start) : null;
+      const endDate = filters?.dateRange?.end ? new Date(filters.dateRange.end) : null;
 
       if (startDate && paymentDate < startDate) return false;
       if (endDate && paymentDate > endDate) return false;
 
-      if (filters.location.length > 0 && !filters.location.includes(item.calculatedLocation)) return false;
-      if (filters.category.length > 0 && !filters.category.includes(item.cleanedCategory)) return false;
-      if (filters.product.length > 0 && !filters.product.includes(item.cleanedProduct)) return false;
-      if (filters.soldBy.length > 0 && !filters.soldBy.includes(item.soldBy)) return false;
-      if (filters.paymentMethod.length > 0 && !filters.paymentMethod.includes(item.paymentMethod)) return false;
+      if (filters?.location?.length > 0 && !filters.location.includes(item.calculatedLocation)) return false;
+      if (filters?.category?.length > 0 && !filters.category.includes(item.cleanedCategory)) return false;
+      if (filters?.product?.length > 0 && !filters.product.includes(item.cleanedProduct)) return false;
+      if (filters?.soldBy?.length > 0 && !filters.soldBy.includes(item.soldBy)) return false;
+      if (filters?.paymentMethod?.length > 0 && !filters.paymentMethod.includes(item.paymentMethod)) return false;
 
-      if (filters.minAmount !== undefined && item.paymentValue < filters.minAmount) return false;
-      if (filters.maxAmount !== undefined && item.paymentValue > filters.maxAmount) return false;
+      if (filters?.minAmount !== undefined && item.paymentValue < filters.minAmount) return false;
+      if (filters?.maxAmount !== undefined && item.paymentValue > filters.maxAmount) return false;
 
       return true;
     });
@@ -118,12 +111,12 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
       const categoryData = {
         category,
         products: Object.entries(products).map(([product, items]) => {
-          const currentYearItems = items.filter(item => {
+          const currentYearItems = (items as SalesData[]).filter(item => {
             const year = new Date(item.paymentDate).getFullYear();
             return year === 2024;
           });
           
-          const lastYearItems = items.filter(item => {
+          const lastYearItems = (items as SalesData[]).filter(item => {
             const year = new Date(item.paymentDate).getFullYear();
             return year === 2023;
           });

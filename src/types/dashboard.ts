@@ -211,6 +211,16 @@ export interface DataTableProps {
   onGroupToggle?: (groupKey: string) => void;
 }
 
+// Enhanced Year-on-Year table props interface
+export interface EnhancedYearOnYearTableProps {
+  data: SalesData[];
+  filters: FilterOptions;
+  onRowClick: (row: any) => void;
+  collapsedGroups?: Set<string>;
+  onGroupToggle?: (groupKey: string) => void;
+  selectedMetric?: YearOnYearMetricType;
+}
+
 // Interactive chart props interface
 export interface InteractiveChartProps {
   title: string;

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -438,9 +437,10 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               
               <EnhancedYearOnYearTable
                 data={historicData}
-                activeMetric={activeYoyMetric}
-                onProductClick={(product, data) => {
-                  setDrillDownData({ name: product, ...data });
+                filters={filters}
+                selectedMetric={activeYoyMetric}
+                onRowClick={(row) => {
+                  setDrillDownData({ name: 'Year-on-Year', ...row });
                   setDrillDownType('product');
                 }}
                 collapsedGroups={collapsedGroups}

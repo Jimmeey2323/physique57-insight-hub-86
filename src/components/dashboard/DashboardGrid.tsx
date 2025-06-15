@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { 
   BarChart3, 
   TrendingUp, 
-  Funnel, 
   Users, 
   UserCheck, 
   Calendar, 

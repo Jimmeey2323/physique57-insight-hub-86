@@ -291,7 +291,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border-t border-gray-200">
             <thead className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 sticky top-0 z-20">
-              <tr className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2">
+              <tr className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 rounded-md">
                 <th className="text-white font-semibold uppercase tracking-wider px-12 py-2 text-left">
                   Product/Category
                 </th>
@@ -311,8 +311,8 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
             </thead>
             <tbody>
               {processedData.map(categoryGroup => <React.Fragment key={categoryGroup.category}>
-                  <tr className="bg-gray-50 hover:bg-gray-100 cursor-pointer border-b border-gray-200 group transition-colors duration-200" onClick={() => onGroupToggle(categoryGroup.category)}>
-                    <td className="px-6 py-4 font-semibold text-gray-800 group-hover:text-gray-900 bg-gray-50 group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out">
+                  <tr onClick={() => onGroupToggle(categoryGroup.category)} className="bg-white hover:bg-gray-100 cursor-pointer border-b border-gray-200 group transition-colors duration-200 ease-in-out">
+                    <td className="px-6 py-4 font-semibold text-gray-800 group-hover:text-gray-900 bg-white group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out">
                       <div className="flex items-center">
                         {collapsedGroups.has(categoryGroup.category) ? <ChevronRight className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" /> : <ChevronDown className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" />}
                         {categoryGroup.category}

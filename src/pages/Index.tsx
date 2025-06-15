@@ -31,39 +31,82 @@ const Index = () => {
           {/* Beautiful Modern Loader */}
           <div className="relative flex items-center justify-center">
             {/* Outer rotating rings */}
+            <div className="absolute w-48 h-48">
+              <div className="absolute inset-0 border-4 border-transparent rounded-full animate-spin" 
+                   style={{ 
+                     background: 'conic-gradient(from 0deg, transparent, #1e293b, #475569, transparent)',
+                     animationDuration: '3s' 
+                   }}>
+              </div>
+            </div>
             <div className="absolute w-40 h-40">
-              <div className="absolute inset-0 border-2 border-gradient-to-r from-slate-600/30 to-gray-600/30 rounded-full animate-spin border-t-slate-700/60 border-r-gray-700/60" style={{ animationDuration: '3s' }}></div>
+              <div className="absolute inset-0 border-3 border-transparent rounded-full animate-spin" 
+                   style={{ 
+                     background: 'conic-gradient(from 180deg, transparent, #374151, #6b7280, transparent)',
+                     animationDuration: '2s', 
+                     animationDirection: 'reverse' 
+                   }}>
+              </div>
             </div>
             <div className="absolute w-32 h-32">
-              <div className="absolute inset-0 border-2 border-gradient-to-r from-slate-700/30 to-gray-700/30 rounded-full animate-spin border-t-slate-800/60 border-l-gray-800/60" style={{ animationDuration: '2s', animationDirection: 'reverse' }}></div>
+              <div className="absolute inset-0 border-2 border-transparent rounded-full animate-spin" 
+                   style={{ 
+                     background: 'conic-gradient(from 90deg, transparent, #4b5563, #9ca3af, transparent)',
+                     animationDuration: '4s' 
+                   }}>
+              </div>
             </div>
             
-            {/* Center circle with 57 */}
-            <div className="relative w-24 h-24 bg-gradient-to-br from-slate-900 via-gray-900 to-black rounded-full flex items-center justify-center shadow-2xl animate-pulse">
-              {/* Inner glow */}
-              <div className="absolute inset-2 bg-gradient-to-br from-slate-600/20 to-transparent rounded-full"></div>
+            {/* Center circle with 57 - NO FADING */}
+            <div className="relative w-28 h-28 bg-gradient-to-br from-slate-900 via-gray-900 to-black rounded-full flex items-center justify-center shadow-2xl border-2 border-slate-700/50">
+              {/* Inner glow ring */}
+              <div className="absolute inset-1 bg-gradient-to-br from-slate-600/30 to-transparent rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
               
-              {/* 57 Text - Made bigger */}
-              <div className="relative">
-                <span className="text-4xl font-bold text-white font-serif tracking-tight drop-shadow-2xl">57</span>
+              {/* Subtle pulsing inner ring */}
+              <div className="absolute inset-2 rounded-full border border-slate-500/30 animate-pulse" style={{ animationDuration: '2s' }}></div>
+              
+              {/* 57 Text - Bigger and NO FADING */}
+              <div className="relative z-10">
+                <span className="text-5xl font-bold text-white font-serif tracking-tight drop-shadow-2xl">57</span>
               </div>
               
-              {/* Subtle border */}
-              <div className="absolute inset-0 rounded-full border border-slate-600/20"></div>
+              {/* Rotating subtle highlight */}
+              <div className="absolute top-2 left-2 w-2 h-2 bg-white/40 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
             </div>
             
-            {/* Floating particles with dark colors */}
-            <div className="absolute w-2 h-2 bg-slate-600 rounded-full animate-bounce shadow-lg" style={{ top: '-10px', right: '20px', animationDelay: '0s' }}></div>
-            <div className="absolute w-1.5 h-1.5 bg-gray-600 rounded-full animate-bounce shadow-lg" style={{ bottom: '-8px', left: '25px', animationDelay: '0.5s' }}></div>
-            <div className="absolute w-1 h-1 bg-slate-700 rounded-full animate-bounce shadow-lg" style={{ top: '30px', left: '-15px', animationDelay: '1s' }}></div>
-            <div className="absolute w-1.5 h-1.5 bg-gray-700 rounded-full animate-bounce shadow-lg" style={{ bottom: '35px', right: '-12px', animationDelay: '1.5s' }}></div>
+            {/* Orbiting particles with dark colors */}
+            <div className="absolute w-3 h-3 bg-slate-600 rounded-full shadow-lg animate-spin" 
+                 style={{ 
+                   top: '-20px', 
+                   right: '30px', 
+                   animationDuration: '4s',
+                   transformOrigin: '0 140px'
+                 }}>
+            </div>
+            <div className="absolute w-2 h-2 bg-gray-700 rounded-full shadow-lg animate-spin" 
+                 style={{ 
+                   bottom: '-15px', 
+                   left: '35px', 
+                   animationDuration: '3s',
+                   animationDirection: 'reverse',
+                   transformOrigin: '0 -120px'
+                 }}>
+            </div>
+            <div className="absolute w-2.5 h-2.5 bg-slate-800 rounded-full shadow-lg animate-spin" 
+                 style={{ 
+                   top: '40px', 
+                   left: '-25px', 
+                   animationDuration: '5s',
+                   transformOrigin: '100px 0'
+                 }}>
+            </div>
           </div>
 
           {/* Elegant Brand Text */}
           <div className="space-y-4">
             <h1 className="text-3xl font-light text-slate-800 tracking-wide font-serif">
               <span className="font-extralight">Physique</span>{' '}
-              <span className="font-bold bg-gradient-to-r from-slate-800 via-gray-800 to-black bg-clip-text text-transparent animate-pulse">57</span>
+              <span className="font-bold bg-gradient-to-r from-slate-800 via-gray-800 to-black bg-clip-text text-transparent">57</span>
             </h1>
             <p className="text-lg text-slate-600/80 font-light">
               Loading your dashboard...

@@ -105,7 +105,7 @@ const Index = () => {
           <header className="mb-20 text-center">
             {/* Business Badge */}
             <div className="inline-flex items-center justify-center mb-8">
-              <div className="bg-slate-900 text-white px-8 py-3 rounded-full text-sm font-medium shadow-lg">
+              <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 text-white px-8 py-3 rounded-full text-sm font-medium shadow-lg animate-pulse">
                 Business Intelligence Dashboard
               </div>
             </div>
@@ -113,7 +113,14 @@ const Index = () => {
             {/* Main Title */}
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-light text-slate-900 mb-4 tracking-tight">
               <span className="font-extralight">Physique</span>{' '}
-              <span className="font-bold">57</span>
+              <span className="font-bold animate-pulse" style={{
+                background: 'linear-gradient(-45deg, #ef4444, #f97316, #eab308, #22c55e, #06b6d4, #3b82f6, #8b5cf6, #ec4899)',
+                backgroundSize: '400% 400%',
+                animation: 'gradient 4s ease infinite',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text'
+              }}>57</span>
               <span className="text-slate-600 font-light">, India</span>
             </h1>
             
@@ -152,6 +159,20 @@ const Index = () => {
       </div>
       
       <Footer />
+      
+      <style jsx>{`
+        @keyframes gradient {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+      `}</style>
     </div>
   );
 };

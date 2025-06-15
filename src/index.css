@@ -56,6 +56,18 @@
   }
 }
 
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 .animate-blob {
   animation: blob 7s infinite;
 }
@@ -90,6 +102,10 @@
 
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
+}
+
+.animate-gradient {
+  animation: gradient 4s ease infinite;
 }
 
 /* Custom scrollbar */

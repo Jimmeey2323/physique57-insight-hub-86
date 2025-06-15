@@ -82,7 +82,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50">
       <div className="container mx-auto px-4 py-8">
         <header className="text-center mb-12">
-          {/* Beautiful animated title matching the reference image */}
+          {/* Beautiful animated title with sophisticated styling */}
           <div className="relative mb-8">
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="flex items-center gap-4 text-slate-300 opacity-50">
@@ -93,15 +93,45 @@ const Index = () => {
               </div>
             </div>
             
-            <h1 className="relative text-6xl md:text-7xl font-light text-center animate-fade-in">
-              <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-purple-800 bg-clip-text text-transparent font-extralight tracking-wide">
-                Physique 57
-              </span>
-              <br />
-              <span className="text-4xl md:text-5xl bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent italic font-light mt-2 inline-block">
-                India
-              </span>
-            </h1>
+            <div className="relative text-center animate-fade-in">
+              <div className="mb-4">
+                <div className="relative inline-block group">
+                  {/* Glowing background effect */}
+                  <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity duration-700 animate-pulse-slow"></div>
+                  
+                  {/* Main text container */}
+                  <div className="relative px-8 py-4 bg-gradient-to-r from-white/80 via-white/90 to-white/80 backdrop-blur-sm rounded-2xl border border-white/30 shadow-2xl">
+                    <div className="flex items-center justify-center space-x-4">
+                      {/* Physique text */}
+                      <span className="text-5xl md:text-7xl font-light bg-gradient-to-r from-slate-700 via-blue-700 to-slate-800 bg-clip-text text-transparent tracking-wide relative">
+                        Physique
+                        <div className="absolute -bottom-1 left-0 w-full h-0.5 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-60"></div>
+                      </span>
+                      
+                      {/* 57 text with special styling */}
+                      <div className="relative">
+                        <span className="text-6xl md:text-8xl font-bold bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent relative">
+                          57
+                        </span>
+                        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg blur opacity-20 animate-pulse-slow"></div>
+                      </div>
+                    </div>
+                    
+                    {/* India text */}
+                    <div className="mt-2">
+                      <span className="text-3xl md:text-4xl font-light italic bg-gradient-to-r from-slate-600 via-slate-700 to-slate-600 bg-clip-text text-transparent tracking-wider">
+                        India
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Floating elements */}
+                  <div className="absolute -top-4 -right-4 w-3 h-3 bg-blue-500 rounded-full animate-bounce animation-delay-1000 opacity-60"></div>
+                  <div className="absolute -bottom-4 -left-4 w-2 h-2 bg-purple-500 rounded-full animate-bounce animation-delay-2000 opacity-60"></div>
+                  <div className="absolute top-1/2 -right-8 w-1.5 h-1.5 bg-pink-500 rounded-full animate-ping animation-delay-3000 opacity-60"></div>
+                </div>
+              </div>
+            </div>
           </div>
           
           <p className="text-xl text-slate-600 font-medium animate-fade-in">

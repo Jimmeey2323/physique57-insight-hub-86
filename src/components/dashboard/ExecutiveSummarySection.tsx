@@ -134,18 +134,26 @@ const AnimatedHeader = () => (
       <div className="text-center space-y-6">
         <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20 animate-fade-in">
           <Sparkles className="w-5 h-5 animate-pulse" />
-          <span className="font-medium">Schedule Analytics</span>
+          <span className="font-medium">Advanced Analytics</span>
         </div>
         
-        <h1 className="text-6xl md:text-7xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent animate-fade-in">
+        <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-purple-200 to-blue-200 bg-clip-text text-transparent animate-fade-in">
           Executive Dashboard
         </h1>
         
-        <div className="text-4xl md:text-5xl font-bold animate-fade-in">
-          <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 bg-clip-text text-transparent">
-            Physique 57
-          </span>
-          <span className="text-white italic ml-3">India</span>
+        <div className="text-4xl md:text-5xl font-bold animate-fade-in space-y-2">
+          <div className="relative inline-block">
+            <span className="relative z-10 bg-gradient-to-r from-purple-300 via-blue-300 to-pink-300 bg-clip-text text-transparent font-light tracking-wider">
+              Physique
+            </span>
+            <span className="relative z-10 ml-3 text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              57
+            </span>
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 via-blue-500 to-pink-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-1000"></div>
+          </div>
+          <div className="mt-2">
+            <span className="text-white font-light italic tracking-wide">India</span>
+          </div>
         </div>
         
         <p className="text-xl text-purple-100 max-w-3xl mx-auto leading-relaxed animate-fade-in">
@@ -257,7 +265,7 @@ export const ExecutiveSummarySection: React.FC = () => {
     }) || [];
 
     const filteredDiscounts = discountsData?.filter(item => {
-      const itemDate = new Date(item.createdAt || item.date);
+      const itemDate = new Date(item.createdAt);
       return itemDate >= dateRange.start && itemDate <= dateRange.end;
     }) || [];
 
@@ -324,15 +332,15 @@ export const ExecutiveSummarySection: React.FC = () => {
     };
   }, [filteredData.leads]);
 
-  // Product performance
+  // Product performance - using correct property names
   const productPerformance = useMemo(() => {
     const productData = filteredData.sales.reduce((acc, item) => {
-      const product = item.itemName || item.productName || 'Unknown';
+      const product = item.saleItemName || 'Unknown';
       if (!acc[product]) {
         acc[product] = { name: product, revenue: 0, quantity: 0, avgPrice: 0 };
       }
       acc[product].revenue += item.paymentValue || 0;
-      acc[product].quantity += item.quantity || 1;
+      acc[product].quantity += item.saleItemQuantity || 1;
       return acc;
     }, {} as Record<string, any>);
 
@@ -342,10 +350,10 @@ export const ExecutiveSummarySection: React.FC = () => {
     })).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 10);
   }, [filteredData.sales]);
 
-  // Category performance
+  // Category performance - using correct property names
   const categoryPerformance = useMemo(() => {
     const categoryData = filteredData.sales.reduce((acc, item) => {
-      const category = item.category || item.itemCategory || 'Unknown';
+      const category = item.saleItemCategory || 'Unknown';
       if (!acc[category]) {
         acc[category] = { name: category, revenue: 0, transactions: 0 };
       }
@@ -357,10 +365,10 @@ export const ExecutiveSummarySection: React.FC = () => {
     return Object.values(categoryData).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 10);
   }, [filteredData.sales]);
 
-  // Location performance
+  // Location performance - using correct property names
   const locationPerformance = useMemo(() => {
     const locationData = filteredData.sales.reduce((acc, item) => {
-      const location = item.calculatedLocation || item.location || 'Unknown';
+      const location = item.calculatedLocation || 'Unknown';
       if (!acc[location]) {
         acc[location] = { 
           name: location, 

@@ -16,13 +16,6 @@ import { MetricCard } from './MetricCard';
 import { formatNumber } from '@/utils/formatters';
 import type { SessionData, SalesData, FilterOptions } from '@/types/dashboard';
 
-const locations = [
-  { id: 'all', name: 'All Locations', fullName: 'All Locations' },
-  { id: 'location1', name: 'Studio A', fullName: 'Main Studio Location A' },
-  { id: 'location2', name: 'Studio B', fullName: 'Premium Studio Location B' },
-  { id: 'location3', name: 'Studio C', fullName: 'Boutique Studio Location C' }
-];
-
 export const PowerCycleVsBarreSection: React.FC = () => {
   const { data: payrollData, isLoading: payrollLoading, error: payrollError } = usePayrollData();
   const { data: sessionsData, loading: sessionsLoading, error: sessionsError } = useSessionsData();
@@ -39,41 +32,77 @@ export const PowerCycleVsBarreSection: React.FC = () => {
     paymentMethod: []
   });
 
-  // Transform sessions data to match dashboard types
+  // Get unique locations from sessions data
+  const locations = useMemo(() => {
+    if (!sessionsData || sessionsData.length === 0) {
+      return [{ id: 'all', name: 'All Locations', fullName: 'All Locations' }];
+    }
+
+    const uniqueLocations = Array.from(new Set(sessionsData.map(session => session.location)))
+      .filter(location => location && location.trim() !== '')
+      .map((location, index) => ({
+        id: location.toLowerCase().replace(/\s+/g, '-'),
+        name: location.length > 15 ? location.substring(0, 15) + '...' : location,
+        fullName: location
+      }));
+
+    return [
+      { id: 'all', name: 'All Locations', fullName: 'All Locations' },
+      ...uniqueLocations
+    ];
+  }, [sessionsData]);
+
+  // Transform sessions data to match dashboard types and filter by location
   const transformedSessionsData: SessionData[] = useMemo(() => {
     if (!sessionsData) return [];
     
-    return sessionsData.map(session => ({
+    const filteredByLocation = activeLocation === 'all' 
+      ? sessionsData 
+      : sessionsData.filter(session => 
+          session.location.toLowerCase().replace(/\s+/g, '-') === activeLocation
+        );
+    
+    return filteredByLocation.map(session => ({
       sessionId: session.sessionId,
       date: session.date,
       time: session.time,
       classType: session.classType,
       cleanedClass: session.cleanedClass,
-      instructor: session.trainerName, // Map trainerName to instructor
+      instructor: session.trainerName,
       location: session.location,
       capacity: session.capacity,
-      booked: session.bookedCount, // Map bookedCount to booked
-      checkedIn: session.checkedInCount, // Map checkedInCount to checkedIn
+      booked: session.bookedCount,
+      checkedIn: session.checkedInCount,
       checkedInCount: session.checkedInCount,
-      sessionCount: 1, // Default session count
+      sessionCount: 1,
       fillPercentage: session.fillPercentage || 0,
-      waitlist: 0, // Default waitlist
-      noShows: session.bookedCount - session.checkedInCount // Calculate no-shows
+      waitlist: 0,
+      noShows: session.bookedCount - session.checkedInCount
     }));
-  }, [sessionsData]);
+  }, [sessionsData, activeLocation]);
 
-  // Filter data by class type
+  // Filter data by class type with more comprehensive matching
   const powerCycleData = useMemo(() => {
-    return transformedSessionsData.filter(session => 
-      session.cleanedClass?.toLowerCase().includes('power') ||
-      session.cleanedClass?.toLowerCase().includes('cycle')
-    );
+    return transformedSessionsData.filter(session => {
+      const className = session.cleanedClass?.toLowerCase() || '';
+      const sessionName = session.classType?.toLowerCase() || '';
+      
+      return className.includes('power') || 
+             className.includes('cycle') || 
+             className.includes('spinning') ||
+             sessionName.includes('power') || 
+             sessionName.includes('cycle') ||
+             sessionName.includes('spinning');
+    });
   }, [transformedSessionsData]);
 
   const barreData = useMemo(() => {
-    return transformedSessionsData.filter(session => 
-      session.cleanedClass?.toLowerCase().includes('barre')
-    );
+    return transformedSessionsData.filter(session => {
+      const className = session.cleanedClass?.toLowerCase() || '';
+      const sessionName = session.classType?.toLowerCase() || '';
+      
+      return className.includes('barre') || sessionName.includes('barre');
+    });
   }, [transformedSessionsData]);
 
   // Calculate metrics for both class types
@@ -113,6 +142,16 @@ export const PowerCycleVsBarreSection: React.FC = () => {
     setFilters(newFilters);
   };
 
+  console.log('PowerCycle vs Barre Debug:', {
+    totalSessions: sessionsData?.length || 0,
+    powerCycleSessions: powerCycleData.length,
+    barreSessions: barreData.length,
+    activeLocation,
+    locations: locations.map(l => ({ id: l.id, name: l.name })),
+    powerCycleMetrics,
+    barreMetrics
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50/30 flex items-center justify-center">
@@ -147,27 +186,34 @@ export const PowerCycleVsBarreSection: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/20">
-      {/* Header Section */}
+      {/* Animated Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-pink-600 to-indigo-700 text-white">
         <div className="absolute inset-0 bg-black/20" />
+        
+        {/* Animated background elements */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-4 -left-4 w-32 h-32 bg-white/10 rounded-full animate-pulse"></div>
+          <div className="absolute top-20 right-10 w-24 h-24 bg-pink-300/20 rounded-full animate-bounce delay-1000"></div>
+          <div className="absolute bottom-10 left-20 w-40 h-40 bg-purple-300/10 rounded-full animate-pulse delay-500"></div>
+        </div>
         
         <div className="relative px-8 py-12">
           <div className="max-w-7xl mx-auto">
             <div className="text-center space-y-4">
-              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 border border-white/20">
+              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 border border-white/20 animate-fade-in-up">
                 <Target className="w-5 h-5" />
                 <span className="font-medium">Class Format Comparison</span>
               </div>
               
-              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent">
+              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-purple-100 to-pink-100 bg-clip-text text-transparent animate-fade-in-up delay-200">
                 PowerCycle vs Barre
               </h1>
               
-              <p className="text-xl text-purple-100 max-w-2xl mx-auto leading-relaxed">
+              <p className="text-xl text-purple-100 max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-300">
                 Comprehensive performance analysis between PowerCycle and Barre class formats
               </p>
               
-              <div className="flex items-center justify-center gap-8 mt-8">
+              <div className="flex items-center justify-center gap-8 mt-8 animate-fade-in-up delay-500">
                 <div className="text-center">
                   <div className="text-3xl font-bold text-white">{formatNumber(powerCycleMetrics.totalSessions)}</div>
                   <div className="text-sm text-purple-200">PowerCycle Sessions</div>
@@ -195,7 +241,7 @@ export const PowerCycleVsBarreSection: React.FC = () => {
         <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden">
           <CardContent className="p-2">
             <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
-              <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl h-auto gap-2">
+              <TabsList className={`grid w-full grid-cols-${Math.min(locations.length, 4)} bg-gradient-to-r from-slate-100 to-slate-200 p-2 rounded-2xl h-auto gap-2`}>
                 {locations.map((location) => (
                   <TabsTrigger
                     key={location.id}
@@ -334,6 +380,35 @@ export const PowerCycleVsBarreSection: React.FC = () => {
           </CardContent>
         </Card>
       </div>
+
+      <style jsx>{`
+        @keyframes fade-in-up {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in-up {
+          animation: fade-in-up 0.6s ease-out forwards;
+        }
+        
+        .delay-200 {
+          animation-delay: 0.2s;
+        }
+        
+        .delay-300 {
+          animation-delay: 0.3s;
+        }
+        
+        .delay-500 {
+          animation-delay: 0.5s;
+        }
+      `}</style>
     </div>
   );
 };

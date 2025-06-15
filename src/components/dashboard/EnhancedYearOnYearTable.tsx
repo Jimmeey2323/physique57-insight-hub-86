@@ -292,7 +292,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
           <table className="min-w-full bg-white border-t border-gray-200">
             <thead className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 sticky top-0 z-20">
               <tr className="bg-gradient-to-r from-purple-700 to-purple-900 text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 rounded-md">
-                <th className="text-white font-semibold uppercase tracking-wider px-12 py-2 text-left">
+                <th className="text-white font-semibold uppercase tracking-wider px-12 py-2 text-left text-sm">
                   Product/Category
                 </th>
                 {monthlyData.map(({
@@ -312,18 +312,18 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
             <tbody>
               {processedData.map(categoryGroup => <React.Fragment key={categoryGroup.category}>
                   <tr onClick={() => onGroupToggle(categoryGroup.category)} className="bg-white hover:bg-gray-100 cursor-pointer border-b border-gray-200 group transition-colors duration-200 ease-in-out">
-                    <td className="px-6 py-4 font-semibold text-gray-800 group-hover:text-gray-900 bg-white group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out">
-                      <div className="flex items-center">
+                    <td className="py-4 font-semibold text-gray-800 group-hover:text-gray-900 bg-white group-hover:bg-gray-100 sticky left-0 z-10 transition-colors duration-200 ease-in-out px-[10px] min-w-80 text-sm">
+                      <div className="flex justify-between items-center min-w-full text-md text-bold">
                         {collapsedGroups.has(categoryGroup.category) ? <ChevronRight className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" /> : <ChevronDown className="w-4 h-4 mr-2 text-gray-500 transition-transform duration-200" />}
                         {categoryGroup.category}
-                        <Badge variant="secondary" className="ml-5 text-xs bg-purple-900 text-white min-w-32 rounded-2xl">
+                        <Badge variant="secondary" className="ml-auto text-sm text-white bg-purple-900 min-w-32 text-right py-1 capitalize rounded-lg px-[12px]">
                           {categoryGroup.products.length} products
                         </Badge>
                       </div>
                     </td>
                     {monthlyData.map(({
                   key
-                }) => <td key={key} className="px-4 py-4 text-center font-semibold text-gray-900">
+                }) => <td key={key} className="px-4 py-4 text-center font-semibold text-gray-900 text-sm">
                         {formatMetricValue(categoryGroup.monthlyValues[key] || 0, selectedMetric)}
                       </td>)}
                   </tr>

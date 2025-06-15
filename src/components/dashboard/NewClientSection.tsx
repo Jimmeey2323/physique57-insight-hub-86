@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +12,7 @@ import { getNewClientMetrics, calculateNewClientMetrics, getUniqueTrainers, getU
 import { NewClientFilterOptions } from '@/types/dashboard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { NewCsvDataTable } from './NewCsvDataTable';
 
 const locations = [
   { 
@@ -650,6 +650,9 @@ export const NewClientSection: React.FC = () => {
             </Tabs>
           </CardContent>
         </Card>
+
+        {/* Add the CSV Data Table at the end */}
+        <NewCsvDataTable />
       </div>
     </div>
   );

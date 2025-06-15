@@ -19,79 +19,47 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-gray-50 flex items-center justify-center relative overflow-hidden">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-100/30 rounded-full blur-3xl animate-pulse-slow"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-100/30 rounded-full blur-3xl animate-pulse-slow animation-delay-2000"></div>
-          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-indigo-100/30 rounded-full blur-3xl animate-pulse-slow animation-delay-4000"></div>
-        </div>
+      <div className="min-h-screen bg-white flex items-center justify-center relative">
+        {/* Subtle Background Gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-50/50 via-white to-gray-50/30"></div>
 
         {/* Main Loader Container */}
-        <div className="relative z-10 text-center space-y-12">
-          {/* Logo Section */}
-          <div className="space-y-4">
-            <div className="mx-auto w-20 h-20 bg-gradient-to-r from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center shadow-2xl animate-float">
-              <span className="text-2xl font-bold text-white font-serif">P57</span>
+        <div className="relative z-10 text-center space-y-8">
+          {/* Cute Spinning 57 */}
+          <div className="relative">
+            <div className="w-32 h-32 mx-auto flex items-center justify-center">
+              <div className="relative">
+                {/* Outer Ring - Subtle */}
+                <div className="absolute inset-0 w-32 h-32 border-2 border-slate-200 rounded-full animate-spin" style={{ animationDuration: '3s' }}></div>
+                
+                {/* Inner Spinning 57 */}
+                <div className="w-24 h-24 bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl flex items-center justify-center animate-spin shadow-lg" style={{ animationDuration: '2s' }}>
+                  <span className="text-2xl font-bold text-white font-serif">57</span>
+                </div>
+                
+                {/* Cute Floating Dots */}
+                <div className="absolute -top-2 -right-2 w-3 h-3 bg-blue-400 rounded-full animate-bounce"></div>
+                <div className="absolute -bottom-2 -left-2 w-2 h-2 bg-purple-400 rounded-full animate-bounce animation-delay-1000"></div>
+                <div className="absolute top-1/2 -left-4 w-2 h-2 bg-indigo-400 rounded-full animate-bounce animation-delay-2000"></div>
+              </div>
             </div>
-            <h1 className="text-3xl font-light text-slate-800 font-serif tracking-wide">
+          </div>
+
+          {/* Minimalist Brand Text */}
+          <div className="space-y-3">
+            <h1 className="text-2xl font-light text-slate-800 tracking-wide font-serif">
               Physique <span className="font-bold animate-color-cycle">57</span>
             </h1>
-          </div>
-
-          {/* Sophisticated Loading Animation */}
-          <div className="relative">
-            {/* Outer Ring */}
-            <div className="w-32 h-32 mx-auto relative">
-              <div className="absolute inset-0 border-4 border-slate-200 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-transparent border-t-blue-600 border-r-purple-600 rounded-full animate-spin"></div>
-              <div className="absolute inset-2 border-2 border-transparent border-b-indigo-500 border-l-pink-500 rounded-full animate-spin" style={{ animationDirection: 'reverse', animationDuration: '2s' }}></div>
-              
-              {/* Inner Pulsing Core */}
-              <div className="absolute inset-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse flex items-center justify-center">
-                <div className="w-4 h-4 bg-white rounded-full animate-ping"></div>
-              </div>
-            </div>
-
-            {/* Floating Dots */}
-            <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce animation-delay-1000"></div>
-                <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce animation-delay-2000"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Loading Text */}
-          <div className="space-y-3">
-            <h2 className="text-2xl font-semibold text-slate-800 tracking-wide">
-              Initializing Dashboard
-            </h2>
-            <p className="text-slate-600 font-light max-w-md mx-auto leading-relaxed">
-              Connecting to business intelligence systems and preparing analytics modules...
+            <p className="text-sm text-slate-500 font-light">
+              Loading your dashboard...
             </p>
-            
-            {/* Progress Indicators */}
-            <div className="mt-8 space-y-3">
-              <div className="flex items-center justify-center space-x-2 text-sm text-slate-500">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span>Authenticating connections</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-slate-500">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse animation-delay-1000"></div>
-                <span>Loading data streams</span>
-              </div>
-              <div className="flex items-center justify-center space-x-2 text-sm text-slate-500">
-                <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse animation-delay-2000"></div>
-                <span>Preparing analytics</span>
-              </div>
-            </div>
           </div>
 
-          {/* Decorative Elements */}
-          <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 opacity-20">
-            <div className="w-64 h-1 bg-gradient-to-r from-transparent via-slate-400 to-transparent"></div>
+          {/* Simple Progress Dots */}
+          <div className="flex justify-center space-x-2">
+            <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse"></div>
+            <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse animation-delay-1000"></div>
+            <div className="w-2 h-2 bg-slate-400 rounded-full animate-pulse animation-delay-2000"></div>
           </div>
         </div>
       </div>

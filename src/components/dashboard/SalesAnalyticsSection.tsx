@@ -415,11 +415,12 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({ da
               />
               
               <DataTable
-                title="Product Performance Analysis"
+                title="Category Performance Analysis (Ungrouped)"
                 data={filteredData}
-                type="product"
+                type="category"
                 filters={filters}
                 onRowClick={handleTableRowClick}
+                grouped={false}
               />
               
               <EnhancedYearOnYearTable

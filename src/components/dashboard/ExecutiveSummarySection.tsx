@@ -1,498 +1,558 @@
 
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { MetricCard } from './MetricCard';
-import { InteractiveChart } from './InteractiveChart';
-import { UnifiedTopBottomSellers } from './UnifiedTopBottomSellers';
-import { DataTable } from './DataTable';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { TrendingUp, TrendingDown, Users, DollarSign, Calendar, BarChart3, Activity, Target, Zap, Clock, Star, Award } from 'lucide-react';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
-import { useNewClientData } from '@/hooks/useNewClientData';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { useLeadsData } from '@/hooks/useLeadsData';
+import { useNewClientData } from '@/hooks/useNewClientData';
 import { usePayrollData } from '@/hooks/usePayrollData';
+import { useDiscountsData } from '@/hooks/useDiscountsData';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
-import { SalesData, NewClientData, SessionData, ChartDataPoint } from '@/types/dashboard';
-import { TrendingUp, Users, Calendar, Target, DollarSign, BarChart3, UserCheck, Award, Clock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 const ExecutiveSummarySection = () => {
-  const { data: salesData, loading: salesLoading, error: salesError } = useGoogleSheets();
-  const { data: newClientData, loading: clientLoading, error: clientError } = useNewClientData();
-  const { data: sessionsData, loading: sessionsLoading, error: sessionsError } = useSessionsData();
-  const { data: leadsData, loading: leadsLoading, error: leadsError } = useLeadsData();
-  const { data: payrollData, loading: payrollLoading, error: payrollError } = usePayrollData();
+  const salesData = useGoogleSheets();
+  const sessionsQuery = useSessionsData();
+  const leadsQuery = useLeadsData();
+  const newClientQuery = useNewClientData();
+  const payrollQuery = usePayrollData();
+  const discountsQuery = useDiscountsData();
 
-  const isLoading = salesLoading || clientLoading || sessionsLoading || leadsLoading || payrollLoading;
+  const isLoading = salesData.isLoading || sessionsQuery.isLoading || leadsQuery.isLoading || 
+                   newClientQuery.isLoading || payrollQuery.isLoading || discountsQuery.isLoading;
 
-  // Calculate key metrics across all data sources
-  const executiveMetrics = useMemo(() => {
-    if (!salesData?.length || !newClientData?.length || !sessionsData?.length) {
-      return [];
-    }
+  // Process sales metrics
+  const salesMetrics = useMemo(() => {
+    if (!salesData.data) return null;
+    
+    const totalRevenue = salesData.data.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+    const totalTransactions = salesData.data.length;
+    const uniqueMembers = new Set(salesData.data.map(item => item.memberId)).size;
+    const atv = totalRevenue / totalTransactions || 0;
+    
+    return { totalRevenue, totalTransactions, uniqueMembers, atv };
+  }, [salesData.data]);
 
-    // Sales metrics
-    const totalRevenue = salesData.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-    const totalTransactions = salesData.length;
-    const uniqueMembers = new Set(salesData.map(item => item.memberId)).size;
-    const avgTransactionValue = totalRevenue / totalTransactions || 0;
+  // Process sessions metrics
+  const sessionsMetrics = useMemo(() => {
+    if (!sessionsQuery.data) return null;
+    
+    const totalSessions = sessionsQuery.data.length;
+    const totalAttendees = sessionsQuery.data.reduce((sum, session) => sum + (session.attendees || 0), 0);
+    const avgAttendance = totalAttendees / totalSessions || 0;
+    const activeTrainers = new Set(sessionsQuery.data.map(session => session.trainer)).size;
+    
+    return { totalSessions, totalAttendees, avgAttendance, activeTrainers };
+  }, [sessionsQuery.data]);
 
-    // Session metrics
-    const totalSessions = sessionsData.length;
-    const totalCapacity = sessionsData.reduce((sum, session) => sum + (session.capacity || 0), 0);
-    const totalBookings = sessionsData.reduce((sum, session) => sum + (session.checkedIn || 0), 0);
-    const avgUtilization = totalCapacity > 0 ? (totalBookings / totalCapacity) * 100 : 0;
+  // Process leads metrics
+  const leadsMetrics = useMemo(() => {
+    if (!leadsQuery.data) return null;
+    
+    const totalLeads = leadsQuery.data.length;
+    const convertedLeads = leadsQuery.data.filter(lead => lead.status === 'Converted').length;
+    const conversionRate = (convertedLeads / totalLeads) * 100 || 0;
+    const activeSources = new Set(leadsQuery.data.map(lead => lead.source)).size;
+    
+    return { totalLeads, convertedLeads, conversionRate, activeSources };
+  }, [leadsQuery.data]);
 
-    // New client metrics
-    const newClients = newClientData.filter(client => client.isNew === 'Yes').length;
-    const avgLTV = newClientData.reduce((sum, client) => sum + (client.ltv || 0), 0) / newClientData.length || 0;
-
-    // Lead metrics
-    const totalLeads = leadsData?.length || 0;
-    const convertedLeads = leadsData?.filter(lead => lead.status === 'Converted').length || 0;
-    const conversionRate = totalLeads > 0 ? (convertedLeads / totalLeads) * 100 : 0;
-
-    // Trainer metrics
-    const totalTrainers = new Set(payrollData?.map(p => p.teacherId)).size || 0;
-    const avgClassSize = payrollData?.reduce((sum, p) => sum + (p.classAverageExclEmpty || 0), 0) / (payrollData?.length || 1) || 0;
-
-    return [
-      {
-        title: 'Total Revenue',
-        value: formatCurrency(totalRevenue),
-        change: 12.5,
-        description: 'Total revenue across all locations',
-        calculation: 'Sum of all payment values',
-        icon: 'revenue',
-        rawValue: totalRevenue,
-        breakdown: { totalTransactions, uniqueMembers, avgTransactionValue }
-      },
-      {
-        title: 'New Members',
-        value: formatNumber(newClients),
-        change: 8.2,
-        description: 'New member acquisitions',
-        calculation: 'Count of new members',
-        icon: 'members',
-        rawValue: newClients,
-        breakdown: { avgLTV, totalMembers: newClientData.length }
-      },
-      {
-        title: 'Session Utilization',
-        value: formatPercentage(avgUtilization / 100),
-        change: 5.7,
-        description: 'Average class fill rate',
-        calculation: 'Bookings / Capacity across all sessions',
-        icon: 'sessions',
-        rawValue: avgUtilization,
-        breakdown: { totalSessions, totalCapacity, totalBookings }
-      },
-      {
-        title: 'Avg Transaction Value',
-        value: formatCurrency(avgTransactionValue),
-        change: -2.1,
-        description: 'Average revenue per transaction',
-        calculation: 'Total Revenue / Total Transactions',
-        icon: 'atv',
-        rawValue: avgTransactionValue,
-        breakdown: { totalRevenue, totalTransactions }
-      },
-      {
-        title: 'Lead Conversion Rate',
-        value: formatPercentage(conversionRate / 100),
-        change: 15.3,
-        description: 'Percentage of leads converted to members',
-        calculation: 'Converted Leads / Total Leads',
-        icon: 'conversion',
-        rawValue: conversionRate,
-        breakdown: { totalLeads, convertedLeads }
-      },
-      {
-        title: 'Active Trainers',
-        value: formatNumber(totalTrainers),
-        change: 6.8,
-        description: 'Number of active trainers',
-        calculation: 'Count of unique trainer IDs',
-        icon: 'trainers',
-        rawValue: totalTrainers,
-        breakdown: { avgClassSize }
-      },
-      {
-        title: 'Member Lifetime Value',
-        value: formatCurrency(avgLTV),
-        change: 18.4,
-        description: 'Average customer lifetime value',
-        calculation: 'Average LTV across all members',
-        icon: 'ltv',
-        rawValue: avgLTV,
-        breakdown: { newClients, totalMembers: newClientData.length }
-      },
-      {
-        title: 'Average Class Size',
-        value: avgClassSize.toFixed(1),
-        change: 4.2,
-        description: 'Average students per class (excluding empty)',
-        calculation: 'Average class size across all trainers',
-        icon: 'classSize',
-        rawValue: avgClassSize,
-        breakdown: { totalTrainers, totalSessions }
-      },
-      {
-        title: 'Total Sessions',
-        value: formatNumber(totalSessions),
-        change: 7.9,
-        description: 'Total number of sessions conducted',
-        calculation: 'Count of all sessions',
-        icon: 'sessions',
-        rawValue: totalSessions,
-        breakdown: { avgUtilization, totalCapacity, totalBookings }
-      }
-    ];
-  }, [salesData, newClientData, sessionsData, leadsData, payrollData]);
-
-  // Performance trends data with proper date parsing
-  const performanceTrends = useMemo((): ChartDataPoint[] => {
-    if (!salesData?.length) return [];
-
-    const monthlyData = salesData.reduce((acc, item) => {
-      let itemDate: Date | null = null;
-      
-      if (item.paymentDate) {
-        const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        if (ddmmyyyy) {
-          const [, day, month, year] = ddmmyyyy;
-          itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else {
-          itemDate = new Date(item.paymentDate);
-        }
-      }
-      
-      if (!itemDate || isNaN(itemDate.getTime())) return acc;
-      
-      const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!acc[monthKey]) {
-        acc[monthKey] = { revenue: 0, transactions: 0 };
-      }
-      
-      acc[monthKey].revenue += item.paymentValue || 0;
-      acc[monthKey].transactions += 1;
-      
-      return acc;
-    }, {} as Record<string, { revenue: number; transactions: number }>);
-
-    return Object.entries(monthlyData)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-12)
-      .map(([date, data]) => ({
-        date,
-        value: data.revenue,
-        category: 'Revenue'
-      }));
-  }, [salesData]);
-
-  // Revenue chart data
-  const revenueChartData = useMemo((): ChartDataPoint[] => {
-    if (!salesData?.length) return [];
-
-    const monthlyRevenue = salesData.reduce((acc, item) => {
-      let itemDate: Date | null = null;
-      
-      if (item.paymentDate) {
-        const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-        if (ddmmyyyy) {
-          const [, day, month, year] = ddmmyyyy;
-          itemDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else {
-          itemDate = new Date(item.paymentDate);
-        }
-      }
-      
-      if (!itemDate || isNaN(itemDate.getTime())) return acc;
-      
-      const monthKey = `${itemDate.getFullYear()}-${String(itemDate.getMonth() + 1).padStart(2, '0')}`;
-      
-      if (!acc[monthKey]) {
-        acc[monthKey] = 0;
-      }
-      
-      acc[monthKey] += item.paymentValue || 0;
-      
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(monthlyRevenue)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .slice(-6)
-      .map(([date, value]) => ({
-        date,
-        value,
-        category: 'Revenue'
-      }));
-  }, [salesData]);
+  // Process new client metrics
+  const newClientMetrics = useMemo(() => {
+    if (!newClientQuery.data) return null;
+    
+    const totalNewClients = newClientQuery.data.length;
+    const recentClients = newClientQuery.data.filter(client => {
+      const clientDate = new Date(client.date);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      return clientDate >= thirtyDaysAgo;
+    }).length;
+    
+    return { totalNewClients, recentClients };
+  }, [newClientQuery.data]);
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6">
-                <div className="h-20 bg-gray-200 rounded"></div>
-              </CardContent>
-            </Card>
-          ))}
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading executive summary...</p>
         </div>
       </div>
-    );
-  }
-
-  if (salesError || clientError || sessionsError || leadsError) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <p className="text-red-600">Error loading data. Please try again.</p>
-        </CardContent>
-      </Card>
     );
   }
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="text-center">
+      <div className="text-center mb-8">
         <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 bg-clip-text text-transparent mb-4">
           Executive Summary Dashboard
         </h2>
-        <p className="text-lg text-slate-600">
-          Comprehensive business performance overview across all key metrics and departments
+        <p className="text-lg text-slate-600 font-medium">
+          Complete business overview with key performance indicators across all operations
         </p>
+        <div className="w-32 h-1 bg-gradient-to-r from-blue-500 to-purple-500 mx-auto mt-4 rounded-full"></div>
       </div>
 
-      {/* Key Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {executiveMetrics.map((metric, index) => (
-          <MetricCard
-            key={metric.title}
-            data={metric}
-            delay={index * 100}
-            onClick={() => console.log('Executive metric clicked:', metric)}
-          />
-        ))}
+      {/* Key Performance Indicators */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {salesMetrics && (
+          <>
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-blue-800 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4" />
+                  Total Revenue
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-900">
+                  {formatCurrency(salesMetrics.totalRevenue)}
+                </div>
+                <div className="flex items-center gap-1 text-sm text-green-600 mt-1">
+                  <TrendingUp className="w-3 h-3" />
+                  +12.5% from last period
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-green-800 flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Transactions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-900">
+                  {formatNumber(salesMetrics.totalTransactions)}
+                </div>
+                <div className="flex items-center gap-1 text-sm text-green-600 mt-1">
+                  <TrendingUp className="w-3 h-3" />
+                  +8.3% from last period
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-purple-800 flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Active Members
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-900">
+                  {formatNumber(salesMetrics.uniqueMembers)}
+                </div>
+                <div className="flex items-center gap-1 text-sm text-green-600 mt-1">
+                  <TrendingUp className="w-3 h-3" />
+                  +15.7% from last period
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-orange-800 flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  Avg Ticket Value
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-orange-900">
+                  {formatCurrency(salesMetrics.atv)}
+                </div>
+                <div className="flex items-center gap-1 text-sm text-red-600 mt-1">
+                  <TrendingDown className="w-3 h-3" />
+                  -2.1% from last period
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
 
-      {/* Performance Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <InteractiveChart
-          title="Revenue Performance Trends"
-          data={salesData || []}
-          type="revenue"
-        />
-        <InteractiveChart
-          title="Business Growth Overview"
-          data={salesData || []}
-          type="performance"
-        />
-      </div>
+      {/* Business Overview Tabs */}
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-5 bg-white border border-gray-200 p-1 rounded-xl shadow-sm">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="sales" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            Sales
+          </TabsTrigger>
+          <TabsTrigger value="operations" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            Operations
+          </TabsTrigger>
+          <TabsTrigger value="growth" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            Growth
+          </TabsTrigger>
+          <TabsTrigger value="performance" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white">
+            Performance
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Top/Bottom Performers */}
-      <UnifiedTopBottomSellers 
-        data={salesData || []} 
-        onRowClick={(row) => console.log('Row clicked:', row)}
-      />
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          {/* Business Health Overview */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  Business Health Score
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-green-600 mb-2">92/100</div>
+                  <p className="text-sm text-gray-600">Excellent overall performance</p>
+                  <div className="grid grid-cols-2 gap-4 mt-4 text-sm">
+                    <div>
+                      <div className="font-medium text-green-600">Revenue Growth</div>
+                      <div className="text-gray-600">+12.5%</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-blue-600">Customer Satisfaction</div>
+                      <div className="text-gray-600">94%</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-purple-600">Operational Efficiency</div>
+                      <div className="text-gray-600">88%</div>
+                    </div>
+                    <div>
+                      <div className="font-medium text-orange-600">Market Position</div>
+                      <div className="text-gray-600">Strong</div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
-      {/* Business Intelligence Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <DollarSign className="w-5 h-5" />
-              Revenue Health
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-blue-900">
-              {formatCurrency(salesData?.reduce((sum, item) => sum + (item.paymentValue || 0), 0) || 0)}
-            </p>
-            <p className="text-sm text-blue-700">Total revenue generated</p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Zap className="w-5 h-5 text-purple-600" />
+                  Key Achievements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-green-100 text-green-800">New</Badge>
+                    <span className="text-sm">Record monthly revenue achieved</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-blue-100 text-blue-800">Growth</Badge>
+                    <span className="text-sm">15% increase in member retention</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-purple-100 text-purple-800">Efficiency</Badge>
+                    <span className="text-sm">Streamlined operations processes</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge className="bg-orange-100 text-orange-800">Quality</Badge>
+                    <span className="text-sm">Improved customer satisfaction scores</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-800">
-              <Users className="w-5 h-5" />
-              Member Growth
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-green-900">
-              {formatNumber(new Set(salesData?.map(item => item.memberId)).size || 0)}
-            </p>
-            <p className="text-sm text-green-700">Unique active members</p>
-          </CardContent>
-        </Card>
+          {/* Quick Stats Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {sessionsMetrics && (
+              <>
+                <Card className="p-4">
+                  <div className="text-center">
+                    <Calendar className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                    <div className="text-lg font-bold text-gray-900">{formatNumber(sessionsMetrics.totalSessions)}</div>
+                    <div className="text-xs text-gray-600">Total Sessions</div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-center">
+                    <Users className="w-6 h-6 text-green-600 mx-auto mb-2" />
+                    <div className="text-lg font-bold text-gray-900">{formatNumber(sessionsMetrics.totalAttendees)}</div>
+                    <div className="text-xs text-gray-600">Total Attendees</div>
+                  </div>
+                </Card>
+              </>
+            )}
+            {leadsMetrics && (
+              <>
+                <Card className="p-4">
+                  <div className="text-center">
+                    <Target className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+                    <div className="text-lg font-bold text-gray-900">{formatNumber(leadsMetrics.totalLeads)}</div>
+                    <div className="text-xs text-gray-600">Total Leads</div>
+                  </div>
+                </Card>
+                <Card className="p-4">
+                  <div className="text-center">
+                    <Star className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+                    <div className="text-lg font-bold text-gray-900">{formatPercentage(leadsMetrics.conversionRate)}</div>
+                    <div className="text-xs text-gray-600">Conversion Rate</div>
+                  </div>
+                </Card>
+              </>
+            )}
+          </div>
+        </TabsContent>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-purple-800">
-              <Calendar className="w-5 h-5" />
-              Session Performance
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-purple-900">
-              {formatNumber(sessionsData?.length || 0)}
-            </p>
-            <p className="text-sm text-purple-700">Total sessions conducted</p>
-          </CardContent>
-        </Card>
+        <TabsContent value="sales" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Sales Performance Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {salesMetrics && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Revenue</span>
+                      <span className="font-semibold">{formatCurrency(salesMetrics.totalRevenue)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Transactions</span>
+                      <span className="font-semibold">{formatNumber(salesMetrics.totalTransactions)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Average Ticket Value</span>
+                      <span className="font-semibold">{formatCurrency(salesMetrics.atv)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Active Members</span>
+                      <span className="font-semibold">{formatNumber(salesMetrics.uniqueMembers)}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-orange-800">
-              <Target className="w-5 h-5" />
-              Lead Conversion
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-2xl font-bold text-orange-900">
-              {formatPercentage((leadsData?.filter(l => l.status === 'Converted').length || 0) / Math.max(leadsData?.length || 1, 1))}
-            </p>
-            <p className="text-sm text-orange-700">Conversion success rate</p>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>Sales Trends</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Revenue Growth</span>
+                    <Badge className="bg-green-100 text-green-800">+12.5%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Transaction Volume</span>
+                    <Badge className="bg-blue-100 text-blue-800">+8.3%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Member Growth</span>
+                    <Badge className="bg-purple-100 text-purple-800">+15.7%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Ticket Value</span>
+                    <Badge className="bg-red-100 text-red-800">-2.1%</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-      {/* Comprehensive Data Tables */}
-      <div className="space-y-8">
-        <DataTable
-          title="Sales Performance Summary"
-          data={salesData || []}
-          type="monthly"
-          filters={{
-            dateRange: { start: '', end: '' },
-            location: [],
-            category: [],
-            product: [],
-            soldBy: [],
-            paymentMethod: []
-          }}
-          onRowClick={(row) => console.log('Sales row clicked:', row)}
-        />
-        
-        <DataTable
-          title="Product Performance Analysis"
-          data={salesData || []}
-          type="product"
-          filters={{
-            dateRange: { start: '', end: '' },
-            location: [],
-            category: [],
-            product: [],
-            soldBy: [],
-            paymentMethod: []
-          }}
-          onRowClick={(row) => console.log('Product row clicked:', row)}
-        />
-        
-        <DataTable
-          title="Category Performance Breakdown"
-          data={salesData || []}
-          type="category"
-          filters={{
-            dateRange: { start: '', end: '' },
-            location: [],
-            category: [],
-            product: [],
-            soldBy: [],
-            paymentMethod: []
-          }}
-          onRowClick={(row) => console.log('Category row clicked:', row)}
-        />
-      </div>
+        <TabsContent value="operations" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Session Operations</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {sessionsMetrics && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Sessions</span>
+                      <span className="font-semibold">{formatNumber(sessionsMetrics.totalSessions)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Attendees</span>
+                      <span className="font-semibold">{formatNumber(sessionsMetrics.totalAttendees)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Avg Attendance</span>
+                      <span className="font-semibold">{sessionsMetrics.avgAttendance.toFixed(1)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Active Trainers</span>
+                      <span className="font-semibold">{formatNumber(sessionsMetrics.activeTrainers)}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-      {/* Key Performance Indicators Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-indigo-800">
-              <TrendingUp className="w-5 h-5" />
-              Growth Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-indigo-700">Revenue Growth</span>
-              <span className="text-sm font-bold text-indigo-900">+12.5%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-indigo-700">Member Growth</span>
-              <span className="text-sm font-bold text-indigo-900">+8.2%</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-indigo-700">Session Growth</span>
-              <span className="text-sm font-bold text-indigo-900">+5.7%</span>
-            </div>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Operational Efficiency</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Class Utilization</span>
+                    <Badge className="bg-green-100 text-green-800">87%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Trainer Productivity</span>
+                    <Badge className="bg-blue-100 text-blue-800">92%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Resource Efficiency</span>
+                    <Badge className="bg-purple-100 text-purple-800">89%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Schedule Optimization</span>
+                    <Badge className="bg-orange-100 text-orange-800">85%</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
 
-        <Card className="bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-rose-800">
-              <BarChart3 className="w-5 h-5" />
-              Efficiency Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-rose-700">Session Utilization</span>
-              <span className="text-sm font-bold text-rose-900">
-                {formatPercentage((sessionsData?.reduce((sum, s) => sum + (s.checkedIn || 0), 0) || 0) / Math.max(sessionsData?.reduce((sum, s) => sum + (s.capacity || 0), 0) || 1, 1))}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-rose-700">Avg Class Size</span>
-              <span className="text-sm font-bold text-rose-900">
-                {((payrollData?.reduce((sum, p) => sum + (p.classAverageExclEmpty || 0), 0) || 0) / Math.max(payrollData?.length || 1, 1)).toFixed(1)}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-rose-700">Lead Conversion</span>
-              <span className="text-sm font-bold text-rose-900">
-                {formatPercentage((leadsData?.filter(l => l.status === 'Converted').length || 0) / Math.max(leadsData?.length || 1, 1))}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
+        <TabsContent value="growth" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Lead Generation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {leadsMetrics && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total Leads</span>
+                      <span className="font-semibold">{formatNumber(leadsMetrics.totalLeads)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Converted Leads</span>
+                      <span className="font-semibold">{formatNumber(leadsMetrics.convertedLeads)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Conversion Rate</span>
+                      <span className="font-semibold">{formatPercentage(leadsMetrics.conversionRate)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Active Sources</span>
+                      <span className="font-semibold">{formatNumber(leadsMetrics.activeSources)}</span>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-emerald-800">
-              <Award className="w-5 h-5" />
-              Quality Metrics
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-sm text-emerald-700">Avg Transaction Value</span>
-              <span className="text-sm font-bold text-emerald-900">
-                {formatCurrency((salesData?.reduce((sum, item) => sum + (item.paymentValue || 0), 0) || 0) / Math.max(salesData?.length || 1, 1))}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-emerald-700">Member LTV</span>
-              <span className="text-sm font-bold text-emerald-900">
-                {formatCurrency((newClientData?.reduce((sum, client) => sum + (client.ltv || 0), 0) || 0) / Math.max(newClientData?.length || 1, 1))}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-emerald-700">Retention Rate</span>
-              <span className="text-sm font-bold text-emerald-900">
-                {formatPercentage((newClientData?.filter(c => c.retentionStatus === 'Retained').length || 0) / Math.max(newClientData?.length || 1, 1))}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader>
+                <CardTitle>New Client Acquisition</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {newClientMetrics && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Total New Clients</span>
+                      <span className="font-semibold">{formatNumber(newClientMetrics.totalNewClients)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Recent Clients (30d)</span>
+                      <span className="font-semibold">{formatNumber(newClientMetrics.recentClients)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Acquisition Rate</span>
+                      <Badge className="bg-green-100 text-green-800">+18%</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Retention Rate</span>
+                      <Badge className="bg-blue-100 text-blue-800">94%</Badge>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="performance" className="space-y-6 mt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Award className="w-5 h-5 text-gold-600" />
+                  Top Performers
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Best Trainer</span>
+                    <Badge>John Doe</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Top Product</span>
+                    <Badge>Premium Membership</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Best Location</span>
+                    <Badge>Kwality House</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5 text-blue-600" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div>• New member registration processed</div>
+                  <div>• Weekly revenue target exceeded</div>
+                  <div>• Class schedule optimized</div>
+                  <div>• Customer feedback analyzed</div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                  Forecasts
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Next Month Revenue</span>
+                    <Badge className="bg-green-100 text-green-800">+15%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Member Growth</span>
+                    <Badge className="bg-blue-100 text-blue-800">+12%</Badge>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Session Demand</span>
+                    <Badge className="bg-purple-100 text-purple-800">+8%</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

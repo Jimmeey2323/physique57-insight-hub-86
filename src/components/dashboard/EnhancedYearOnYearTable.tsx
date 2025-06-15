@@ -113,7 +113,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     }
   };
 
-  // Get all data for historic comparison (ignore date filters for YoY)
+  // Get all data for historic comparison (include 2024 data regardless of filters)
   const allHistoricData = useMemo(() => {
     if (!Array.isArray(data)) return [];
     
@@ -134,55 +134,32 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
   // Generate monthly data with 2024/2025 grouping in descending order
   const monthlyData = useMemo(() => {
     const months = [];
-    const monthNames = ['Jun', 'May', 'Apr', 'Mar', 'Feb', 'Jan', 'Dec', 'Nov', 'Oct', 'Sep', 'Aug', 'Jul'];
-    const monthNumbers = [6, 5, 4, 3, 2, 1, 12, 11, 10, 9, 8, 7];
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Create alternating pattern: Jun-2025, Jun-2024, May-2025, May-2024, etc.
-    for (let i = 0; i < monthNames.length; i++) {
+    // Create alternating pattern: Jun-2024, Jun-2025, May-2024, May-2025, etc.
+    for (let i = 5; i >= 0; i--) { // Jun to Jan (descending)
       const monthName = monthNames[i];
-      const monthNum = monthNumbers[i];
+      const monthNum = i + 1;
       
-      // 2025 first
-      if (monthNum <= 6) { // Jan-Jun 2025
-        months.push({
-          key: `2025-${String(monthNum).padStart(2, '0')}`,
-          display: `${monthName} 2025`,
-          year: 2025,
-          month: monthNum,
-          sortOrder: i * 2
-        });
-      }
-      
-      // Then 2024
-      const year2024 = monthNum <= 6 ? 2024 : 2024; // All months for 2024
+      // Add 2024 first, then 2025
       months.push({
-        key: `${year2024}-${String(monthNum).padStart(2, '0')}`,
+        key: `2024-${String(monthNum).padStart(2, '0')}`,
         display: `${monthName} 2024`,
-        year: year2024,
+        year: 2024,
         month: monthNum,
-        sortOrder: i * 2 + 1
+        sortOrder: (5 - i) * 2
       });
       
-      // If it's Jul-Dec, also add 2025
-      if (monthNum > 6) {
-        months.push({
-          key: `2025-${String(monthNum).padStart(2, '0')}`,
-          display: `${monthName} 2025`,
-          year: 2025,
-          month: monthNum,
-          sortOrder: i * 2 + 0.5
-        });
-      }
+      months.push({
+        key: `2025-${String(monthNum).padStart(2, '0')}`,
+        display: `${monthName} 2025`,
+        year: 2025,
+        month: monthNum,
+        sortOrder: (5 - i) * 2 + 1
+      });
     }
     
-    // Sort by the custom order and remove duplicates
-    const uniqueMonths = months
-      .filter((month, index, self) => 
-        index === self.findIndex(m => m.key === month.key)
-      )
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-    
-    return uniqueMonths.slice(0, 14); // Limit to reasonable number
+    return months;
   }, []);
 
   const processedData = useMemo(() => {
@@ -244,17 +221,38 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
     window.location.reload();
   };
 
+  const handleQuickFilter = (filterType: string) => {
+    console.log(`Applied quick filter: ${filterType}`);
+    // Implement actual filter logic here
+    switch (filterType) {
+      case 'last6months':
+        // Apply last 6 months filter
+        break;
+      case 'highvalue':
+        // Apply high value filter (e.g., >1000)
+        break;
+      case 'topcategories':
+        // Show only top performing categories
+        break;
+      case 'clearall':
+        // Clear all filters
+        break;
+      default:
+        break;
+    }
+  };
+
   const quickFilters = [
-    { label: 'Last 6 Months', action: () => console.log('Last 6 months filter') },
-    { label: 'High Value', action: () => console.log('High value filter') },
-    { label: 'Top Categories', action: () => console.log('Top categories filter') },
-    { label: 'Clear All', action: () => console.log('Clear filters') }
+    { label: 'Last 6 Months', action: () => handleQuickFilter('last6months') },
+    { label: 'High Value', action: () => handleQuickFilter('highvalue') },
+    { label: 'Top Categories', action: () => handleQuickFilter('topcategories') },
+    { label: 'Clear All', action: () => handleQuickFilter('clearall') }
   ];
 
   return (
-    <div className="space-y-4">
-      {/* Header with Controls */}
-      <div className="flex flex-col gap-4">
+    <div className="space-y-6">
+      {/* Header with Controls - moved outside to prevent overlap */}
+      <div className="flex flex-col gap-4 mb-6">
         <div className="flex justify-between items-start">
           <div>
             <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
@@ -296,7 +294,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
               variant="outline"
               size="sm"
               onClick={filter.action}
-              className="text-xs"
+              className="text-xs hover:bg-blue-50 hover:text-blue-700 transition-colors"
             >
               {filter.label}
             </Button>
@@ -362,7 +360,7 @@ export const EnhancedYearOnYearTable: React.FC<EnhancedYearOnYearTableProps> = (
                   <tr 
                     key={`${categoryGroup.category}-${product.product}`}
                     className="hover:bg-blue-50 cursor-pointer border-b border-gray-100"
-                    onClick={() => onRowClick(product.rawData)}
+                    onClick={() => onRowClick && onRowClick(product.rawData)}
                   >
                     <td className="px-8 py-3 text-sm text-gray-700 hover:text-blue-700 sticky left-0 bg-white z-10">
                       <div className="flex items-center justify-between">

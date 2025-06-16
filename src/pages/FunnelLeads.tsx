@@ -55,9 +55,7 @@ const FunnelLeads = () => {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        <main className="space-y-8">
-          <LeadsSection />
-        </main>
+        <LeadsSection />
       </div>
       
       <Footer />

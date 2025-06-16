@@ -48,8 +48,8 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
         return items.length > 0 ? totalRevenue / items.length : 0;
       case 'auv':
         const revenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        const uniqueMembers = new Set(items.map(item => item.memberId)).size;
-        return uniqueMembers > 0 ? revenue / uniqueMembers : 0;
+        const units = items.length; // Each sale item is one unit
+        return units > 0 ? revenue / units : 0;
       default:
         return 0;
     }
@@ -124,24 +124,26 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
       const metricValue = getMetricValue(items, selectedMetric);
       const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
       const totalTransactions = items.length;
-      const totalVAT = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
       const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+      const units = items.length; // Each sale item is one unit
       
-      // Corrected calculations
-      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0; // Average Spend per Member
-      const atv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0; // Average Transaction Value
-      const upt = totalTransactions; // Units per Transaction (number of transactions)
+      // Calculate correct metrics
+      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0; // ASV = Revenue/Members
+      const upt = totalTransactions > 0 ? units / totalTransactions : 0; // UPT = Units/Transactions
+      const atv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0; // ATV = Revenue/Transactions
+      const auv = units > 0 ? totalRevenue / units : 0; // AUV = Revenue/Units
       
       return {
         soldBy,
         metricValue,
         totalRevenue,
         totalTransactions,
-        totalVAT,
         uniqueMembers,
         asv,
-        atv,
         upt,
+        atv,
+        auv,
+        units,
         monthlyValues,
         rawData: items
       };
@@ -162,6 +164,15 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
     return null;
   };
 
+  const getSoldByBadge = (soldBy: string) => {
+    return (
+      <Badge className="bg-purple-100 text-purple-800 text-xs">
+        {soldBy}
+      </Badge>
+    );
+  };
+
+  // Calculate totals row with proper averages for ATV, ASV, AUV
   const totalsRow = useMemo(() => {
     const monthlyTotals: Record<string, number> = {};
     monthlyData.forEach(({ key }) => {
@@ -171,18 +182,23 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
     const totalRevenue = processedData.reduce((sum, item) => sum + item.totalRevenue, 0);
     const totalTransactions = processedData.reduce((sum, item) => sum + item.totalTransactions, 0);
     const totalMembers = new Set(data.map(item => item.memberId)).size;
-    const totalVAT = processedData.reduce((sum, item) => sum + item.totalVAT, 0);
+    const totalUnits = processedData.reduce((sum, item) => sum + item.units, 0);
+    
+    // Calculate averages for ATV, ASV, AUV (weighted averages)
+    const avgAsv = totalMembers > 0 ? totalRevenue / totalMembers : 0;
+    const avgUpt = totalTransactions > 0 ? totalUnits / totalTransactions : 0;
+    const avgAtv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+    const avgAuv = totalUnits > 0 ? totalRevenue / totalUnits : 0;
     
     return {
       soldBy: 'TOTAL',
       metricValue: processedData.reduce((sum, item) => sum + item.metricValue, 0),
       totalRevenue,
       totalTransactions,
-      totalMembers,
-      totalVAT,
-      asv: totalMembers > 0 ? totalRevenue / totalMembers : 0,
-      atv: totalTransactions > 0 ? totalRevenue / totalTransactions : 0,
-      upt: totalTransactions,
+      asv: avgAsv,
+      upt: avgUpt,
+      atv: avgAtv,
+      auv: avgAuv,
       monthlyValues: monthlyTotals
     };
   }, [processedData, monthlyData, data]);
@@ -216,10 +232,10 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
             <div>
               <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />
-                Sales Team Month-on-Month Analysis
+                Sales Associate Month-on-Month Analysis
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Monthly performance metrics by sales team member (Jun 2025 - Jan 2024)
+                Monthly performance metrics by sales associate (Jun 2025 - Jan 2024)
               </p>
             </div>
           </div>
@@ -233,13 +249,12 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
           <table className="min-w-full bg-white border-t border-gray-200 rounded-lg">
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Sold By</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Total Revenue</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Sales Associate</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">ATV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">ASV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">AUV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">UPT</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Transactions</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ATV</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ASV</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">UPT</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">VAT</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -267,26 +282,23 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
                   <td className="px-6 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white border-r border-gray-200 max-w-48">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-700">#{index + 1}</span>
-                      <span className="truncate">{item.soldBy}</span>
+                      {getSoldByBadge(item.soldBy)}
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.totalRevenue)}
+                    {formatCurrency(item.atv)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.asv)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.auv)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {item.upt.toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
                     {formatNumber(item.totalTransactions)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.atv)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.asv)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatNumber(item.upt)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.totalVAT)}
                   </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = item.monthlyValues[key] || 0;
@@ -302,29 +314,25 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
                   })}
                 </tr>
               ))}
-              
               {/* Totals Row */}
               <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-t-2 border-blue-200 font-bold">
                 <td className="px-6 py-3 text-sm font-bold text-blue-900 sticky left-0 bg-blue-100 border-r border-blue-200">
                   TOTAL
                 </td>
                 <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.totalRevenue)}
+                  {formatCurrency(totalsRow.atv)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.asv)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.auv)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {totalsRow.upt.toFixed(2)}
                 </td>
                 <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
                   {formatNumber(totalsRow.totalTransactions)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.atv)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.asv)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatNumber(totalsRow.upt)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.totalVAT)}
                 </td>
                 {monthlyData.map(({ key }) => (
                   <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">
@@ -341,7 +349,7 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-600" />
-              Sales Team Performance Insights
+              Sales Associate Insights
             </h4>
             {!isEditingSummary ? (
               <Button variant="outline" size="sm" onClick={() => setIsEditingSummary(true)} className="gap-2">
@@ -366,7 +374,7 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
             <Textarea
               value={summaryText}
               onChange={(e) => setSummaryText(e.target.value)}
-              placeholder="Enter sales team insights using bullet points (• )"
+              placeholder="Enter sales associate insights using bullet points (• )"
               className="min-h-32 text-sm"
             />
           ) : (

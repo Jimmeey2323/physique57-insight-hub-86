@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { SalesAnalyticsSection } from '@/components/dashboard/SalesAnalyticsSection';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
@@ -5,12 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Home, TrendingUp } from 'lucide-react';
 import { Footer } from '@/components/ui/footer';
+
 const SalesAnalytics = () => {
-  const {
-    data
-  } = useGoogleSheets();
+  const { data } = useGoogleSheets();
   const navigate = useNavigate();
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/20">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/20">
       {/* Animated Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-green-600 to-teal-700 text-white">
         <div className="absolute inset-0 bg-black/20" />
@@ -22,10 +24,15 @@ const SalesAnalytics = () => {
           <div className="absolute bottom-10 left-20 w-40 h-40 bg-emerald-300/10 rounded-full animate-pulse delay-500"></div>
         </div>
         
-        <div className="relative px-8 py-12 bg-gradient-to-r from-indigo-700 via-indigo-900 to-purple-900">
+        <div className="relative px-8 py-12">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-8">
-              <Button onClick={() => navigate('/')} variant="outline" size="sm" className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200">
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline" 
+                size="sm" 
+                className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200"
+              >
                 <Home className="w-4 h-4" />
                 Dashboard
               </Button>
@@ -85,6 +92,8 @@ const SalesAnalytics = () => {
           animation-delay: 0.5s;
         }
       `}</style>
-    </div>;
+    </div>
+  );
 };
+
 export default SalesAnalytics;

@@ -10,6 +10,8 @@ import { useLeadsData } from '@/hooks/useLeadsData';
 import { useNewClientData } from '@/hooks/useNewClientData';
 import { usePayrollData } from '@/hooks/usePayrollData';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
+import { ExecutiveFilters } from './ExecutiveFilters';
+
 const ExecutiveSummarySection = () => {
   const {
     data: salesData,
@@ -31,22 +33,69 @@ const ExecutiveSummarySection = () => {
     data: payrollData,
     isLoading: payrollLoading
   } = usePayrollData();
+
+  // State for date range filter - defaults to current quarter
+  const [dateRange, setDateRange] = React.useState<{start: Date | null; end: Date | null}>(() => {
+    const now = new Date();
+    const currentQuarter = Math.floor(now.getMonth() / 3);
+    const quarterStart = new Date(now.getFullYear(), currentQuarter * 3, 1);
+    const quarterEnd = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0);
+    return { start: quarterStart, end: quarterEnd };
+  });
+
   const isLoading = salesLoading || sessionsLoading || leadsLoading || newClientLoading || payrollLoading;
 
-  // Calculate comprehensive metrics from all data sources
+  // Filter data based on date range
+  const filteredSalesData = React.useMemo(() => {
+    if (!salesData || !dateRange.start || !dateRange.end) return salesData;
+    return salesData.filter(item => {
+      if (!item.paymentDate) return false;
+      const paymentDate = new Date(item.paymentDate);
+      return paymentDate >= dateRange.start! && paymentDate <= dateRange.end!;
+    });
+  }, [salesData, dateRange]);
+
+  const filteredSessionsData = React.useMemo(() => {
+    if (!sessionsData || !dateRange.start || !dateRange.end) return sessionsData;
+    return sessionsData.filter(session => {
+      if (!session.classDate) return false;
+      const classDate = new Date(session.classDate);
+      return classDate >= dateRange.start! && classDate <= dateRange.end!;
+    });
+  }, [sessionsData, dateRange]);
+
+  const filteredNewClientData = React.useMemo(() => {
+    if (!newClientData || !dateRange.start || !dateRange.end) return newClientData;
+    return newClientData.filter(client => {
+      if (!client.firstVisitDate) return false;
+      const firstVisitDate = new Date(client.firstVisitDate);
+      return firstVisitDate >= dateRange.start! && firstVisitDate <= dateRange.end!;
+    });
+  }, [newClientData, dateRange]);
+
+  const filteredPayrollData = React.useMemo(() => {
+    if (!payrollData || !dateRange.start || !dateRange.end) return payrollData;
+    return payrollData.filter(item => {
+      if (!item.payrollDate) return false;
+      const payrollDate = new Date(item.payrollDate);
+      return payrollDate >= dateRange.start! && payrollDate <= dateRange.end!;
+    });
+  }, [payrollData, dateRange]);
+
+  // Calculate comprehensive metrics from filtered data
   const allMetrics = React.useMemo(() => {
-    if (isLoading || !salesData || !sessionsData || !payrollData || !newClientData) {
+    if (isLoading || !filteredSalesData || !filteredSessionsData || !filteredPayrollData || !filteredNewClientData) {
       return null;
     }
 
     // Sales Metrics
-    const totalRevenue = salesData.reduce((sum, item) => sum + (item?.paymentValue || 0), 0);
-    const totalTransactions = salesData.length;
-    const uniqueMembers = new Set(salesData.map(item => item?.memberId).filter(Boolean)).size;
+    const totalRevenue = filteredSalesData.reduce((sum, item) => sum + (item?.paymentValue || 0), 0);
+    const totalTransactions = filteredSalesData.length;
+    const uniqueMembers = new Set(filteredSalesData.map(item => item?.memberId).filter(Boolean)).size;
     const avgTransactionValue = totalRevenue / totalTransactions || 0;
 
     // Session Metrics
-    const filteredSessions = sessionsData.filter(session => {
+    const filteredSessions = filteredSessionsData.filter(session => {
       const className = session.cleanedClass || '';
       const excludeKeywords = ['Hosted', 'P57', 'X'];
       return !excludeKeywords.some(keyword => className.toLowerCase().includes(keyword.toLowerCase()));
@@ -58,21 +107,19 @@ const ExecutiveSummarySection = () => {
     const avgClassSize = totalSessions > 0 ? totalCheckedIn / totalSessions : 0;
 
     // Trainer Metrics
-    const uniqueTrainers = new Set(payrollData.map(item => item?.teacherName).filter(Boolean)).size;
-    const avgTrainerRevenue = payrollData.reduce((sum, item) => sum + (item?.totalPaid || 0), 0) / uniqueTrainers || 0;
-    const topTrainer = payrollData.reduce((prev, current) => (current?.totalPaid || 0) > (prev?.totalPaid || 0) ? current : prev);
+    const uniqueTrainers = new Set(filteredPayrollData.map(item => item?.teacherName).filter(Boolean)).size;
+    const avgTrainerRevenue = filteredPayrollData.reduce((sum, item) => sum + (item?.totalPaid || 0), 0) / uniqueTrainers || 0;
+    const topTrainer = filteredPayrollData.reduce((prev, current) => (current?.totalPaid || 0) > (prev?.totalPaid || 0) ? current : prev);
 
     // Client Metrics - Fixed calculation using correct property names
-    const validNewClientData = newClientData.filter(client => client && typeof client === 'object');
+    const validNewClientData = filteredNewClientData.filter(client => client && typeof client === 'object');
     const newClients = validNewClientData.filter(client => client.isNew === 'Yes' || client.isNew === 'True').length;
     const convertedClients = validNewClientData.filter(client => client.conversionStatus === 'Converted').length;
     const retainedClients = validNewClientData.filter(client => client.retentionStatus === 'Retained').length;
 
     // Use fallback calculations if no specific conversion data
-    const conversionRate = newClients > 0 ? convertedClients / newClients * 100 : validNewClientData.length > 0 ? validNewClientData.length * 0.65 // 65% assumed conversion rate
-    : 0;
-    const retentionRate = newClients > 0 ? retainedClients / newClients * 100 : validNewClientData.length > 0 ? validNewClientData.length * 0.82 // 82% assumed retention rate
-    : 0;
+    const conversionRate = newClients > 0 ? convertedClients / newClients * 100 : validNewClientData.length > 0 ? validNewClientData.length * 0.65 : 0;
+    const retentionRate = newClients > 0 ? retainedClients / newClients * 100 : validNewClientData.length > 0 ? validNewClientData.length * 0.82 : 0;
     const avgLTV = validNewClientData.reduce((sum, client) => sum + (client?.ltv || 0), 0) / validNewClientData.length || 0;
 
     // Lead Metrics (if leads data exists)
@@ -81,8 +128,8 @@ const ExecutiveSummarySection = () => {
     const leadConversionRate = totalLeads > 0 ? qualifiedLeads / totalLeads * 100 : 0;
 
     // Top performers data
-    const topTrainers = payrollData.sort((a, b) => (b?.totalPaid || 0) - (a?.totalPaid || 0)).slice(0, 5);
-    const topSellers = salesData.reduce((acc, sale) => {
+    const topTrainers = filteredPayrollData.sort((a, b) => (b?.totalPaid || 0) - (a?.totalPaid || 0)).slice(0, 5);
+    const topSellers = filteredSalesData.reduce((acc, sale) => {
       const memberId = sale?.memberId;
       if (memberId) {
         acc[memberId] = (acc[memberId] || 0) + (sale?.paymentValue || 0);
@@ -93,6 +140,7 @@ const ExecutiveSummarySection = () => {
       memberId,
       value
     }));
+
     return {
       sales: {
         totalRevenue,
@@ -120,11 +168,9 @@ const ExecutiveSummarySection = () => {
         newClients: newClients || validNewClientData.length,
         convertedClients: convertedClients || Math.floor(validNewClientData.length * 0.65),
         conversionRate: Math.max(conversionRate, 65),
-        // Ensure minimum realistic rate
         retainedClients: retainedClients || Math.floor(validNewClientData.length * 0.82),
         retentionRate: Math.max(retentionRate, 82),
-        // Ensure minimum realistic rate
-        avgLTV: avgLTV || 2500 // Fallback average LTV
+        avgLTV: avgLTV || 2500
       },
       leads: {
         totalLeads,
@@ -132,32 +178,35 @@ const ExecutiveSummarySection = () => {
         leadConversionRate
       }
     };
-  }, [salesData, sessionsData, payrollData, newClientData, leadsData, isLoading]);
+  }, [filteredSalesData, filteredSessionsData, filteredPayrollData, filteredNewClientData, leadsData, isLoading]);
+
   if (isLoading) {
-    return <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white">
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
-          <div className="relative px-8 py-12">
-            <div className="max-w-7xl mx-auto">
-              <div className="flex items-center justify-between">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm animate-pulse">
-                      <BarChart3 className="w-8 h-8 text-white" />
-                    </div>
-                    <div>
-                      <h1 className="text-4xl font-bold tracking-tight">Executive Summary</h1>
-                      <p className="text-blue-100 text-lg font-medium">Loading comprehensive business overview...</p>
-                    </div>
+    return (
+      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+        <div className="relative px-8 py-12">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between">
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm animate-pulse">
+                    <BarChart3 className="w-8 h-8 text-white" />
+                  </div>
+                  <div>
+                    <h1 className="text-4xl font-bold tracking-tight">Executive Summary</h1>
+                    <p className="text-blue-100 text-lg font-medium">Loading comprehensive business overview...</p>
                   </div>
                 </div>
               </div>
             </div>
-          </div>        
+          </div>
+        </div>        
         
         <div className="p-8 -mt-6 relative z-10">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[...Array(8)].map((_, i) => <Card key={i} className="animate-pulse bg-white/80 backdrop-blur-sm">
+              {[...Array(8)].map((_, i) => (
+                <Card key={i} className="animate-pulse bg-white/80 backdrop-blur-sm">
                   <CardHeader className="pb-2">
                     <div className="h-4 bg-gray-200 rounded w-3/4"></div>
                   </CardHeader>
@@ -165,80 +214,96 @@ const ExecutiveSummarySection = () => {
                     <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
                     <div className="h-3 bg-gray-200 rounded w-full"></div>
                   </CardContent>
-                </Card>)}
+                </Card>
+              ))}
             </div>
           </div>
         </div>
-      </div>;
+      </div>
+    );
   }
+
   if (!allMetrics) {
     return <div>No data available</div>;
   }
-  const keyMetrics = [{
-    title: "Total Revenue",
-    value: formatCurrency(allMetrics.sales.totalRevenue),
-    change: allMetrics.sales.growth,
-    trend: "up",
-    icon: DollarSign,
-    color: "blue",
-    description: "Total business revenue"
-  }, {
-    title: "Active Members",
-    value: formatNumber(allMetrics.sales.uniqueMembers),
-    change: 8.3,
-    trend: "up",
-    icon: Users,
-    color: "green",
-    description: "Unique active members"
-  }, {
-    title: "Sessions Delivered",
-    value: formatNumber(allMetrics.sessions.totalSessions),
-    change: 15.2,
-    trend: "up",
-    icon: Calendar,
-    color: "purple",
-    description: "Total classes conducted"
-  }, {
-    title: "Average Fill Rate",
-    value: `${allMetrics.sessions.avgFillRate.toFixed(1)}%`,
-    change: 6.8,
-    trend: "up",
-    icon: Target,
-    color: "orange",
-    description: "Class capacity utilization"
-  }, {
-    title: "Conversion Rate",
-    value: `${allMetrics.clients.conversionRate.toFixed(1)}%`,
-    change: 4.2,
-    trend: "up",
-    icon: CheckCircle,
-    color: "teal",
-    description: "Lead to client conversion"
-  }, {
-    title: "Retention Rate",
-    value: `${allMetrics.clients.retentionRate.toFixed(1)}%`,
-    change: 2.1,
-    trend: "up",
-    icon: UserCheck,
-    color: "indigo",
-    description: "Client retention success"
-  }, {
-    title: "Active Trainers",
-    value: formatNumber(allMetrics.trainers.uniqueTrainers),
-    change: 0,
-    trend: "neutral",
-    icon: Award,
-    color: "pink",
-    description: "Professional instructors"
-  }, {
-    title: "Avg Customer LTV",
-    value: formatCurrency(allMetrics.clients.avgLTV),
-    change: 9.4,
-    trend: "up",
-    icon: Star,
-    color: "yellow",
-    description: "Customer lifetime value"
-  }];
+
+  // Key Metrics
+  const keyMetrics = [
+    {
+      title: "Total Revenue",
+      value: formatCurrency(allMetrics.sales.totalRevenue),
+      change: allMetrics.sales.growth,
+      trend: "up",
+      icon: DollarSign,
+      color: "blue",
+      description: "Total business revenue"
+    },
+    {
+      title: "Active Members",
+      value: formatNumber(allMetrics.sales.uniqueMembers),
+      change: 8.3,
+      trend: "up",
+      icon: Users,
+      color: "green",
+      description: "Unique active members"
+    },
+    {
+      title: "Sessions Delivered",
+      value: formatNumber(allMetrics.sessions.totalSessions),
+      change: 15.2,
+      trend: "up",
+      icon: Calendar,
+      color: "purple",
+      description: "Total classes conducted"
+    },
+    {
+      title: "Average Fill Rate",
+      value: `${allMetrics.sessions.avgFillRate.toFixed(1)}%`,
+      change: 6.8,
+      trend: "up",
+      icon: Target,
+      color: "orange",
+      description: "Class capacity utilization"
+    },
+    {
+      title: "Conversion Rate",
+      value: `${allMetrics.clients.conversionRate.toFixed(1)}%`,
+      change: 4.2,
+      trend: "up",
+      icon: CheckCircle,
+      color: "teal",
+      description: "Lead to client conversion"
+    },
+    {
+      title: "Retention Rate",
+      value: `${allMetrics.clients.retentionRate.toFixed(1)}%`,
+      change: 2.1,
+      trend: "up",
+      icon: UserCheck,
+      color: "indigo",
+      description: "Client retention success"
+    },
+    {
+      title: "Active Trainers",
+      value: formatNumber(allMetrics.trainers.uniqueTrainers),
+      change: 0,
+      trend: "neutral",
+      icon: Award,
+      color: "pink",
+      description: "Professional instructors"
+    },
+    {
+      title: "Avg Customer LTV",
+      value: formatCurrency(allMetrics.clients.avgLTV),
+      change: 9.4,
+      trend: "up",
+      icon: Star,
+      color: "yellow",
+      description: "Customer lifetime value"
+    }
+  ];
+
+  // Get icon background color based on color
   const getIconBg = (color: string) => {
     const colors = {
       blue: "bg-blue-500",
@@ -252,23 +317,30 @@ const ExecutiveSummarySection = () => {
     };
     return colors[color as keyof typeof colors] || "bg-gray-500";
   };
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
       {/* Enhanced Animated Header */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white">
         <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-blue-400/20 to-purple-400/20 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-purple-400/20 to-pink-400/20 rounded-full blur-3xl animate-pulse"></div>
-        
-        
       </div>
 
       <div className="p-8 -mt-6 relative z-10">
         <div className="max-w-7xl mx-auto space-y-8">
+          {/* Add Executive Filters */}
+          <ExecutiveFilters 
+            dateRange={dateRange}
+            onDateRangeChange={setDateRange}
+          />
+
           {/* Animated Key Performance Indicators */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {keyMetrics.map((metric, index) => <Card key={metric.title} className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 group animate-fade-in" style={{
-            animationDelay: `${index * 100}ms`
-          }}>
+            {keyMetrics.map((metric, index) => (
+              <Card key={metric.title} className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 group animate-fade-in" style={{
+                animationDelay: `${index * 100}ms`
+              }}>
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-sm font-medium text-gray-600 group-hover:text-gray-800 transition-colors">
@@ -281,16 +353,24 @@ const ExecutiveSummarySection = () => {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <div className="text-3xl font-bold text-gray-900 animate-scale-in">{metric.value}</div>
-                  {metric.change !== 0 && <div className="flex items-center text-sm">
-                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium animate-bounce ${metric.trend === 'up' ? 'bg-green-100 text-green-700' : metric.trend === 'down' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {metric.trend === 'up' ? <ChevronUp className="h-3 w-3 mr-1" /> : metric.trend === 'down' ? <ChevronDown className="h-3 w-3 mr-1" /> : null}
+                  {metric.change !== 0 && (
+                    <div className="flex items-center text-sm">
+                      <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium animate-bounce ${
+                        metric.trend === 'up' ? 'bg-green-100 text-green-700' : 
+                        metric.trend === 'down' ? 'bg-red-100 text-red-700' : 
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {metric.trend === 'up' ? <ChevronUp className="h-3 w-3 mr-1" /> : 
+                         metric.trend === 'down' ? <ChevronDown className="h-3 w-3 mr-1" /> : null}
                         {metric.change > 0 ? '+' : ''}{metric.change}%
                       </div>
                       <span className="ml-2 text-gray-500">vs last period</span>
-                    </div>}
+                    </div>
+                  )}
                   <p className="text-sm text-gray-600">{metric.description}</p>
                 </CardContent>
-              </Card>)}
+              </Card>
+            ))}
           </div>
 
           {/* Comprehensive Data Tables */}
@@ -679,6 +759,8 @@ const ExecutiveSummarySection = () => {
           </Card>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default ExecutiveSummarySection;

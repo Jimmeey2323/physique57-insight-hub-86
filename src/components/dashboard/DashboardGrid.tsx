@@ -131,7 +131,7 @@ export function DashboardGrid({
       </div>
       
       {/* Sleeker Dashboard Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-2">
         {buttons.map(button => <button key={button.id} className={cn("group relative overflow-hidden", "bg-white border border-slate-200 rounded-2xl", "p-8 text-left transition-all duration-300 ease-out", "hover:shadow-xl hover:shadow-slate-200/60", "hover:-translate-y-1 hover:scale-[1.01]", "focus:outline-none focus:ring-2 focus:ring-slate-300 focus:border-slate-400", "active:scale-[0.98] active:transition-transform active:duration-100", button.hoverColor, clickedButton === button.id && "scale-[0.98]", hoveredButton === button.id && "border-slate-300 shadow-lg")} onMouseEnter={() => setHoveredButton(button.id)} onMouseLeave={() => setHoveredButton(null)} onClick={() => handleButtonClick(button.id)}>
             {/* Subtle Background Overlay */}
             <div className={cn("absolute inset-0 opacity-0 transition-opacity duration-300", `bg-gradient-to-br ${button.gradient}`, hoveredButton === button.id && "opacity-50")} />

@@ -302,21 +302,21 @@ export const NewClientSection: React.FC = () => {
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="space-y-4">
-                          {topBottomTrainers.top.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                          {topBottomTrainers.top.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-600 via-gray-800 to-gray-900 rounded-xl text-green-600 shadow-md">
                               <div className="flex items-center gap-3">
                                 <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                                   {index + 1}
                                 </div>
                                 <div>
-                                  <div className="font-semibold text-gray-800">{trainer.trainerName}</div>
-                                  <div className="text-sm text-gray-600">
+                                  <div className="font-semibold text-white">{trainer.trainerName}</div>
+                                  <div className="text-sm text-gray-100">
                                     {trainer.totalNewMembers} new members • {trainer.averageConversionRate.toFixed(1)}% conversion
                                   </div>
                                 </div>
                               </div>
                               <div className="text-right">
                                 <div className="font-bold text-green-600">{formatCurrency(trainer.averageLtv)}</div>
-                                <div className="text-xs text-gray-500">Avg LTV</div>
+                                <div className="text-xs text-gray-100">Avg LTV</div>
                               </div>
                             </div>)}
                         </div>
@@ -332,21 +332,21 @@ export const NewClientSection: React.FC = () => {
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="space-y-4">
-                          {topBottomTrainers.bottom.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-3 bg-gradient-to-r from-gray-500 to-gray-900 rounded-lg text-red-600">
+                          {topBottomTrainers.bottom.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-600 via-gray-800 to-gray-900 rounded-xl text-red-600 shadow-md">
                               <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                                <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
                                   {index + 1}
                                 </div>
                                 <div>
-                                  <div className="font-semibold text-gray-800">{trainer.trainerName}</div>
-                                  <div className="text-sm text-gray-600">
+                                  <div className="font-semibold text-yellow-300">{trainer.trainerName}</div>
+                                  <div className="text-sm text-gray-100">
                                     {trainer.totalNewMembers} new members • {trainer.averageConversionRate.toFixed(1)}% conversion
                                   </div>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-orange-600">{formatCurrency(trainer.averageLtv)}</div>
-                                <div className="text-xs text-gray-500">Avg LTV</div>
+                                <div className="font-bold text-red-600">{formatCurrency(trainer.averageLtv)}</div>
+                                <div className="text-xs text-gray-100">Avg LTV</div>
                               </div>
                             </div>)}
                         </div>

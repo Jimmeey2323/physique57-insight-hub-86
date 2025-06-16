@@ -355,7 +355,7 @@ export const NewClientSection: React.FC = () => {
                   </div>
 
                   {/* Month-on-Month Performance Table */}
-                  <Card className="bg-white shadow-sm border border-gray-200">
+                  <Card className="bg-white shadow-sm border border-gray-200 text-center">
                     <CardHeader className="border-b border-gray-100">
                       <CardTitle className="text-gray-800 text-xl">Month-on-Month Performance</CardTitle>
                     </CardHeader>
@@ -363,7 +363,7 @@ export const NewClientSection: React.FC = () => {
                       <div className="overflow-x-auto">
                         <Table>
                           <TableHeader>
-                            <TableRow className="bg-gray-50">
+                            <TableRow className="bg-gray-50 text-center text-bold">
                               <TableHead>Month</TableHead>
                               <TableHead>New Clients</TableHead>
                               <TableHead>Conversions</TableHead>

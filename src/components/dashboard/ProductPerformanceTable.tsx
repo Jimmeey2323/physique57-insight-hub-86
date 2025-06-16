@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
@@ -142,7 +141,7 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
       const category = items[0]?.cleanedCategory || 'Uncategorized';
       const vat = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
       const asv = members > 0 ? revenue / members : 0; // Average Spend Value per unique member
-      const upt = transactions > 0 ? items.length / transactions : 1; // Units per transaction (assuming 1 unit per transaction)
+      const upt = transactions > 0 ? transactions / transactions : 1; // Units per transaction (1 unit per transaction)
 
       return {
         product,

@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState } from 'react';
 import { SalesData, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
@@ -124,12 +123,19 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
       const metricValue = getMetricValue(items, selectedMetric);
       const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
       const totalTransactions = items.length;
+      const totalVAT = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
+      const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0;
+      const upt = totalTransactions > 0 ? totalTransactions / totalTransactions : 1;
       
       return {
         soldBy,
         metricValue,
         totalRevenue,
         totalTransactions,
+        totalVAT,
+        asv,
+        upt,
         monthlyValues,
         rawData: items
       };
@@ -214,6 +220,9 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Sold By</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Total Revenue</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Transactions</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ASV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">UPT</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">VAT</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -250,6 +259,15 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
                   <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
                     {formatNumber(item.totalTransactions)}
                   </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.asv)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {item.upt.toFixed(1)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.totalVAT)}
+                  </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = item.monthlyValues[key] || 0;
                     const previous = monthIndex > 0 ? item.monthlyValues[monthlyData[monthIndex - 1].key] || 0 : 0;
@@ -274,6 +292,15 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
                 </td>
                 <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
                   {formatNumber(totalsRow.totalTransactions)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(processedData.reduce((sum, item) => sum + item.asv, 0) / processedData.length)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {(processedData.reduce((sum, item) => sum + item.upt, 0) / processedData.length).toFixed(1)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(processedData.reduce((sum, item) => sum + (item.totalVAT || 0), 0))}
                 </td>
                 {monthlyData.map(({ key }) => (
                   <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">

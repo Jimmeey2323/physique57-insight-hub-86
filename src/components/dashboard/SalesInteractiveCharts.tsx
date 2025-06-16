@@ -65,7 +65,7 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
             month: key,
             revenue: 0,
             transactions: 0,
-            members: new Set(),
+            members: new Set<string>(),
             vat: 0
           };
         }
@@ -129,152 +129,121 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Monthly Revenue Trend */}
-      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              Monthly Revenue Trend
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant={timeRange === '3months' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTimeRange('3months')}
-              >
-                3M
-              </Button>
-              <Button
-                variant={timeRange === '6months' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTimeRange('6months')}
-              >
-                6M
-              </Button>
-              <Button
-                variant={timeRange === 'year' ? 'default' : 'outline'}
-                size="sm"
-                onClick={() => setTimeRange('year')}
-              >
-                1Y
-              </Button>
+    <div className="space-y-6">
+      {/* First Row - Two Small Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Category Performance */}
+        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <PieChartIcon className="w-5 h-5 text-purple-600" />
+                Category Revenue Distribution
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  <Filter className="w-4 h-4 mr-1" />
+                  Filter
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={monthlyData}>
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis dataKey="month" className="text-xs" />
-              <YAxis tickFormatter={formatTooltipValue} className="text-xs" />
-              <Tooltip 
-                formatter={(value) => [formatTooltipValue(value), 'Revenue']}
-                labelClassName="text-sm font-medium"
-                contentStyle={{ background: 'rgba(255, 255, 255, 0.95)', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#3B82F6" 
-                fill="url(#colorRevenue)" 
-                strokeWidth={2}
-              />
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
-                </linearGradient>
-              </defs>
-            </AreaChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={categoryData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {categoryData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => formatTooltipValue(value)} />
+              </PieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
-      {/* Category Performance */}
-      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-              <PieChartIcon className="w-5 h-5 text-purple-600" />
-              Category Revenue Distribution
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-1" />
-                Filter
-              </Button>
+        {/* Top Products Performance */}
+        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-green-600" />
+                Top 10 Products by Revenue
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm">
+                  Revenue
+                </Button>
+                <Button variant="ghost" size="sm">
+                  Volume
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <PieChart>
-              <Pie
-                data={categoryData}
-                cx="50%"
-                cy="50%"
-                labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                outerRadius={80}
-                fill="#8884d8"
-                dataKey="value"
-              >
-                {categoryData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip formatter={(value) => formatTooltipValue(value)} />
-            </PieChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={productData} layout="horizontal">
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis type="number" tickFormatter={formatTooltipValue} className="text-xs" />
+                <YAxis dataKey="name" type="category" width={120} className="text-xs" />
+                <Tooltip 
+                  formatter={(value) => formatTooltipValue(value)}
+                  labelClassName="text-sm font-medium"
+                  contentStyle={{ background: 'rgba(255, 255, 255, 0.95)', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                />
+                <Bar dataKey="value" fill="#10B981" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
 
-      {/* Top Products Performance */}
-      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-              <BarChart3 className="w-5 h-5 text-green-600" />
-              Top 10 Products by Revenue
-            </CardTitle>
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm">
-                Revenue
-              </Button>
-              <Button variant="ghost" size="sm">
-                Volume
-              </Button>
+      {/* Second Row - Full Width Chart */}
+      <div className="grid grid-cols-1 gap-6">
+        {/* Monthly Revenue Trend */}
+        <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                Monthly Revenue & Performance Trends
+              </CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  variant={timeRange === '3months' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTimeRange('3months')}
+                >
+                  3M
+                </Button>
+                <Button
+                  variant={timeRange === '6months' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTimeRange('6months')}
+                >
+                  6M
+                </Button>
+                <Button
+                  variant={timeRange === 'year' ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => setTimeRange('year')}
+                >
+                  1Y
+                </Button>
+              </div>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={productData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis type="number" tickFormatter={formatTooltipValue} className="text-xs" />
-              <YAxis dataKey="name" type="category" width={120} className="text-xs" />
-              <Tooltip 
-                formatter={(value) => formatTooltipValue(value)}
-                labelClassName="text-sm font-medium"
-                contentStyle={{ background: 'rgba(255, 255, 255, 0.95)', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
-              />
-              <Bar dataKey="value" fill="#10B981" radius={[0, 4, 4, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
-
-      {/* Multi-Metric Comparison */}
-      <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-lg font-bold text-slate-800">
-              <Activity className="w-5 h-5 text-orange-600" />
-              Multi-Metric Monthly Comparison
-            </CardTitle>
-            <div className="flex gap-1">
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-1 mb-4">
               <Button
                 variant={activeChart === 'revenue' ? 'default' : 'ghost'}
                 size="sm"
@@ -297,38 +266,52 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
                 Members
               </Button>
             </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={250}>
-            {activeChart === 'revenue' ? (
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" className="text-xs" />
-                <YAxis tickFormatter={formatTooltipValue} className="text-xs" />
-                <Tooltip formatter={(value) => formatTooltipValue(value)} />
-                <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }} />
-              </LineChart>
-            ) : activeChart === 'transactions' ? (
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" className="text-xs" />
-                <YAxis tickFormatter={formatTooltipNumber} className="text-xs" />
-                <Tooltip formatter={(value) => formatTooltipNumber(value)} />
-                <Line type="monotone" dataKey="transactions" stroke="#8B5CF6" strokeWidth={3} dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }} />
-              </LineChart>
-            ) : (
-              <LineChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                <XAxis dataKey="month" className="text-xs" />
-                <YAxis tickFormatter={formatTooltipNumber} className="text-xs" />
-                <Tooltip formatter={(value) => formatTooltipNumber(value)} />
-                <Line type="monotone" dataKey="members" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }} />
-              </LineChart>
-            )}
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+            <ResponsiveContainer width="100%" height={350}>
+              {activeChart === 'revenue' ? (
+                <AreaChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis tickFormatter={formatTooltipValue} className="text-xs" />
+                  <Tooltip 
+                    formatter={(value) => [formatTooltipValue(value), 'Revenue']}
+                    labelClassName="text-sm font-medium"
+                    contentStyle={{ background: 'rgba(255, 255, 255, 0.95)', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="revenue" 
+                    stroke="#3B82F6" 
+                    fill="url(#colorRevenue)" 
+                    strokeWidth={2}
+                  />
+                  <defs>
+                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                </AreaChart>
+              ) : activeChart === 'transactions' ? (
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis tickFormatter={formatTooltipNumber} className="text-xs" />
+                  <Tooltip formatter={(value) => formatTooltipNumber(value)} />
+                  <Line type="monotone" dataKey="transactions" stroke="#8B5CF6" strokeWidth={3} dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }} />
+                </LineChart>
+              ) : (
+                <LineChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis dataKey="month" className="text-xs" />
+                  <YAxis tickFormatter={formatTooltipNumber} className="text-xs" />
+                  <Tooltip formatter={(value) => formatTooltipNumber(value)} />
+                  <Line type="monotone" dataKey="members" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }} />
+                </LineChart>
+              )}
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

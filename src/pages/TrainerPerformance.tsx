@@ -32,17 +32,20 @@ const TrainerPerformance = () => {
         </div>
         
         <div className="relative z-10 container mx-auto px-6 py-16">
-          <div className="text-center space-y-4">
+          {/* Dashboard Button - Top Left */}
+          <div className="absolute top-6 left-6">
             <Button 
               onClick={() => navigate('/')} 
               variant="outline" 
               size="sm" 
-              className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200 mb-6"
+              className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200"
             >
               <Home className="w-4 h-4" />
               Dashboard
             </Button>
-            
+          </div>
+
+          <div className="text-center space-y-4 pt-8">
             <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 border border-white/20 animate-fade-in-up">
               <UserCheck className="w-5 h-5" />
               <span className="font-medium">Trainer Analytics</span>

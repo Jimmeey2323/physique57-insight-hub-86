@@ -141,10 +141,26 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       });
 
       const metricValue = getMetricValue(items, selectedMetric);
+      const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+      const totalTransactions = items.length;
+      const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+      const totalVAT = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
+      
+      // Calculate correct metrics
+      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0; // Average Spend per Member
+      const upt = totalTransactions; // Units per Transaction (1 unit = 1 transaction in this context)
+      const atv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0; // Average Transaction Value
       
       return {
         product,
         metricValue,
+        totalRevenue,
+        totalTransactions,
+        uniqueMembers,
+        totalVAT,
+        asv,
+        upt,
+        atv,
         monthlyValues,
         rawData: items
       };
@@ -164,6 +180,32 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     }
     return null;
   };
+
+  // Calculate totals row
+  const totalsRow = useMemo(() => {
+    const monthlyTotals: Record<string, number> = {};
+    monthlyData.forEach(({ key }) => {
+      monthlyTotals[key] = processedData.reduce((sum, item) => sum + (item.monthlyValues[key] || 0), 0);
+    });
+    
+    const totalRevenue = processedData.reduce((sum, item) => sum + item.totalRevenue, 0);
+    const totalTransactions = processedData.reduce((sum, item) => sum + item.totalTransactions, 0);
+    const totalMembers = new Set(data.map(item => item.memberId)).size;
+    const totalVAT = processedData.reduce((sum, item) => sum + item.totalVAT, 0);
+    
+    return {
+      product: 'TOTAL',
+      metricValue: processedData.reduce((sum, item) => sum + item.metricValue, 0),
+      totalRevenue,
+      totalTransactions,
+      totalMembers,
+      totalVAT,
+      asv: totalMembers > 0 ? totalRevenue / totalMembers : 0,
+      upt: totalTransactions,
+      atv: totalTransactions > 0 ? totalRevenue / totalTransactions : 0,
+      monthlyValues: monthlyTotals
+    };
+  }, [processedData, monthlyData, data]);
 
   const saveSummary = () => {
     setIsEditingSummary(false);
@@ -213,6 +255,10 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Product</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ATV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ASV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">UPT</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">VAT</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -243,6 +289,18 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                       <span className="truncate">{product.product}</span>
                     </div>
                   </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(product.atv)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(product.asv)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatNumber(product.upt)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(product.totalVAT)}
+                  </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = product.monthlyValues[key] || 0;
                     const previous = monthIndex > 0 ? product.monthlyValues[monthlyData[monthIndex - 1].key] || 0 : 0;
@@ -257,6 +315,30 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                   })}
                 </tr>
               ))}
+              
+              {/* Totals Row */}
+              <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-t-2 border-blue-200 font-bold">
+                <td className="px-6 py-3 text-sm font-bold text-blue-900 sticky left-0 bg-blue-100 border-r border-blue-200">
+                  TOTAL
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.atv)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.asv)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatNumber(totalsRow.upt)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.totalVAT)}
+                </td>
+                {monthlyData.map(({ key }) => (
+                  <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">
+                    {formatMetricValue(totalsRow.monthlyValues[key] || 0, selectedMetric)}
+                  </td>
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>

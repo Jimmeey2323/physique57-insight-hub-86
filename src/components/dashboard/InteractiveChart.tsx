@@ -22,24 +22,75 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
 
   const processChartData = () => {
     if (type === 'revenue' || type === 'performance') {
-      // Original sales data processing
+      // Check if this is for top products
+      if (title.toLowerCase().includes('product')) {
+        // Group by products and calculate metrics
+        const productData = (data as SalesData[]).reduce((acc, item) => {
+          const product = item.cleanedProduct || 'Unknown Product';
+          if (!acc[product]) {
+            acc[product] = { 
+              name: product, 
+              revenue: 0, 
+              transactions: 0, 
+              value: 0,
+              members: new Set()
+            };
+          }
+          acc[product].revenue += item.paymentValue || 0;
+          acc[product].transactions += 1;
+          acc[product].value += item.paymentValue || 0;
+          if (item.memberId) {
+            acc[product].members.add(item.memberId);
+          }
+          return acc;
+        }, {} as Record<string, any>);
+
+        return Object.values(productData)
+          .map((item: any) => ({
+            ...item,
+            members: item.members.size
+          }))
+          .sort((a: any, b: any) => b.revenue - a.revenue)
+          .slice(0, 10);
+      }
+
+      // Monthly data processing
       const monthlyData = (data as SalesData[]).reduce((acc, item) => {
-        const date = new Date(item.paymentDate);
+        if (!item.paymentDate) return acc;
+        
+        // Parse date properly
+        let date: Date | null = null;
+        const ddmmyyyy = item.paymentDate.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (ddmmyyyy) {
+          const [, day, month, year] = ddmmyyyy;
+          date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        }
+        
+        if (!date) return acc;
+        
         const month = date.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' });
         if (!acc[month]) {
-          acc[month] = { month, revenue: 0, transactions: 0, units: 0 };
+          acc[month] = { month, revenue: 0, transactions: 0, units: 0, members: new Set() };
         }
-        acc[month].revenue += item.paymentValue;
+        acc[month].revenue += item.paymentValue || 0;
         acc[month].transactions += 1;
         acc[month].units += 1;
+        if (item.memberId) {
+          acc[month].members.add(item.memberId);
+        }
         return acc;
       }, {} as Record<string, any>);
 
-      return Object.values(monthlyData).sort((a: any, b: any) => {
-        const dateA = new Date(a.month);
-        const dateB = new Date(b.month);
-        return dateA.getTime() - dateB.getTime();
-      });
+      return Object.values(monthlyData)
+        .map((item: any) => ({
+          ...item,
+          members: item.members.size
+        }))
+        .sort((a: any, b: any) => {
+          const dateA = new Date(a.month);
+          const dateB = new Date(b.month);
+          return dateA.getTime() - dateB.getTime();
+        });
     }
 
     if (type === 'conversion') {
@@ -87,9 +138,10 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
     const categoryData = (data as SalesData[]).reduce((acc, item) => {
       const category = item.cleanedCategory || 'Other';
       if (!acc[category]) {
-        acc[category] = { name: category, value: 0, count: 0 };
+        acc[category] = { name: category, value: 0, count: 0, revenue: 0 };
       }
-      acc[category].value += item.paymentValue;
+      acc[category].value += item.paymentValue || 0;
+      acc[category].revenue += item.paymentValue || 0;
       acc[category].count += 1;
       return acc;
     }, {} as Record<string, any>);
@@ -124,11 +176,11 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
     if (type === 'retention') {
       return activeMetric === 'revenue' ? 'revenue' : activeMetric === 'total' ? 'total' : 'retained';
     }
-    return activeMetric === 'revenue' ? 'revenue' : activeMetric === 'transactions' ? 'transactions' : 'value';
+    return activeMetric === 'revenue' ? 'revenue' : activeMetric === 'transactions' ? 'transactions' : activeMetric === 'members' ? 'members' : 'value';
   };
 
   const getXAxisKey = () => {
-    if (type === 'conversion' || type === 'revenue' || type === 'performance') return 'month';
+    if (type === 'conversion' || type === 'revenue' || type === 'performance') return title.toLowerCase().includes('product') ? 'name' : 'month';
     return 'name';
   };
 
@@ -157,6 +209,9 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
                 dataKey={xAxisKey} 
                 stroke="#64748b"
                 fontSize={12}
+                angle={title.toLowerCase().includes('product') ? -45 : 0}
+                textAnchor={title.toLowerCase().includes('product') ? 'end' : 'middle'}
+                height={title.toLowerCase().includes('product') ? 80 : 30}
               />
               <YAxis 
                 stroke="#64748b"
@@ -261,7 +316,7 @@ export const InteractiveChart: React.FC<InteractiveChartProps> = ({ title, data,
     return [
       { value: 'revenue', label: 'Revenue' },
       { value: 'transactions', label: 'Transactions' },
-      { value: 'units', label: 'Units' }
+      { value: 'members', label: 'Members' }
     ];
   };
 

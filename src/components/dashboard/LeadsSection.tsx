@@ -440,14 +440,8 @@ const LeadsSectionContent: React.FC = () => {
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-6">
               <div className="space-y-2">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 via-blue-700 to-purple-700 bg-clip-text text-transparent animate-fade-in">
-                  Lead Performance Analytics
-                </h1>
-                <p className="text-lg text-slate-600 max-w-2xl animate-fade-in" style={{
-                animationDelay: '0.2s'
-              }}>
-                  Transform prospects into customers with advanced analytics and conversion tracking
-                </p>
+                
+                
               </div>
               
               <div className="flex items-center gap-3">

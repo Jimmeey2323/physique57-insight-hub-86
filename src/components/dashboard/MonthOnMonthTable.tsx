@@ -50,20 +50,28 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
     if (!items.length) return 0;
+    const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+    const totalTransactions = items.length;
+    const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+    const totalUnits = items.length;
+    
     switch (metric) {
       case 'revenue':
-        return items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+        return totalRevenue;
       case 'transactions':
-        return items.length;
+        return totalTransactions;
       case 'members':
-        return new Set(items.map(item => item.memberId)).size;
+        return uniqueMembers;
       case 'atv':
-        const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        return items.length > 0 ? totalRevenue / items.length : 0;
+        return totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
       case 'auv':
-        const revenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        const units = items.length; // Each sale item is one unit
-        return units > 0 ? revenue / units : 0;
+        return totalUnits > 0 ? totalRevenue / totalUnits : 0;
+      case 'asv':
+        return uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0;
+      case 'upt':
+        return totalTransactions > 0 ? totalUnits / totalTransactions : 0;
+      case 'vat':
+        return items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
       default:
         return 0;
     }
@@ -74,10 +82,14 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       case 'revenue':
       case 'auv':
       case 'atv':
+      case 'asv':
+      case 'vat':
         return formatCurrency(value);
       case 'transactions':
       case 'members':
         return formatNumber(value);
+      case 'upt':
+        return value.toFixed(2);
       default:
         return formatNumber(value);
     }
@@ -206,7 +218,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     
     return {
       product: 'TOTAL',
-      metricValue: processedData.reduce((sum, item) => sum + item.metricValue, 0),
+      metricValue: getMetricValue(data, selectedMetric),
       totalRevenue,
       totalTransactions,
       totalMembers,
@@ -217,7 +229,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       auv: avgAuv,
       monthlyValues: monthlyTotals
     };
-  }, [processedData, monthlyData, data]);
+  }, [processedData, monthlyData, data, selectedMetric]);
 
   const saveSummary = () => {
     setIsEditingSummary(false);
@@ -267,11 +279,6 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Product</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ATV</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ASV</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">AUV</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">UPT</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">VAT</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -302,21 +309,6 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                       <span className="truncate">{product.product}</span>
                     </div>
                   </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(product.atv)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(product.asv)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(product.auv)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {product.upt.toFixed(2)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(product.totalVAT)}
-                  </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = product.monthlyValues[key] || 0;
                     const previous = monthIndex > 0 ? product.monthlyValues[monthlyData[monthIndex - 1].key] || 0 : 0;
@@ -336,21 +328,6 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
               <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-t-2 border-blue-200 font-bold">
                 <td className="px-6 py-3 text-sm font-bold text-blue-900 sticky left-0 bg-blue-100 border-r border-blue-200">
                   TOTAL
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.atv)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.asv)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.auv)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {totalsRow.upt.toFixed(2)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.totalVAT)}
                 </td>
                 {monthlyData.map(({ key }) => (
                   <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">

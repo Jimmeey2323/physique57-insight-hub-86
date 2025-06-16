@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard } from 'lucide-react';
+import { Loader2, RefreshCw, Users, Target, TrendingUp, CreditCard, Home } from 'lucide-react';
 import { usePayrollData } from '@/hooks/usePayrollData';
 import { useSessionsData } from '@/hooks/useSessionsData';
 import { useGoogleSheets } from '@/hooks/useGoogleSheets';
@@ -14,15 +14,17 @@ import { PowerCycleVsBarreTopBottomLists } from './PowerCycleVsBarreTopBottomLis
 import { FilterSection } from './FilterSection';
 import { MetricCard } from './MetricCard';
 import { formatNumber } from '@/utils/formatters';
+import { useNavigate } from 'react-router-dom';
 import type { SessionData, SalesData, FilterOptions } from '@/types/dashboard';
 
 export const PowerCycleVsBarreSection: React.FC = () => {
   const { data: payrollData, isLoading: payrollLoading, error: payrollError } = usePayrollData();
   const { data: sessionsData, loading: sessionsLoading, error: sessionsError } = useSessionsData();
   const { data: salesData, loading: salesLoading, error: salesError } = useGoogleSheets();
+  const navigate = useNavigate();
   
   const [activeLocation, setActiveLocation] = useState('all');
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false); // Collapsed by default
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: { start: '', end: '' },
     location: [],
@@ -105,18 +107,29 @@ export const PowerCycleVsBarreSection: React.FC = () => {
     });
   }, [transformedSessionsData]);
 
-  // Calculate metrics for both class types
+  // Calculate enhanced metrics for both class types
   const powerCycleMetrics = useMemo(() => {
     const totalSessions = powerCycleData.length;
     const totalAttendance = powerCycleData.reduce((sum, session) => sum + session.checkedIn, 0);
     const totalCapacity = powerCycleData.reduce((sum, session) => sum + session.capacity, 0);
+    const totalBookings = powerCycleData.reduce((sum, session) => sum + session.booked, 0);
+    const emptySessions = powerCycleData.filter(session => session.checkedIn === 0).length;
+    const nonEmptySessions = totalSessions - emptySessions;
+    
     const avgFillRate = totalCapacity > 0 ? (totalAttendance / totalCapacity) * 100 : 0;
+    const avgSessionSize = totalSessions > 0 ? totalAttendance / totalSessions : 0;
+    const avgSessionSizeExclEmpty = nonEmptySessions > 0 ? totalAttendance / nonEmptySessions : 0;
     
     return {
       totalSessions,
       totalAttendance,
+      totalCapacity,
+      totalBookings,
+      emptySessions,
       avgFillRate,
-      avgSessionSize: totalSessions > 0 ? totalAttendance / totalSessions : 0
+      avgSessionSize,
+      avgSessionSizeExclEmpty,
+      noShows: totalBookings - totalAttendance
     };
   }, [powerCycleData]);
 
@@ -124,13 +137,24 @@ export const PowerCycleVsBarreSection: React.FC = () => {
     const totalSessions = barreData.length;
     const totalAttendance = barreData.reduce((sum, session) => sum + session.checkedIn, 0);
     const totalCapacity = barreData.reduce((sum, session) => sum + session.capacity, 0);
+    const totalBookings = barreData.reduce((sum, session) => sum + session.booked, 0);
+    const emptySessions = barreData.filter(session => session.checkedIn === 0).length;
+    const nonEmptySessions = totalSessions - emptySessions;
+    
     const avgFillRate = totalCapacity > 0 ? (totalAttendance / totalCapacity) * 100 : 0;
+    const avgSessionSize = totalSessions > 0 ? totalAttendance / totalSessions : 0;
+    const avgSessionSizeExclEmpty = nonEmptySessions > 0 ? totalAttendance / nonEmptySessions : 0;
     
     return {
       totalSessions,
       totalAttendance,
+      totalCapacity,
+      totalBookings,
+      emptySessions,
       avgFillRate,
-      avgSessionSize: totalSessions > 0 ? totalAttendance / totalSessions : 0
+      avgSessionSize,
+      avgSessionSizeExclEmpty,
+      noShows: totalBookings - totalAttendance
     };
   }, [barreData]);
 
@@ -199,6 +223,18 @@ export const PowerCycleVsBarreSection: React.FC = () => {
         
         <div className="relative px-8 py-12">
           <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between mb-8">
+              <Button 
+                onClick={() => navigate('/')} 
+                variant="outline" 
+                size="sm" 
+                className="gap-2 bg-white/10 backdrop-blur-sm border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all duration-200"
+              >
+                <Home className="w-4 h-4" />
+                Dashboard
+              </Button>
+            </div>
+            
             <div className="text-center space-y-4">
               <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-2 border border-white/20 animate-fade-in-up">
                 <Target className="w-5 h-5" />
@@ -265,91 +301,93 @@ export const PowerCycleVsBarreSection: React.FC = () => {
                     filters={filters}
                     onFiltersChange={handleFiltersChange}
                     type="sales"
+                    isExpanded={isFiltersExpanded}
+                    onToggle={setIsFiltersExpanded}
                   />
 
-                  {/* Metric Cards */}
+                  {/* Enhanced Metric Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <MetricCard
                       data={{
-                        title: "PowerCycle Sessions",
-                        value: formatNumber(powerCycleMetrics.totalSessions),
+                        title: "PowerCycle Capacity",
+                        value: formatNumber(powerCycleMetrics.totalCapacity),
                         change: 0,
-                        description: "Total PowerCycle sessions",
-                        calculation: "Total count of PowerCycle sessions",
+                        description: "Total PowerCycle capacity",
+                        calculation: "Sum of all PowerCycle session capacities",
                         icon: "sessions"
                       }}
                     />
                     <MetricCard
                       data={{
-                        title: "Barre Sessions",
-                        value: formatNumber(barreMetrics.totalSessions),
+                        title: "Barre Capacity",
+                        value: formatNumber(barreMetrics.totalCapacity),
                         change: 0,
-                        description: "Total Barre sessions",
-                        calculation: "Total count of Barre sessions",
+                        description: "Total Barre capacity",
+                        calculation: "Sum of all Barre session capacities",
                         icon: "sessions"
                       }}
                     />
                     <MetricCard
                       data={{
-                        title: "PowerCycle Fill Rate",
-                        value: `${Math.round(powerCycleMetrics.avgFillRate)}%`,
+                        title: "PowerCycle Bookings",
+                        value: formatNumber(powerCycleMetrics.totalBookings),
                         change: 0,
-                        description: "Average PowerCycle fill rate",
-                        calculation: "Average attendance vs capacity",
-                        icon: "percentage"
+                        description: "Total PowerCycle bookings",
+                        calculation: "Sum of all PowerCycle bookings",
+                        icon: "users"
                       }}
                     />
                     <MetricCard
                       data={{
-                        title: "Barre Fill Rate",
-                        value: `${Math.round(barreMetrics.avgFillRate)}%`,
+                        title: "Barre Bookings",
+                        value: formatNumber(barreMetrics.totalBookings),
                         change: 0,
-                        description: "Average Barre fill rate",
-                        calculation: "Average attendance vs capacity",
-                        icon: "percentage"
+                        description: "Total Barre bookings",
+                        calculation: "Sum of all Barre bookings",
+                        icon: "users"
                       }}
                     />
                   </div>
 
-                  {/* Second Row of Metrics */}
+                  {/* Second Row of Enhanced Metrics */}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <MetricCard
                       data={{
-                        title: "PowerCycle Attendance",
-                        value: formatNumber(powerCycleMetrics.totalAttendance),
+                        title: "PowerCycle Empty Classes",
+                        value: formatNumber(powerCycleMetrics.emptySessions),
                         change: 0,
-                        description: "Total PowerCycle attendance",
-                        calculation: "Sum of all PowerCycle check-ins",
-                        icon: "users"
+                        description: "PowerCycle sessions with 0 attendance",
+                        calculation: "Count of sessions with no check-ins",
+                        icon: "sessions"
                       }}
                     />
                     <MetricCard
                       data={{
-                        title: "Barre Attendance",
-                        value: formatNumber(barreMetrics.totalAttendance),
+                        title: "Barre Empty Classes",
+                        value: formatNumber(barreMetrics.emptySessions),
                         change: 0,
-                        description: "Total Barre attendance",
-                        calculation: "Sum of all Barre check-ins",
-                        icon: "users"
+                        description: "Barre sessions with 0 attendance",
+                        calculation: "Count of sessions with no check-ins",
+                        icon: "sessions"
                       }}
                     />
                     <MetricCard
                       data={{
-                        title: "PowerCycle Avg Size",
-                        value: Math.round(powerCycleMetrics.avgSessionSize).toString(),
+                        title: "PowerCycle Avg (Excl Empty)",
+                        value: Math.round(powerCycleMetrics.avgSessionSizeExclEmpty).toString(),
                         change: 0,
-                        description: "Average PowerCycle session size",
-                        calculation: "Average attendees per session",
+                        description: "Average PowerCycle size excluding empty",
+                        calculation: "Average attendees per non-empty session",
                         icon: "average"
                       }}
                     />
                     <MetricCard
                       data={{
-                        title: "Barre Avg Size",
-                        value: Math.round(barreMetrics.avgSessionSize).toString(),
+                        title: "Barre Avg (Excl Empty)",
+                        value: Math.round(barreMetrics.avgSessionSizeExclEmpty).toString(),
                         change: 0,
-                        description: "Average Barre session size",
-                        calculation: "Average attendees per session",
+                        description: "Average Barre size excluding empty",
+                        calculation: "Average attendees per non-empty session",
                         icon: "average"
                       }}
                     />
@@ -361,7 +399,7 @@ export const PowerCycleVsBarreSection: React.FC = () => {
                     barreData={barreData}
                   />
 
-                  {/* Tables Section */}
+                  {/* Enhanced Tables Section */}
                   <PowerCycleVsBarreTables 
                     powerCycleData={powerCycleData} 
                     barreData={barreData}

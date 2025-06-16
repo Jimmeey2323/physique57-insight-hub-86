@@ -14,14 +14,14 @@ const SalesAnalytics = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/20">
       {/* Animated Header Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-green-600 to-teal-700 text-white">
+      <div className="relative overflow-hidden bg-gradient-to-r from-indigo-900 via-purple-800 to-indigo-700 text-white">
         <div className="absolute inset-0 bg-black/20" />
         
         {/* Animated background elements */}
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-4 -left-4 w-32 h-32 bg-white/10 rounded-full animate-pulse"></div>
-          <div className="absolute top-20 right-10 w-24 h-24 bg-green-300/20 rounded-full animate-bounce delay-1000"></div>
-          <div className="absolute bottom-10 left-20 w-40 h-40 bg-emerald-300/10 rounded-full animate-pulse delay-500"></div>
+          <div className="absolute top-20 right-10 w-24 h-24 bg-indigo-300/20 rounded-full animate-bounce delay-1000"></div>
+          <div className="absolute bottom-10 left-20 w-40 h-40 bg-purple-300/10 rounded-full animate-pulse delay-500"></div>
         </div>
         
         <div className="relative px-8 py-12">
@@ -44,11 +44,11 @@ const SalesAnalytics = () => {
                 <span className="font-medium">Sales Analytics</span>
               </div>
               
-              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-emerald-100 to-green-100 bg-clip-text text-transparent animate-fade-in-up delay-200">
+              <h1 className="text-5xl md:text-6xl font-bold bg-gradient-to-r from-white via-indigo-100 to-purple-100 bg-clip-text text-transparent animate-fade-in-up delay-200">
                 Sales Analytics
               </h1>
               
-              <p className="text-xl text-emerald-100 max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-300">
+              <p className="text-xl text-indigo-100 max-w-2xl mx-auto leading-relaxed animate-fade-in-up delay-300">
                 Comprehensive analysis of sales performance, revenue trends, and customer insights
               </p>
             </div>

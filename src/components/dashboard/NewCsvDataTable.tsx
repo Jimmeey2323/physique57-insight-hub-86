@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, memo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,8 +10,11 @@ import { OptimizedTable } from '@/components/ui/OptimizedTable';
 import { designTokens } from '@/utils/designTokens';
 
 // Memoized overview card component
-const OverviewCard = memo(({ locationData }: { locationData: NewClientData }) => (
-  <Card className={`bg-gradient-to-br from-white to-blue-50 ${designTokens.card.shadow}`}>
+const OverviewCard = memo(({
+  locationData
+}: {
+  locationData: NewClientData;
+}) => <Card className={`bg-gradient-to-br from-white to-blue-50 ${designTokens.card.shadow}`}>
     <CardHeader className="pb-3">
       <CardTitle className="text-lg font-bold text-blue-800">
         {locationData.location.replace('Kwality House, Kemps Corner', 'Kwality House').replace('Supreme HQ, Bandra', 'Supreme HQ')}
@@ -38,87 +40,55 @@ const OverviewCard = memo(({ locationData }: { locationData: NewClientData }) =>
         </div>
       </div>
     </CardContent>
-  </Card>
-));
-
+  </Card>);
 export const NewCsvDataTable: React.FC = () => {
-  const { data, loading, error } = useNewCsvData();
+  const {
+    data,
+    loading,
+    error
+  } = useNewCsvData();
   const [selectedMetric, setSelectedMetric] = useState<string>('overview');
 
   // Memoized table columns for performance
   const tableColumns = useMemo(() => {
     if (!data || data.length === 0) return [];
-    
-    return [
-      {
-        key: 'location' as keyof NewClientData,
-        header: 'Location',
-        render: (value: string) => (
-          <span className="font-medium">
+    return [{
+      key: 'location' as keyof NewClientData,
+      header: 'Location',
+      render: (value: string) => <span className="font-medium">
             {value.replace('Kwality House, Kemps Corner', 'Kwality House').replace('Supreme HQ, Bandra', 'Supreme HQ')}
-          </span>
-        ),
-        className: 'sticky left-0 bg-white z-10 border-r'
+          </span>,
+      className: 'sticky left-0 bg-white z-10 border-r'
+    }, ...data[0].months.map((month, index) => ({
+      key: `month_${index}` as keyof NewClientData,
+      header: month.replace('2025-', '').replace('2024-', ''),
+      render: (value: any, item: NewClientData) => {
+        const metricData = item[selectedMetric as keyof NewClientData] as any[];
+        const cellValue = metricData?.[index] || 0;
+        if (selectedMetric === 'ltv') {
+          return `₹${formatNumber(cellValue)}`;
+        }
+        return selectedMetric.includes('retention') || selectedMetric.includes('conversion') ? cellValue : formatNumber(cellValue);
       },
-      ...data[0].months.map((month, index) => ({
-        key: `month_${index}` as keyof NewClientData,
-        header: month.replace('2025-', '').replace('2024-', ''),
-        render: (value: any, item: NewClientData) => {
-          const metricData = item[selectedMetric as keyof NewClientData] as any[];
-          const cellValue = metricData?.[index] || 0;
-          
-          if (selectedMetric === 'ltv') {
-            return `₹${formatNumber(cellValue)}`;
-          }
-          return selectedMetric.includes('retention') || selectedMetric.includes('conversion') 
-            ? cellValue 
-            : formatNumber(cellValue);
-        },
-        className: 'text-center'
-      }))
-    ];
+      className: 'text-center'
+    }))];
   }, [data, selectedMetric]);
-
   if (loading) {
     return <LoadingSkeleton type="table" />;
   }
-
   if (error) {
-    return (
-      <Card className={`${designTokens.card.background} ${designTokens.card.shadow}`}>
+    return <Card className={`${designTokens.card.background} ${designTokens.card.shadow}`}>
         <CardContent className="text-center p-12">
           <p className="text-red-600">Error loading data: {error}</p>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-
-  const renderOverviewTable = () => (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {data.map((locationData) => (
-        <OverviewCard key={locationData.location} locationData={locationData} />
-      ))}
-    </div>
-  );
-
-  const renderMetricTable = (formatValue?: (value: any) => string) => (
-    <OptimizedTable
-      data={data}
-      columns={tableColumns}
-      loading={loading}
-      maxHeight="500px"
-      stickyHeader={true}
-    />
-  );
-
-  return (
-    <Card className={`${designTokens.card.background} ${designTokens.card.shadow} ${designTokens.card.border}`}>
-      <CardHeader className="bg-gradient-to-r from-blue-600 to-blue-800 text-white">
-        <CardTitle className="flex items-center gap-3 text-2xl">
-          <Users className="w-6 h-6" />
-          Client Conversion & Retention Analytics
-        </CardTitle>
-      </CardHeader>
+  const renderOverviewTable = () => <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {data.map(locationData => <OverviewCard key={locationData.location} locationData={locationData} />)}
+    </div>;
+  const renderMetricTable = (formatValue?: (value: any) => string) => <OptimizedTable data={data} columns={tableColumns} loading={loading} maxHeight="500px" stickyHeader={true} />;
+  return <Card className={`${designTokens.card.background} ${designTokens.card.shadow} ${designTokens.card.border}`}>
+      
       <CardContent className={designTokens.card.padding}>
         <Tabs value={selectedMetric} onValueChange={setSelectedMetric} className="w-full">
           <TabsList className="grid w-full grid-cols-7 bg-gradient-to-r from-blue-50 to-blue-100 mb-6">
@@ -140,7 +110,7 @@ export const NewCsvDataTable: React.FC = () => {
               <TrendingUp className="w-5 h-5 text-blue-600" />
               <h3 className="text-lg font-semibold text-blue-800">New Members by Month</h3>
             </div>
-            {renderMetricTable((value) => formatNumber(value))}
+            {renderMetricTable(value => formatNumber(value))}
           </TabsContent>
 
           <TabsContent value="retained" className="space-y-4">
@@ -148,7 +118,7 @@ export const NewCsvDataTable: React.FC = () => {
               <Target className="w-5 h-5 text-green-600" />
               <h3 className="text-lg font-semibold text-green-800">Retained Members by Month</h3>
             </div>
-            {renderMetricTable((value) => formatNumber(value))}
+            {renderMetricTable(value => formatNumber(value))}
           </TabsContent>
 
           <TabsContent value="converted" className="space-y-4">
@@ -156,7 +126,7 @@ export const NewCsvDataTable: React.FC = () => {
               <Users className="w-5 h-5 text-purple-600" />
               <h3 className="text-lg font-semibold text-purple-800">Converted Members by Month</h3>
             </div>
-            {renderMetricTable((value) => formatNumber(value))}
+            {renderMetricTable(value => formatNumber(value))}
           </TabsContent>
 
           <TabsContent value="retention" className="space-y-4">
@@ -180,10 +150,9 @@ export const NewCsvDataTable: React.FC = () => {
               <Badge className="bg-orange-100 text-orange-800">Lifetime Value</Badge>
               <h3 className="text-lg font-semibold text-orange-800">Customer Lifetime Value by Month</h3>
             </div>
-            {renderMetricTable((value) => `₹${formatNumber(value)}`)}
+            {renderMetricTable(value => `₹${formatNumber(value)}`)}
           </TabsContent>
         </Tabs>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };

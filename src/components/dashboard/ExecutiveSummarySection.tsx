@@ -170,7 +170,6 @@ const ExecutiveSummarySection = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
         <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-purple-900 text-white">
           <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
           <div className="relative px-8 py-12">
@@ -189,8 +188,7 @@ const ExecutiveSummarySection = () => {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </div>        
         
         <div className="p-8 -mt-6 relative z-10">
           <div className="max-w-7xl mx-auto">

@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, BarChart3, Users, Target, Filter, MapPin, Building2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, BarChart3, Users, Target, Filter, MapPin, Building2, Home } from 'lucide-react';
 import { useSessionsData, SessionData } from '@/hooks/useSessionsData';
 import { SessionsFilterSection } from './SessionsFilterSection';
 import { SessionsGroupedTable } from './SessionsGroupedTable';
@@ -13,6 +14,8 @@ import { ImprovedSessionsTopBottomLists } from './ImprovedSessionsTopBottomLists
 import { SessionsQuickFilters } from './SessionsQuickFilters';
 import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
 import { ClassFormatAnalysis } from './ClassFormatAnalysis';
+import { useNavigate } from 'react-router-dom';
+
 const locations = [{
   id: 'all',
   name: 'All Locations',
@@ -30,7 +33,9 @@ const locations = [{
   name: 'Kenkere House',
   fullName: 'Kenkere House'
 }];
+
 export const ClassAttendanceSection: React.FC = () => {
+  const navigate = useNavigate();
   const {
     data,
     loading,
@@ -55,6 +60,7 @@ export const ClassAttendanceSection: React.FC = () => {
       end: null as Date | null
     }
   });
+
   const filteredData = useMemo(() => {
     if (!data) return [];
     let filtered = data;
@@ -99,6 +105,7 @@ export const ClassAttendanceSection: React.FC = () => {
     }
     return filtered;
   }, [data, activeLocation, quickFilters, filters]);
+
   const uniqueOptions = useMemo(() => {
     if (!data) return {
       trainers: [],
@@ -119,12 +126,14 @@ export const ClassAttendanceSection: React.FC = () => {
       days: [...new Set(data.map(item => item.dayOfWeek))].filter(Boolean)
     };
   }, [data]);
+
   const handleQuickFilterChange = (type: string, values: string[]) => {
     setQuickFilters(prev => ({
       ...prev,
       [type]: values
     }));
   };
+
   const clearQuickFilters = () => {
     setQuickFilters({
       locations: [],
@@ -133,6 +142,7 @@ export const ClassAttendanceSection: React.FC = () => {
       days: []
     });
   };
+
   if (!data || data.length === 0) {
     return <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -140,19 +150,9 @@ export const ClassAttendanceSection: React.FC = () => {
         </div>
       </div>;
   }
-  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Enhanced Header Section */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/90 to-purple-900/80">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20" />
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,_rgba(59,130,246,0.3),_transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,_rgba(147,51,234,0.2),_transparent_50%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,_rgba(79,70,229,0.2),_transparent_50%)]" />
-        </div>
-        
-        
-      </div>
 
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className="container mx-auto px-6 py-8">
         {/* Location Tabs */}
         <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
@@ -220,5 +220,6 @@ export const ClassAttendanceSection: React.FC = () => {
             </TabsContent>)}
         </Tabs>
       </div>
-    </div>;
+    </div>
+  );
 };

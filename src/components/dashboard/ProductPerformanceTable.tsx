@@ -136,10 +136,13 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
       });
 
       const metricValue = getMetricValue(items, selectedMetric);
-      const revenue = getMetricValue(items, 'revenue');
-      const transactions = getMetricValue(items, 'transactions');
-      const members = getMetricValue(items, 'members');
+      const revenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+      const transactions = items.length;
+      const members = new Set(items.map(item => item.memberId)).size;
       const category = items[0]?.cleanedCategory || 'Uncategorized';
+      const vat = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
+      const asv = members > 0 ? revenue / members : 0; // Average Spend Value per unique member
+      const upt = transactions > 0 ? items.length / transactions : 1; // Units per transaction (assuming 1 unit per transaction)
 
       return {
         product,
@@ -148,6 +151,9 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
         revenue,
         transactions,
         members,
+        vat,
+        asv,
+        upt,
         monthlyValues,
         rawData: items
       };
@@ -221,9 +227,12 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
           <table className="min-w-full bg-white border-t border-gray-200 rounded-lg">
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg">Rank</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left">Product</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left">Category</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Rank</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-left sticky left-12 bg-blue-800 z-30">Product</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-left">Category</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ASV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">UPT</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">VAT</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -243,22 +252,33 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
             </thead>
             <tbody>
               {processedData.map((product, index) => (
-                <tr key={product.product} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors duration-200 h-8 max-h-8" onClick={() => onRowClick(product.rawData)}>
-                  <td className="px-6 py-2 text-center h-8 max-h-8">
+                <tr key={product.product} className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors duration-200" onClick={() => onRowClick(product.rawData)}>
+                  <td className="px-4 py-3 text-center sticky left-0 bg-white border-r border-gray-200">
                     <div className="flex items-center justify-center gap-2">
                       <span className="font-bold text-slate-700">#{index + 1}</span>
                       {getPerformanceIndicator(product.metricValue, index)}
                     </div>
                   </td>
-                  <td className="px-6 py-2 text-sm font-medium text-gray-900 h-8 max-h-8">{product.product}</td>
-                  <td className="px-6 py-2 text-sm text-gray-700 h-8 max-h-8">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-900 sticky left-12 bg-white border-r border-gray-200 max-w-48">
+                    <span className="truncate block">{product.product}</span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">
                     <Badge variant="outline" className="text-xs">{product.category}</Badge>
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(product.asv)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {product.upt.toFixed(1)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(product.vat)}
                   </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = product.monthlyValues[key] || 0;
                     const previous = monthIndex > 0 ? product.monthlyValues[monthlyData[monthIndex - 1].key] || 0 : 0;
                     return (
-                      <td key={key} className="px-3 py-2 text-center text-sm text-gray-900 font-mono h-8 max-h-8">
+                      <td key={key} className="px-3 py-3 text-center text-sm text-gray-900 font-mono border-l border-gray-100">
                         <div className="flex items-center justify-center">
                           {formatMetricValue(current, selectedMetric)}
                           {getGrowthIndicator(current, previous)}

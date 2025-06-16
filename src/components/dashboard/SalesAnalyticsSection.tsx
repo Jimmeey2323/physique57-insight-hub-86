@@ -13,6 +13,10 @@ import { EnhancedYearOnYearTable } from './EnhancedYearOnYearTable';
 import { MonthOnMonthTable } from './MonthOnMonthTable';
 import { ProductPerformanceTable } from './ProductPerformanceTable';
 import { CategoryPerformanceTable } from './CategoryPerformanceTable';
+import { SalesAnimatedMetricCards } from './SalesAnimatedMetricCards';
+import { SalesInteractiveCharts } from './SalesInteractiveCharts';
+import { SoldByMonthOnMonthTable } from './SoldByMonthOnMonthTable';
+import { PaymentMethodMonthOnMonthTable } from './PaymentMethodMonthOnMonthTable';
 import { SalesData, FilterOptions, MetricCardData, YearOnYearMetricType } from '@/types/dashboard';
 import { formatCurrency, formatNumber, formatPercentage } from '@/utils/formatters';
 import { cn } from '@/lib/utils';
@@ -125,131 +129,6 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
   const historicData = useMemo(() => {
     return applyFilters(data, true);
   }, [data, activeLocation]);
-  const metrics = useMemo((): MetricCardData[] => {
-    const totalRevenue = filteredData.reduce((sum, item) => sum + item.paymentValue, 0);
-    const totalVAT = filteredData.reduce((sum, item) => sum + item.paymentVAT, 0);
-    const netRevenue = totalRevenue - totalVAT;
-    const totalTransactions = filteredData.length;
-    const uniqueMembers = new Set(filteredData.map(item => item.memberId)).size;
-    const totalUnits = filteredData.length;
-    const atv = totalRevenue / totalTransactions || 0;
-    const auv = totalRevenue / totalUnits || 0;
-    const asv = totalRevenue / uniqueMembers || 0;
-    const upt = totalUnits / totalTransactions || 0;
-    return [{
-      title: 'Gross Revenue',
-      value: formatCurrency(totalRevenue),
-      change: 12.5,
-      description: 'Total revenue including VAT for the selected period with strong growth momentum',
-      calculation: 'Sum of all Payment Values across all transactions',
-      icon: 'revenue',
-      rawValue: totalRevenue,
-      breakdown: {
-        current: totalRevenue,
-        vat: totalVAT,
-        net: netRevenue,
-        transactions: totalTransactions
-      }
-    }, {
-      title: 'Net Revenue',
-      value: formatCurrency(netRevenue),
-      change: 8.2,
-      description: 'Revenue after deducting VAT, showing actual business income',
-      calculation: 'Gross Revenue - Total VAT',
-      icon: 'net',
-      rawValue: netRevenue,
-      breakdown: {
-        current: netRevenue,
-        gross: totalRevenue,
-        vat: totalVAT,
-        transactions: totalTransactions
-      }
-    }, {
-      title: 'Total Transactions',
-      value: formatNumber(totalTransactions),
-      change: 15.3,
-      description: 'Number of successful payment transactions indicating customer activity',
-      calculation: 'Count of all payment records with succeeded status',
-      icon: 'transactions',
-      rawValue: totalTransactions,
-      breakdown: {
-        current: totalTransactions,
-        revenue: totalRevenue,
-        uniqueMembers: uniqueMembers,
-        avgValue: atv
-      }
-    }, {
-      title: 'Average Ticket Value',
-      value: formatCurrency(atv),
-      change: -2.1,
-      description: 'Average revenue per transaction, key indicator of pricing strategy effectiveness',
-      calculation: 'Total Revenue / Total Transactions',
-      icon: 'atv',
-      rawValue: atv,
-      breakdown: {
-        current: atv,
-        totalRevenue: totalRevenue,
-        totalTransactions: totalTransactions,
-        comparison: auv
-      }
-    }, {
-      title: 'Average Unit Value',
-      value: formatCurrency(auv),
-      change: 5.7,
-      description: 'Average revenue per unit sold, reflecting product pricing efficiency',
-      calculation: 'Total Revenue / Total Units Sold',
-      icon: 'auv',
-      rawValue: auv,
-      breakdown: {
-        current: auv,
-        totalRevenue: totalRevenue,
-        totalUnits: totalUnits,
-        comparison: atv
-      }
-    }, {
-      title: 'Unique Members',
-      value: formatNumber(uniqueMembers),
-      change: 18.9,
-      description: 'Number of unique customers indicating market reach and acquisition',
-      calculation: 'Count of distinct Member IDs',
-      icon: 'members',
-      rawValue: uniqueMembers,
-      breakdown: {
-        current: uniqueMembers,
-        totalTransactions: totalTransactions,
-        avgSpend: asv,
-        totalRevenue: totalRevenue
-      }
-    }, {
-      title: 'Average Spend Value',
-      value: formatCurrency(asv),
-      change: 7.4,
-      description: 'Average spend per unique member, measuring customer lifetime value',
-      calculation: 'Total Revenue / Unique Members',
-      icon: 'asv',
-      rawValue: asv,
-      breakdown: {
-        current: asv,
-        totalRevenue: totalRevenue,
-        uniqueMembers: uniqueMembers,
-        comparison: atv
-      }
-    }, {
-      title: 'Units per Transaction',
-      value: upt.toFixed(1),
-      change: 3.2,
-      description: 'Average number of units per transaction, indicating cross-selling success',
-      calculation: 'Total Units / Total Transactions',
-      icon: 'upt',
-      rawValue: upt,
-      breakdown: {
-        current: upt,
-        totalUnits: totalUnits,
-        totalTransactions: totalTransactions,
-        totalRevenue: totalRevenue
-      }
-    }];
-  }, [filteredData]);
 
   const handleRowClick = (rowData: any) => {
     console.log('Row clicked with data:', rowData);
@@ -309,32 +188,53 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
                 onReset={resetFilters}
               />
 
+              {/* Animated Metric Cards */}
+              <SalesAnimatedMetricCards data={filteredData} />
+
+              {/* Interactive Charts */}
+              <SalesInteractiveCharts data={allHistoricData} />
+
+              {/* Top/Bottom Performers */}
+              <UnifiedTopBottomSellers data={filteredData} />
+
               {/* Analytics Sections */}
               <Tabs defaultValue="yearOnYear" className="w-full">
-                <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-4 w-full max-w-4xl mx-auto overflow-hidden">
+                <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-6 w-full max-w-6xl mx-auto overflow-hidden">
                   <TabsTrigger
                     value="yearOnYear"
-                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                    className="relative rounded-xl px-4 py-3 font-semibold text-xs transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
                   >
                     Year-on-Year
                   </TabsTrigger>
                   <TabsTrigger
                     value="monthOnMonth"
-                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                    className="relative rounded-xl px-4 py-3 font-semibold text-xs transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
                   >
                     Month-on-Month
                   </TabsTrigger>
                   <TabsTrigger
                     value="productPerformance"
-                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                    className="relative rounded-xl px-4 py-3 font-semibold text-xs transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
                   >
                     Product Performance
                   </TabsTrigger>
                   <TabsTrigger
                     value="categoryPerformance"
-                    className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                    className="relative rounded-xl px-4 py-3 font-semibold text-xs transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
                   >
                     Category Performance
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="soldByAnalysis"
+                    className="relative rounded-xl px-4 py-3 font-semibold text-xs transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                  >
+                    Sold By Analysis
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="paymentMethodAnalysis"
+                    className="relative rounded-xl px-4 py-3 font-semibold text-xs transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
+                  >
+                    Payment Methods
                   </TabsTrigger>
                 </TabsList>
 
@@ -377,6 +277,28 @@ export const SalesAnalyticsSection: React.FC<SalesAnalyticsSectionProps> = ({
                   <section className="space-y-4">
                     <h2 className="text-2xl font-bold text-gray-900">Category Performance Analysis</h2>
                     <CategoryPerformanceTable 
+                      data={allHistoricData}
+                      onRowClick={handleRowClick}
+                      selectedMetric={activeYoyMetric}
+                    />
+                  </section>
+                </TabsContent>
+
+                <TabsContent value="soldByAnalysis" className="mt-8">
+                  <section className="space-y-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Sold By Analysis</h2>
+                    <SoldByMonthOnMonthTable 
+                      data={allHistoricData}
+                      onRowClick={handleRowClick}
+                      selectedMetric={activeYoyMetric}
+                    />
+                  </section>
+                </TabsContent>
+
+                <TabsContent value="paymentMethodAnalysis" className="mt-8">
+                  <section className="space-y-4">
+                    <h2 className="text-2xl font-bold text-gray-900">Payment Method Analysis</h2>
+                    <PaymentMethodMonthOnMonthTable 
                       data={allHistoricData}
                       onRowClick={handleRowClick}
                       selectedMetric={activeYoyMetric}

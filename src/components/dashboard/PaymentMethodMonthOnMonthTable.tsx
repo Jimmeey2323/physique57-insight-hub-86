@@ -1,41 +1,28 @@
 
 import React, { useMemo, useState } from 'react';
-import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
+import { SalesData, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-import { Calendar, TrendingUp, TrendingDown, Star, Edit3, Save, X } from 'lucide-react';
+import { CreditCard, TrendingUp, TrendingDown, Edit3, Save, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 
-interface MonthOnMonthTableProps {
+interface PaymentMethodMonthOnMonthTableProps {
   data: SalesData[];
-  filters?: FilterOptions;
   onRowClick: (row: any) => void;
-  collapsedGroups: Set<string>;
-  onGroupToggle: (groupKey: string) => void;
   selectedMetric?: YearOnYearMetricType;
 }
 
-export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
+export const PaymentMethodMonthOnMonthTable: React.FC<PaymentMethodMonthOnMonthTableProps> = ({
   data,
-  filters = {
-    dateRange: { start: '', end: '' },
-    location: [],
-    category: [],
-    product: [],
-    soldBy: [],
-    paymentMethod: []
-  },
   onRowClick,
-  collapsedGroups,
-  onGroupToggle,
   selectedMetric: initialMetric = 'revenue'
 }) => {
   const [selectedMetric, setSelectedMetric] = useState<YearOnYearMetricType>(initialMetric);
   const [isEditingSummary, setIsEditingSummary] = useState(false);
-  const [summaryText, setSummaryText] = useState('• Month-on-month analysis shows seasonal patterns\n• Strong performance in peak months with growth opportunities identified\n• Consistent upward trend in key metrics');
+  const [summaryText, setSummaryText] = useState('• Digital payment methods showing strong adoption\n• Credit card transactions dominate premium services\n• Cash payments declining as expected in digital transformation');
 
   const parseDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
@@ -44,8 +31,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       const [, day, month, year] = ddmmyyyy;
       return new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
     }
-    const date = new Date(dateStr);
-    return isNaN(date.getTime()) ? null : date;
+    return null;
   };
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
@@ -83,13 +69,10 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     }
   };
 
-  // Generate monthly data from Jun 2025 to Jan 2024 (current date backwards)
   const monthlyData = useMemo(() => {
     const months = [];
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Start from Jun 2025 and go backwards to Jan 2024
-    // 2025 months (Jun to Jan) - descending
     for (let i = 5; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
@@ -102,7 +85,6 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       });
     }
     
-    // 2024 months (Dec to Jan) - descending
     for (let i = 11; i >= 0; i--) {
       const monthName = monthNames[i];
       const monthNum = i + 1;
@@ -119,17 +101,16 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
   }, []);
 
   const processedData = useMemo(() => {
-    // Group by unique products
-    const productGroups = data.reduce((acc: Record<string, SalesData[]>, item) => {
-      const product = item.cleanedProduct || 'Unspecified';
-      if (!acc[product]) {
-        acc[product] = [];
+    const paymentMethodGroups = data.reduce((acc: Record<string, SalesData[]>, item) => {
+      const paymentMethod = item.paymentMethod || 'Unknown';
+      if (!acc[paymentMethod]) {
+        acc[paymentMethod] = [];
       }
-      acc[product].push(item);
+      acc[paymentMethod].push(item);
       return acc;
     }, {});
 
-    const productData = Object.entries(productGroups).map(([product, items]) => {
+    const paymentMethodData = Object.entries(paymentMethodGroups).map(([paymentMethod, items]) => {
       const monthlyValues: Record<string, number> = {};
 
       monthlyData.forEach(({ key, year, month }) => {
@@ -141,16 +122,22 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       });
 
       const metricValue = getMetricValue(items, selectedMetric);
+      const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+      const totalTransactions = items.length;
+      const avgTransactionValue = totalRevenue / totalTransactions || 0;
       
       return {
-        product,
+        paymentMethod,
         metricValue,
+        totalRevenue,
+        totalTransactions,
+        avgTransactionValue,
         monthlyValues,
         rawData: items
       };
     });
 
-    return productData.sort((a, b) => b.metricValue - a.metricValue);
+    return paymentMethodData.sort((a, b) => b.metricValue - a.metricValue);
   }, [data, selectedMetric, monthlyData]);
 
   const getGrowthIndicator = (current: number, previous: number) => {
@@ -165,18 +152,44 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     return null;
   };
 
+  const getPaymentMethodBadge = (method: string) => {
+    const color = method.toLowerCase().includes('card') ? 'bg-blue-100 text-blue-800' :
+                  method.toLowerCase().includes('cash') ? 'bg-green-100 text-green-800' :
+                  method.toLowerCase().includes('digital') ? 'bg-purple-100 text-purple-800' :
+                  'bg-gray-100 text-gray-800';
+    return (
+      <Badge className={`${color} text-xs`}>
+        {method}
+      </Badge>
+    );
+  };
+
+  const totalsRow = useMemo(() => {
+    const monthlyTotals: Record<string, number> = {};
+    monthlyData.forEach(({ key }) => {
+      monthlyTotals[key] = processedData.reduce((sum, item) => sum + (item.monthlyValues[key] || 0), 0);
+    });
+    
+    return {
+      paymentMethod: 'TOTAL',
+      metricValue: processedData.reduce((sum, item) => sum + item.metricValue, 0),
+      totalRevenue: processedData.reduce((sum, item) => sum + item.totalRevenue, 0),
+      totalTransactions: processedData.reduce((sum, item) => sum + item.totalTransactions, 0),
+      monthlyValues: monthlyTotals
+    };
+  }, [processedData, monthlyData]);
+
   const saveSummary = () => {
     setIsEditingSummary(false);
-    localStorage.setItem('monthOnMonthSummary', summaryText);
+    localStorage.setItem('paymentMethodMonthOnMonthSummary', summaryText);
   };
 
   const cancelEdit = () => {
     setIsEditingSummary(false);
-    const saved = localStorage.getItem('monthOnMonthSummary');
+    const saved = localStorage.getItem('paymentMethodMonthOnMonthSummary');
     if (saved) setSummaryText(saved);
   };
 
-  // Group months by quarters and years
   const groupedMonths = useMemo(() => {
     const quarters: Record<string, typeof monthlyData> = {};
     monthlyData.forEach(month => {
@@ -194,11 +207,11 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
           <div className="flex justify-between items-start">
             <div>
               <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                Product Month-on-Month Analysis
+                <CreditCard className="w-5 h-5 text-blue-600" />
+                Payment Method Month-on-Month Analysis
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Monthly performance metrics by product with quarterly grouping (Jun 2025 - Jan 2024)
+                Monthly performance metrics by payment method (Jun 2025 - Jan 2024)
               </p>
             </div>
           </div>
@@ -212,7 +225,10 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
           <table className="min-w-full bg-white border-t border-gray-200 rounded-lg">
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Product</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Payment Method</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Total Revenue</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Transactions</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Avg Value</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -231,21 +247,30 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
               </tr>
             </thead>
             <tbody>
-              {processedData.map((product, index) => (
+              {processedData.map((item, index) => (
                 <tr 
-                  key={product.product} 
+                  key={item.paymentMethod} 
                   className="hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors duration-200" 
-                  onClick={() => onRowClick(product.rawData)}
+                  onClick={() => onRowClick(item.rawData)}
                 >
                   <td className="px-6 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white border-r border-gray-200 max-w-48">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-700">#{index + 1}</span>
-                      <span className="truncate">{product.product}</span>
+                      {getPaymentMethodBadge(item.paymentMethod)}
                     </div>
                   </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.totalRevenue)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatNumber(item.totalTransactions)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.avgTransactionValue)}
+                  </td>
                   {monthlyData.map(({ key }, monthIndex) => {
-                    const current = product.monthlyValues[key] || 0;
-                    const previous = monthIndex > 0 ? product.monthlyValues[monthlyData[monthIndex - 1].key] || 0 : 0;
+                    const current = item.monthlyValues[key] || 0;
+                    const previous = monthIndex > 0 ? item.monthlyValues[monthlyData[monthIndex - 1].key] || 0 : 0;
                     return (
                       <td key={key} className="px-3 py-3 text-center text-sm text-gray-900 font-mono border-l border-gray-100">
                         <div className="flex items-center justify-center">
@@ -257,6 +282,26 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                   })}
                 </tr>
               ))}
+              {/* Totals Row */}
+              <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-t-2 border-blue-200 font-bold">
+                <td className="px-6 py-3 text-sm font-bold text-blue-900 sticky left-0 bg-blue-100 border-r border-blue-200">
+                  TOTAL
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.totalRevenue)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatNumber(totalsRow.totalTransactions)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.totalRevenue / totalsRow.totalTransactions || 0)}
+                </td>
+                {monthlyData.map(({ key }) => (
+                  <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">
+                    {formatMetricValue(totalsRow.monthlyValues[key] || 0, selectedMetric)}
+                  </td>
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>
@@ -265,8 +310,8 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
         <div className="p-6 border-t border-gray-200 bg-gradient-to-r from-slate-50 to-white rounded-b-lg">
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              Product Month-on-Month Insights
+              <CreditCard className="w-5 h-5 text-blue-600" />
+              Payment Method Insights
             </h4>
             {!isEditingSummary ? (
               <Button variant="outline" size="sm" onClick={() => setIsEditingSummary(true)} className="gap-2">
@@ -291,7 +336,7 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
             <Textarea
               value={summaryText}
               onChange={(e) => setSummaryText(e.target.value)}
-              placeholder="Enter month-on-month insights using bullet points (• )"
+              placeholder="Enter payment method insights using bullet points (• )"
               className="min-h-32 text-sm"
             />
           ) : (

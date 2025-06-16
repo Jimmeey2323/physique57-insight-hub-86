@@ -1,15 +1,35 @@
 
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { SalesData } from '@/types/dashboard';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, Area, AreaChart } from 'recharts';
-import { BarChart3, TrendingUp, PieChart as PieChartIcon, Activity, Calendar, Filter } from 'lucide-react';
+import { BarChart3, TrendingUp, PieChart as PieChartIcon, Activity, Filter } from 'lucide-react';
 
 interface SalesInteractiveChartsProps {
   data: SalesData[];
+}
+
+interface MonthlyDataPoint {
+  month: string;
+  revenue: number;
+  transactions: number;
+  members: number;
+  vat: number;
+  atv: number;
+}
+
+interface CategoryDataPoint {
+  name: string;
+  value: number;
+  count: number;
+}
+
+interface ProductDataPoint {
+  name: string;
+  value: number;
+  count: number;
 }
 
 export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ data }) => {
@@ -26,8 +46,14 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
     return null;
   };
 
-  const monthlyData = useMemo(() => {
-    const months = {};
+  const monthlyData = useMemo((): MonthlyDataPoint[] => {
+    const months: Record<string, {
+      month: string;
+      revenue: number;
+      transactions: number;
+      members: Set<string>;
+      vat: number;
+    }> = {};
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
     data.forEach(item => {
@@ -51,14 +77,17 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
     });
 
     return Object.values(months).map(month => ({
-      ...month,
+      month: month.month,
+      revenue: month.revenue,
+      transactions: month.transactions,
       members: month.members.size,
+      vat: month.vat,
       atv: month.revenue / month.transactions || 0
     }));
   }, [data]);
 
-  const categoryData = useMemo(() => {
-    const categories = {};
+  const categoryData = useMemo((): CategoryDataPoint[] => {
+    const categories: Record<string, CategoryDataPoint> = {};
     data.forEach(item => {
       const category = item.cleanedCategory || 'Uncategorized';
       if (!categories[category]) {
@@ -67,11 +96,11 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
       categories[category].value += item.paymentValue || 0;
       categories[category].count += 1;
     });
-    return Object.values(categories);
+    return Object.values(categories).sort((a, b) => b.value - a.value);
   }, [data]);
 
-  const productData = useMemo(() => {
-    const products = {};
+  const productData = useMemo((): ProductDataPoint[] => {
+    const products: Record<string, ProductDataPoint> = {};
     data.forEach(item => {
       const product = item.cleanedProduct || 'Uncategorized';
       if (!products[product]) {
@@ -84,6 +113,20 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
   }, [data]);
 
   const COLORS = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4', '#EC4899', '#84CC16'];
+
+  const formatTooltipValue = (value: any): string => {
+    if (typeof value === 'number') {
+      return formatCurrency(value);
+    }
+    return String(value);
+  };
+
+  const formatTooltipNumber = (value: any): string => {
+    if (typeof value === 'number') {
+      return formatNumber(value);
+    }
+    return String(value);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -125,9 +168,9 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
             <AreaChart data={monthlyData}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
               <XAxis dataKey="month" className="text-xs" />
-              <YAxis tickFormatter={(value) => formatCurrency(value)} className="text-xs" />
+              <YAxis tickFormatter={formatTooltipValue} className="text-xs" />
               <Tooltip 
-                formatter={(value, name) => [formatCurrency(value), name]}
+                formatter={(value) => [formatTooltipValue(value), 'Revenue']}
                 labelClassName="text-sm font-medium"
                 contentStyle={{ background: 'rgba(255, 255, 255, 0.95)', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
               />
@@ -182,7 +225,7 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip formatter={(value) => formatCurrency(value)} />
+              <Tooltip formatter={(value) => formatTooltipValue(value)} />
             </PieChart>
           </ResponsiveContainer>
         </CardContent>
@@ -210,10 +253,10 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={productData} layout="horizontal">
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis type="number" tickFormatter={(value) => formatCurrency(value)} className="text-xs" />
+              <XAxis type="number" tickFormatter={formatTooltipValue} className="text-xs" />
               <YAxis dataKey="name" type="category" width={120} className="text-xs" />
               <Tooltip 
-                formatter={(value) => formatCurrency(value)}
+                formatter={(value) => formatTooltipValue(value)}
                 labelClassName="text-sm font-medium"
                 contentStyle={{ background: 'rgba(255, 255, 255, 0.95)', border: 'none', borderRadius: '8px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
               />
@@ -258,30 +301,28 @@ export const SalesInteractiveCharts: React.FC<SalesInteractiveChartsProps> = ({ 
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={250}>
-            {activeChart === 'revenue' && (
+            {activeChart === 'revenue' ? (
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis dataKey="month" className="text-xs" />
-                <YAxis tickFormatter={(value) => formatCurrency(value)} className="text-xs" />
-                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <YAxis tickFormatter={formatTooltipValue} className="text-xs" />
+                <Tooltip formatter={(value) => formatTooltipValue(value)} />
                 <Line type="monotone" dataKey="revenue" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }} />
               </LineChart>
-            )}
-            {activeChart === 'transactions' && (
+            ) : activeChart === 'transactions' ? (
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis dataKey="month" className="text-xs" />
-                <YAxis tickFormatter={(value) => formatNumber(value)} className="text-xs" />
-                <Tooltip formatter={(value) => formatNumber(value)} />
+                <YAxis tickFormatter={formatTooltipNumber} className="text-xs" />
+                <Tooltip formatter={(value) => formatTooltipNumber(value)} />
                 <Line type="monotone" dataKey="transactions" stroke="#8B5CF6" strokeWidth={3} dot={{ fill: '#8B5CF6', strokeWidth: 2, r: 4 }} />
               </LineChart>
-            )}
-            {activeChart === 'members' && (
+            ) : (
               <LineChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                 <XAxis dataKey="month" className="text-xs" />
-                <YAxis tickFormatter={(value) => formatNumber(value)} className="text-xs" />
-                <Tooltip formatter={(value) => formatNumber(value)} />
+                <YAxis tickFormatter={formatTooltipNumber} className="text-xs" />
+                <Tooltip formatter={(value) => formatTooltipNumber(value)} />
                 <Line type="monotone" dataKey="members" stroke="#10B981" strokeWidth={3} dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }} />
               </LineChart>
             )}

@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -24,7 +23,6 @@ export const PowerCycleVsBarreSection: React.FC = () => {
   const navigate = useNavigate();
   
   const [activeLocation, setActiveLocation] = useState('all');
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false); // Collapsed by default
   const [filters, setFilters] = useState<FilterOptions>({
     dateRange: { start: '', end: '' },
     location: [],
@@ -301,8 +299,6 @@ export const PowerCycleVsBarreSection: React.FC = () => {
                     filters={filters}
                     onFiltersChange={handleFiltersChange}
                     type="sales"
-                    isExpanded={isFiltersExpanded}
-                    onToggle={setIsFiltersExpanded}
                   />
 
                   {/* Enhanced Metric Cards */}

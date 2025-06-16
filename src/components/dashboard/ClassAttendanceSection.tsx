@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,16 +13,30 @@ import { ImprovedSessionsTopBottomLists } from './ImprovedSessionsTopBottomLists
 import { SessionsQuickFilters } from './SessionsQuickFilters';
 import { SessionsAttendanceAnalytics } from './SessionsAttendanceAnalytics';
 import { ClassFormatAnalysis } from './ClassFormatAnalysis';
-
-const locations = [
-  { id: 'all', name: 'All Locations', fullName: 'All Locations' },
-  { id: 'Kwality House, Kemps Corner', name: 'Kwality House', fullName: 'Kwality House, Kemps Corner' },
-  { id: 'Supreme HQ, Bandra', name: 'Supreme HQ', fullName: 'Supreme HQ, Bandra' },
-  { id: 'Kenkere House', name: 'Kenkere House', fullName: 'Kenkere House' }
-];
-
+const locations = [{
+  id: 'all',
+  name: 'All Locations',
+  fullName: 'All Locations'
+}, {
+  id: 'Kwality House, Kemps Corner',
+  name: 'Kwality House',
+  fullName: 'Kwality House, Kemps Corner'
+}, {
+  id: 'Supreme HQ, Bandra',
+  name: 'Supreme HQ',
+  fullName: 'Supreme HQ, Bandra'
+}, {
+  id: 'Kenkere House',
+  name: 'Kenkere House',
+  fullName: 'Kenkere House'
+}];
 export const ClassAttendanceSection: React.FC = () => {
-  const { data, loading, error, refetch } = useSessionsData();
+  const {
+    data,
+    loading,
+    error,
+    refetch
+  } = useSessionsData();
   const [activeLocation, setActiveLocation] = useState('all');
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [quickFilters, setQuickFilters] = useState({
@@ -37,12 +50,13 @@ export const ClassAttendanceSection: React.FC = () => {
     classTypes: [] as string[],
     dayOfWeek: [] as string[],
     timeSlots: [] as string[],
-    dateRange: { start: null as Date | null, end: null as Date | null }
+    dateRange: {
+      start: null as Date | null,
+      end: null as Date | null
+    }
   });
-
   const filteredData = useMemo(() => {
     if (!data) return [];
-    
     let filtered = data;
 
     // Apply location filter
@@ -83,13 +97,18 @@ export const ClassAttendanceSection: React.FC = () => {
         return true;
       });
     }
-
     return filtered;
   }, [data, activeLocation, quickFilters, filters]);
-
   const uniqueOptions = useMemo(() => {
-    if (!data) return { trainers: [], classTypes: [], daysOfWeek: [], timeSlots: [], locations: [], classes: [], days: [] };
-    
+    if (!data) return {
+      trainers: [],
+      classTypes: [],
+      daysOfWeek: [],
+      timeSlots: [],
+      locations: [],
+      classes: [],
+      days: []
+    };
     return {
       trainers: [...new Set(data.map(item => item.trainerName))].filter(Boolean),
       classTypes: [...new Set(data.map(item => item.cleanedClass))].filter(Boolean),
@@ -100,14 +119,12 @@ export const ClassAttendanceSection: React.FC = () => {
       days: [...new Set(data.map(item => item.dayOfWeek))].filter(Boolean)
     };
   }, [data]);
-
   const handleQuickFilterChange = (type: string, values: string[]) => {
     setQuickFilters(prev => ({
       ...prev,
       [type]: values
     }));
   };
-
   const clearQuickFilters = () => {
     setQuickFilters({
       locations: [],
@@ -116,19 +133,14 @@ export const ClassAttendanceSection: React.FC = () => {
       days: []
     });
   };
-
   if (!data || data.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-64">
+    return <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <p className="text-slate-600">No class attendance data available</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Enhanced Header Section */}
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/90 to-purple-900/80">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 via-purple-600/20 to-blue-600/20" />
@@ -138,24 +150,7 @@ export const ClassAttendanceSection: React.FC = () => {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_40%_40%,_rgba(79,70,229,0.2),_transparent_50%)]" />
         </div>
         
-        <div className="relative px-8 py-[32px]">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center space-y-6">
-              <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 border border-white/20">
-                <BarChart3 className="w-5 h-5 text-blue-300" />
-                <span className="font-semibold text-white">Class Analytics</span>
-              </div>
-              
-              <h1 className="text-6xl md:text-7xl font-black bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
-                Class Attendance
-              </h1>
-              
-              <p className="text-xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
-                Comprehensive insights into class performance, attendance patterns, and instructor analytics across all studio locations
-              </p>
-            </div>
-          </div>
-        </div>
+        
       </div>
 
       <div className="container mx-auto px-6 py-8">
@@ -163,35 +158,21 @@ export const ClassAttendanceSection: React.FC = () => {
         <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
           <div className="flex justify-center mb-8">
             <TabsList className="bg-white/90 backdrop-blur-sm p-2 rounded-2xl shadow-xl border-0 grid grid-cols-4 w-full max-w-3xl overflow-hidden">
-              {locations.map((location) => (
-                <TabsTrigger
-                  key={location.id}
-                  value={location.id}
-                  className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50"
-                >
+              {locations.map(location => <TabsTrigger key={location.id} value={location.id} className="relative rounded-xl px-6 py-4 font-semibold text-sm transition-all duration-300 ease-out hover:scale-105 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white data-[state=active]:shadow-lg hover:bg-gray-50">
                   <div className="flex items-center gap-2">
                     {location.id === 'all' ? <Building2 className="w-4 h-4" /> : <MapPin className="w-4 h-4" />}
                     <div className="text-center">
                       <div className="font-bold">{location.name.split(',')[0]}</div>
-                      {location.name.includes(',') && (
-                        <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>
-                      )}
+                      {location.name.includes(',') && <div className="text-xs opacity-80">{location.name.split(',')[1]?.trim()}</div>}
                     </div>
                   </div>
-                </TabsTrigger>
-              ))}
+                </TabsTrigger>)}
             </TabsList>
           </div>
 
-          {locations.map((location) => (
-            <TabsContent key={location.id} value={location.id} className="space-y-8">
+          {locations.map(location => <TabsContent key={location.id} value={location.id} className="space-y-8">
               {/* Quick Filters */}
-              <SessionsQuickFilters
-                filters={quickFilters}
-                options={uniqueOptions}
-                onFilterChange={handleQuickFilterChange}
-                onClearAll={clearQuickFilters}
-              />
+              <SessionsQuickFilters filters={quickFilters} options={uniqueOptions} onFilterChange={handleQuickFilterChange} onClearAll={clearQuickFilters} />
 
               {/* Collapsible Advanced Filters */}
               <Card className="bg-white/80 backdrop-blur-sm shadow-lg border-0 overflow-hidden">
@@ -209,11 +190,7 @@ export const ClassAttendanceSection: React.FC = () => {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent>
-                      <SessionsFilterSection 
-                        filters={filters}
-                        setFilters={setFilters}
-                        options={uniqueOptions}
-                      />
+                      <SessionsFilterSection filters={filters} setFilters={setFilters} options={uniqueOptions} />
                     </CardContent>
                   </CollapsibleContent>
                 </Collapsible>
@@ -224,18 +201,8 @@ export const ClassAttendanceSection: React.FC = () => {
 
               {/* Top/Bottom Lists */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <ImprovedSessionsTopBottomLists
-                  data={filteredData}
-                  title="Top Performing Classes"
-                  type="classes"
-                  variant="top"
-                />
-                <ImprovedSessionsTopBottomLists
-                  data={filteredData}
-                  title="Top Performing Trainers"
-                  type="trainers"
-                  variant="top"
-                />
+                <ImprovedSessionsTopBottomLists data={filteredData} title="Top Performing Classes" type="classes" variant="top" />
+                <ImprovedSessionsTopBottomLists data={filteredData} title="Top Performing Trainers" type="trainers" variant="top" />
               </div>
 
               {/* Analytics Sections */}
@@ -250,10 +217,8 @@ export const ClassAttendanceSection: React.FC = () => {
               <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
                 <SessionsAttendanceAnalytics data={filteredData} />
               </div>
-            </TabsContent>
-          ))}
+            </TabsContent>)}
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };

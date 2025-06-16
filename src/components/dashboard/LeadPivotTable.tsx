@@ -130,7 +130,7 @@ export const LeadPivotTable: React.FC<LeadPivotTableProps> = ({
           {quickFilters.map(filter => <Button key={filter.value} variant={quickFilter === filter.value ? "default" : "outline"} size="sm" onClick={() => setQuickFilter(filter.value as any)} className={`gap-2 text-xs ${quickFilter === filter.value ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' : 'text-gray-600 hover:bg-blue-50'}`}>
               <Filter className="w-3 h-3" />
               {filter.label}
-              <Badge variant="outline" className="ml-1 text-xs text-gray-800 hover:text-white active:text-white transition-colors duration-150">
+              <Badge variant="outline" className="ml-1 text-xs text-gray-800 hover:text-white active:text-white transition-colors bg-slate-950">
                 {filter.count}
               </Badge>
             </Button>)}

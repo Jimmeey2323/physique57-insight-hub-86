@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,15 +6,12 @@ import { BarChart, Bar, LineChart, Line, AreaChart, Area, PieChart, Pie, Cell, X
 import { BarChart3, LineChart as LineChartIcon, AreaChart as AreaChartIcon, PieChart as PieChartIcon, TrendingUp, Users, Target, CreditCard } from 'lucide-react';
 import { LeadsData, LeadsMetricType } from '@/types/leads';
 import { formatCurrency, formatNumber } from '@/utils/formatters';
-
 interface LeadInteractiveChartProps {
   data: LeadsData[];
   title: string;
   activeMetric: LeadsMetricType;
 }
-
 type ChartType = 'bar' | 'line' | 'area' | 'pie';
-
 export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
   data,
   title,
@@ -29,11 +25,10 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
     const monthlyData = data.reduce((acc, item) => {
       const date = new Date(item.createdAt);
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleDateString('en-US', { 
-        month: 'short', 
-        year: 'numeric' 
+      const monthName = date.toLocaleDateString('en-US', {
+        month: 'short',
+        year: 'numeric'
       });
-      
       if (!acc[monthKey]) {
         acc[monthKey] = {
           month: monthName,
@@ -43,24 +38,22 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
           totalLTV: 0,
           leadToTrialRate: 0,
           trialToMemberRate: 0,
-          avgLTV: 0,
+          avgLTV: 0
         };
       }
-      
       acc[monthKey].totalLeads++;
       if (item.stage === 'Trial Completed') acc[monthKey].trialsCompleted++;
       if (item.conversionStatus === 'Converted') acc[monthKey].conversions++;
       acc[monthKey].totalLTV += item.ltv;
-      
       return acc;
     }, {} as Record<string, any>);
 
     // Calculate rates and averages
     return Object.values(monthlyData).map((monthData: any) => ({
       ...monthData,
-      leadToTrialRate: monthData.totalLeads > 0 ? (monthData.trialsCompleted / monthData.totalLeads) * 100 : 0,
-      trialToMemberRate: monthData.trialsCompleted > 0 ? (monthData.conversions / monthData.trialsCompleted) * 100 : 0,
-      avgLTV: monthData.totalLeads > 0 ? monthData.totalLTV / monthData.totalLeads : 0,
+      leadToTrialRate: monthData.totalLeads > 0 ? monthData.trialsCompleted / monthData.totalLeads * 100 : 0,
+      trialToMemberRate: monthData.trialsCompleted > 0 ? monthData.conversions / monthData.trialsCompleted * 100 : 0,
+      avgLTV: monthData.totalLeads > 0 ? monthData.totalLTV / monthData.totalLeads : 0
     })).sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
   }, [data]);
 
@@ -69,7 +62,11 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
     const sources = data.reduce((acc, item) => {
       const source = item.source || 'Unknown';
       if (!acc[source]) {
-        acc[source] = { name: source, value: 0, conversions: 0 };
+        acc[source] = {
+          name: source,
+          value: 0,
+          conversions: 0
+        };
       }
       acc[source].value++;
       if (item.conversionStatus === 'Converted') {
@@ -77,16 +74,13 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
       }
       return acc;
     }, {} as Record<string, any>);
-
     return Object.values(sources).map((source: any, index) => ({
       ...source,
-      conversionRate: source.value > 0 ? (source.conversions / source.value) * 100 : 0,
-      fill: `hsl(${index * 45}, 70%, 60%)`,
+      conversionRate: source.value > 0 ? source.conversions / source.value * 100 : 0,
+      fill: `hsl(${index * 45}, 70%, 60%)`
     }));
   }, [data]);
-
   const colors = ['hsl(217, 91%, 60%)', 'hsl(142, 76%, 36%)', 'hsl(38, 92%, 50%)', 'hsl(346, 87%, 43%)'];
-
   const getMetricValue = (dataPoint: any) => {
     switch (activeMetric) {
       case 'totalLeads':
@@ -101,174 +95,137 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
         return dataPoint.totalLeads;
     }
   };
-
   const formatValue = (value: number) => {
     if (activeMetric === 'ltv') return formatCurrency(value);
     if (activeMetric.includes('Conversion')) return `${value.toFixed(1)}%`;
     return formatNumber(value);
   };
-
   const getChartIcon = (type: ChartType) => {
     switch (type) {
-      case 'bar': return <BarChart3 className="w-4 h-4" />;
-      case 'line': return <LineChartIcon className="w-4 h-4" />;
-      case 'area': return <AreaChartIcon className="w-4 h-4" />;
-      case 'pie': return <PieChartIcon className="w-4 h-4" />;
+      case 'bar':
+        return <BarChart3 className="w-4 h-4" />;
+      case 'line':
+        return <LineChartIcon className="w-4 h-4" />;
+      case 'area':
+        return <AreaChartIcon className="w-4 h-4" />;
+      case 'pie':
+        return <PieChartIcon className="w-4 h-4" />;
     }
   };
-
   const renderChart = () => {
     const commonProps = {
       data: chartType === 'pie' ? sourceData : processedData,
-      margin: { top: 20, right: 30, left: 20, bottom: 60 },
+      margin: {
+        top: 20,
+        right: 30,
+        left: 20,
+        bottom: 60
+      }
     };
-
     switch (chartType) {
       case 'bar':
-        return (
-          <BarChart {...commonProps}>
+        return <BarChart {...commonProps}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
-            <XAxis 
-              dataKey="month" 
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip 
-              formatter={(value: number) => [formatValue(value), 'Value']}
-              labelStyle={{ color: '#1f2937' }}
-              contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-              }}
-            />
+            <XAxis dataKey="month" tick={{
+            fontSize: 12
+          }} angle={-45} textAnchor="end" height={80} />
+            <YAxis tick={{
+            fontSize: 12
+          }} />
+            <Tooltip formatter={(value: number) => [formatValue(value), 'Value']} labelStyle={{
+            color: '#1f2937'
+          }} contentStyle={{
+            backgroundColor: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+          }} />
             <Legend />
-            <Bar 
-              dataKey={(item) => getMetricValue(item)} 
-              fill={colors[0]}
-              radius={[4, 4, 0, 0]}
-              name={activeMetric.replace(/([A-Z])/g, ' $1').trim()}
-            />
-          </BarChart>
-        );
-
+            <Bar dataKey={item => getMetricValue(item)} fill={colors[0]} radius={[4, 4, 0, 0]} name={activeMetric.replace(/([A-Z])/g, ' $1').trim()} />
+          </BarChart>;
       case 'line':
-        return (
-          <LineChart {...commonProps}>
+        return <LineChart {...commonProps}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
-            <XAxis 
-              dataKey="month" 
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip 
-              formatter={(value: number) => [formatValue(value), 'Value']}
-              labelStyle={{ color: '#1f2937' }}
-              contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-              }}
-            />
+            <XAxis dataKey="month" tick={{
+            fontSize: 12
+          }} angle={-45} textAnchor="end" height={80} />
+            <YAxis tick={{
+            fontSize: 12
+          }} />
+            <Tooltip formatter={(value: number) => [formatValue(value), 'Value']} labelStyle={{
+            color: '#1f2937'
+          }} contentStyle={{
+            backgroundColor: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+          }} />
             <Legend />
-            <Line 
-              type="monotone" 
-              dataKey={(item) => getMetricValue(item)} 
-              stroke={colors[1]}
-              strokeWidth={3}
-              dot={{ fill: colors[1], strokeWidth: 2, r: 6 }}
-              name={activeMetric.replace(/([A-Z])/g, ' $1').trim()}
-            />
-          </LineChart>
-        );
-
+            <Line type="monotone" dataKey={item => getMetricValue(item)} stroke={colors[1]} strokeWidth={3} dot={{
+            fill: colors[1],
+            strokeWidth: 2,
+            r: 6
+          }} name={activeMetric.replace(/([A-Z])/g, ' $1').trim()} />
+          </LineChart>;
       case 'area':
-        return (
-          <AreaChart {...commonProps}>
+        return <AreaChart {...commonProps}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e7ff" />
-            <XAxis 
-              dataKey="month" 
-              tick={{ fontSize: 12 }}
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip 
-              formatter={(value: number) => [formatValue(value), 'Value']}
-              labelStyle={{ color: '#1f2937' }}
-              contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-              }}
-            />
+            <XAxis dataKey="month" tick={{
+            fontSize: 12
+          }} angle={-45} textAnchor="end" height={80} />
+            <YAxis tick={{
+            fontSize: 12
+          }} />
+            <Tooltip formatter={(value: number) => [formatValue(value), 'Value']} labelStyle={{
+            color: '#1f2937'
+          }} contentStyle={{
+            backgroundColor: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+          }} />
             <Legend />
-            <Area 
-              type="monotone" 
-              dataKey={(item) => getMetricValue(item)} 
-              stroke={colors[2]}
-              fill={`${colors[2]}40`}
-              strokeWidth={2}
-              name={activeMetric.replace(/([A-Z])/g, ' $1').trim()}
-            />
-          </AreaChart>
-        );
-
+            <Area type="monotone" dataKey={item => getMetricValue(item)} stroke={colors[2]} fill={`${colors[2]}40`} strokeWidth={2} name={activeMetric.replace(/([A-Z])/g, ' $1').trim()} />
+          </AreaChart>;
       case 'pie':
-        return (
-          <PieChart {...commonProps}>
-            <Pie
-              data={sourceData}
-              cx="50%"
-              cy="50%"
-              outerRadius={120}
-              innerRadius={40}
-              paddingAngle={2}
-              dataKey="value"
-              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-            >
-              {sourceData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.fill} />
-              ))}
+        return <PieChart {...commonProps}>
+            <Pie data={sourceData} cx="50%" cy="50%" outerRadius={120} innerRadius={40} paddingAngle={2} dataKey="value" label={({
+            name,
+            percent
+          }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+              {sourceData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
             </Pie>
-            <Tooltip 
-              formatter={(value: number, name: string) => [formatNumber(value), 'Leads']}
-              labelStyle={{ color: '#1f2937' }}
-              contentStyle={{ 
-                backgroundColor: 'white', 
-                border: '1px solid #e5e7eb',
-                borderRadius: '8px',
-                boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
-              }}
-            />
+            <Tooltip formatter={(value: number, name: string) => [formatNumber(value), 'Leads']} labelStyle={{
+            color: '#1f2937'
+          }} contentStyle={{
+            backgroundColor: 'white',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+          }} />
             <Legend />
-          </PieChart>
-        );
-
+          </PieChart>;
       default:
         return null;
     }
   };
-
-  const chartTypes: { type: ChartType; label: string }[] = [
-    { type: 'bar', label: 'Bar Chart' },
-    { type: 'line', label: 'Line Chart' },
-    { type: 'area', label: 'Area Chart' },
-    { type: 'pie', label: 'Source Distribution' },
-  ];
-
-  return (
-    <Card className="bg-white shadow-lg border border-gray-200 col-span-full">
+  const chartTypes: {
+    type: ChartType;
+    label: string;
+  }[] = [{
+    type: 'bar',
+    label: 'Bar Chart'
+  }, {
+    type: 'line',
+    label: 'Line Chart'
+  }, {
+    type: 'area',
+    label: 'Area Chart'
+  }, {
+    type: 'pie',
+    label: 'Source Distribution'
+  }];
+  return <Card className="bg-white shadow-lg border border-gray-200 col-span-full">
       <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-purple-50">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">
@@ -287,22 +244,10 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
             </Badge>
             
             <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
-              {chartTypes.map((chart) => (
-                <Button
-                  key={chart.type}
-                  variant={chartType === chart.type ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setChartType(chart.type)}
-                  className={`h-8 gap-2 transition-all ${
-                    chartType === chart.type 
-                      ? 'bg-blue-600 text-white shadow-sm' 
-                      : 'text-gray-600 hover:bg-gray-50'
-                  }`}
-                >
+              {chartTypes.map(chart => <Button key={chart.type} variant={chartType === chart.type ? "default" : "ghost"} size="sm" onClick={() => setChartType(chart.type)} className={`h-8 gap-2 transition-all ${chartType === chart.type ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}`}>
                   {getChartIcon(chart.type)}
                   <span className="hidden sm:inline">{chart.label}</span>
-                </Button>
-              ))}
+                </Button>)}
             </div>
           </div>
         </div>
@@ -317,7 +262,7 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
         
         {/* Chart Summary */}
         <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-4 rounded-lg">
+          <div className="bg-white text-gray-900 border-4 border-gray-100 p-4 rounded-lg shadow-gray-800 shadow-xl hover:scale-110 ">
             <div className="flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-600" />
               <span className="text-sm font-medium text-blue-800">Total Leads</span>
@@ -358,6 +303,5 @@ export const LeadInteractiveChart: React.FC<LeadInteractiveChartProps> = ({
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };

@@ -50,20 +50,28 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
     if (!items.length) return 0;
+    const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+    const totalTransactions = items.length;
+    const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+    const totalUnits = items.length;
+    
     switch (metric) {
       case 'revenue':
-        return items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+        return totalRevenue;
       case 'transactions':
-        return items.length;
+        return totalTransactions;
       case 'members':
-        return new Set(items.map(item => item.memberId)).size;
+        return uniqueMembers;
       case 'atv':
-        const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        return items.length > 0 ? totalRevenue / items.length : 0;
+        return totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
       case 'auv':
-        const revenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        const uniqueMembers = new Set(items.map(item => item.memberId)).size;
-        return uniqueMembers > 0 ? revenue / uniqueMembers : 0;
+        return totalUnits > 0 ? totalRevenue / totalUnits : 0;
+      case 'asv':
+        return uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0;
+      case 'upt':
+        return totalTransactions > 0 ? totalUnits / totalTransactions : 0;
+      case 'vat':
+        return items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
       default:
         return 0;
     }
@@ -74,10 +82,14 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       case 'revenue':
       case 'auv':
       case 'atv':
+      case 'asv':
+      case 'vat':
         return formatCurrency(value);
       case 'transactions':
       case 'members':
         return formatNumber(value);
+      case 'upt':
+        return value.toFixed(2);
       default:
         return formatNumber(value);
     }
@@ -141,10 +153,30 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
       });
 
       const metricValue = getMetricValue(items, selectedMetric);
+      const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+      const totalTransactions = items.length;
+      const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+      const totalVAT = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
+      const units = items.length; // Each sale item is one unit
+      
+      // Calculate correct metrics
+      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0; // ASV = Revenue/Members
+      const upt = totalTransactions > 0 ? units / totalTransactions : 0; // UPT = Units/Transactions
+      const atv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0; // ATV = Revenue/Transactions
+      const auv = units > 0 ? totalRevenue / units : 0; // AUV = Revenue/Units
       
       return {
         product,
         metricValue,
+        totalRevenue,
+        totalTransactions,
+        uniqueMembers,
+        totalVAT,
+        asv,
+        upt,
+        atv,
+        auv,
+        units,
         monthlyValues,
         rawData: items
       };
@@ -164,6 +196,40 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
     }
     return null;
   };
+
+  // Calculate totals row with proper averages for ATV, ASV, AUV
+  const totalsRow = useMemo(() => {
+    const monthlyTotals: Record<string, number> = {};
+    monthlyData.forEach(({ key }) => {
+      monthlyTotals[key] = processedData.reduce((sum, item) => sum + (item.monthlyValues[key] || 0), 0);
+    });
+    
+    const totalRevenue = processedData.reduce((sum, item) => sum + item.totalRevenue, 0);
+    const totalTransactions = processedData.reduce((sum, item) => sum + item.totalTransactions, 0);
+    const totalMembers = new Set(data.map(item => item.memberId)).size;
+    const totalVAT = processedData.reduce((sum, item) => sum + item.totalVAT, 0);
+    const totalUnits = processedData.reduce((sum, item) => sum + item.units, 0);
+    
+    // Calculate averages for ATV, ASV, AUV (weighted averages)
+    const avgAsv = totalMembers > 0 ? totalRevenue / totalMembers : 0;
+    const avgUpt = totalTransactions > 0 ? totalUnits / totalTransactions : 0;
+    const avgAtv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+    const avgAuv = totalUnits > 0 ? totalRevenue / totalUnits : 0;
+    
+    return {
+      product: 'TOTAL',
+      metricValue: getMetricValue(data, selectedMetric),
+      totalRevenue,
+      totalTransactions,
+      totalMembers,
+      totalVAT,
+      asv: avgAsv,
+      upt: avgUpt,
+      atv: avgAtv,
+      auv: avgAuv,
+      monthlyValues: monthlyTotals
+    };
+  }, [processedData, monthlyData, data, selectedMetric]);
 
   const saveSummary = () => {
     setIsEditingSummary(false);
@@ -257,6 +323,18 @@ export const MonthOnMonthTable: React.FC<MonthOnMonthTableProps> = ({
                   })}
                 </tr>
               ))}
+              
+              {/* Totals Row */}
+              <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-t-2 border-blue-200 font-bold">
+                <td className="px-6 py-3 text-sm font-bold text-blue-900 sticky left-0 bg-blue-100 border-r border-blue-200">
+                  TOTAL
+                </td>
+                {monthlyData.map(({ key }) => (
+                  <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">
+                    {formatMetricValue(totalsRow.monthlyValues[key] || 0, selectedMetric)}
+                  </td>
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>

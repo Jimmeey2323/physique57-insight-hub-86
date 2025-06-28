@@ -50,20 +50,21 @@ export const UnifiedTopBottomSellers: React.FC<UnifiedTopBottomSellersProps> = (
       }
       
       acc[key].totalValue += item.paymentValue;
-      acc[key].unitsSold += 1;
+      acc[key].unitsSold += 1; // Each sale item is one unit
       acc[key].transactions += 1;
       acc[key].uniqueMembers.add(item.memberId);
       
       return acc;
     }, {} as Record<string, any>);
     
-    // Calculate metrics
+    // Calculate metrics correctly
     Object.values(grouped).forEach((item: any) => {
-      item.uniqueMembers = item.uniqueMembers.size;
-      item.atv = item.totalValue / item.transactions;
-      item.auv = item.totalValue / item.unitsSold;
-      item.asv = item.totalValue / item.uniqueMembers;
-      item.upt = item.unitsSold / item.transactions;
+      const uniqueMembersCount = item.uniqueMembers.size;
+      item.uniqueMembers = uniqueMembersCount;
+      item.atv = item.transactions > 0 ? item.totalValue / item.transactions : 0; // ATV = Revenue/Transactions
+      item.auv = item.unitsSold > 0 ? item.totalValue / item.unitsSold : 0; // AUV = Revenue/Units
+      item.asv = uniqueMembersCount > 0 ? item.totalValue / uniqueMembersCount : 0; // ASV = Revenue/Members
+      item.upt = item.transactions > 0 ? item.unitsSold / item.transactions : 0; // UPT = Units/Transactions
     });
     
     return Object.values(grouped).sort((a: any, b: any) => b.totalValue - a.totalValue);

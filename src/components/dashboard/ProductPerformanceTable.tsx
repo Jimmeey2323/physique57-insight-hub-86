@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { SalesData, FilterOptions, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
@@ -140,8 +141,11 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
       const members = new Set(items.map(item => item.memberId)).size;
       const category = items[0]?.cleanedCategory || 'Uncategorized';
       const vat = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
-      const asv = members > 0 ? revenue / members : 0; // Average Spend Value per unique member
-      const upt = transactions > 0 ? transactions / transactions : 1; // Units per transaction (1 unit per transaction)
+      
+      // Corrected calculations
+      const asv = members > 0 ? revenue / members : 0; // Average Spend per Member (AUV)
+      const atv = transactions > 0 ? revenue / transactions : 0; // Average Transaction Value
+      const upt = transactions; // Units per Transaction (number of transactions)
 
       return {
         product,
@@ -152,6 +156,7 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
         members,
         vat,
         asv,
+        atv,
         upt,
         monthlyValues,
         rawData: items
@@ -178,6 +183,32 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
     }
     return null;
   };
+
+  // Calculate totals row
+  const totalsRow = useMemo(() => {
+    const monthlyTotals: Record<string, number> = {};
+    monthlyData.forEach(({ key }) => {
+      monthlyTotals[key] = processedData.reduce((sum, item) => sum + (item.monthlyValues[key] || 0), 0);
+    });
+    
+    const totalRevenue = processedData.reduce((sum, item) => sum + item.revenue, 0);
+    const totalTransactions = processedData.reduce((sum, item) => sum + item.transactions, 0);
+    const totalMembers = new Set(data.map(item => item.memberId)).size;
+    const totalVAT = processedData.reduce((sum, item) => sum + item.vat, 0);
+    
+    return {
+      product: 'TOTAL',
+      metricValue: processedData.reduce((sum, item) => sum + item.metricValue, 0),
+      revenue: totalRevenue,
+      transactions: totalTransactions,
+      members: totalMembers,
+      vat: totalVAT,
+      asv: totalMembers > 0 ? totalRevenue / totalMembers : 0,
+      atv: totalTransactions > 0 ? totalRevenue / totalTransactions : 0,
+      upt: totalTransactions,
+      monthlyValues: monthlyTotals
+    };
+  }, [processedData, monthlyData, data]);
 
   const saveSummary = () => {
     setIsEditingSummary(false);
@@ -229,6 +260,7 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Rank</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-left sticky left-12 bg-blue-800 z-30">Product</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-left">Category</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ATV</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ASV</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">UPT</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">VAT</th>
@@ -265,10 +297,13 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
                     <Badge variant="outline" className="text-xs">{product.category}</Badge>
                   </td>
                   <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(product.atv)}
+                  </td>
+                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
                     {formatCurrency(product.asv)}
                   </td>
                   <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {product.upt.toFixed(1)}
+                    {formatNumber(product.upt)}
                   </td>
                   <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
                     {formatCurrency(product.vat)}
@@ -287,6 +322,36 @@ export const ProductPerformanceTable: React.FC<ProductPerformanceTableProps> = (
                   })}
                 </tr>
               ))}
+              
+              {/* Totals Row */}
+              <tr className="bg-gradient-to-r from-blue-50 to-blue-100 border-t-2 border-blue-200 font-bold">
+                <td className="px-4 py-3 text-center sticky left-0 bg-blue-100 border-r border-blue-200">
+                  <span className="font-bold text-blue-900">TOTAL</span>
+                </td>
+                <td className="px-4 py-3 text-sm font-bold text-blue-900 sticky left-12 bg-blue-100 border-r border-blue-200">
+                  ALL PRODUCTS
+                </td>
+                <td className="px-4 py-3 text-sm text-blue-900">
+                  <Badge variant="outline" className="text-xs text-blue-700">All Categories</Badge>
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.atv)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.asv)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatNumber(totalsRow.upt)}
+                </td>
+                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.vat)}
+                </td>
+                {monthlyData.map(({ key }) => (
+                  <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">
+                    {formatMetricValue(totalsRow.monthlyValues[key] || 0, selectedMetric)}
+                  </td>
+                ))}
+              </tr>
             </tbody>
           </table>
         </div>

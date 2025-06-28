@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,8 +12,9 @@ import { formatCurrency, formatNumber } from '@/utils/formatters';
 import { getNewClientMetrics, calculateNewClientMetrics, getUniqueTrainers, getUniqueLocations, getTopBottomTrainers } from '@/utils/newClientMetrics';
 import { NewClientFilterOptions } from '@/types/dashboard';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { OptimizedTable } from '@/components/ui/OptimizedTable';
 import { NewCsvDataTable } from './NewCsvDataTable';
+
 const locations = [{
   id: 'all',
   name: 'All Locations',
@@ -38,6 +40,7 @@ const locations = [{
   icon: <MapPin className="w-4 h-4" />,
   gradient: 'from-orange-500 to-red-600'
 }];
+
 export const NewClientSection: React.FC = () => {
   const {
     data,
@@ -60,6 +63,7 @@ export const NewClientSection: React.FC = () => {
     conversionStatus: [],
     isNew: []
   });
+
   const filteredData = useMemo(() => {
     if (!data) return [];
     let filtered = data;
@@ -82,12 +86,15 @@ export const NewClientSection: React.FC = () => {
     }
     return filtered;
   }, [data, activeLocation, filters]);
+
   const metrics = useMemo(() => {
     return getNewClientMetrics(filteredData);
   }, [filteredData]);
+
   const calculatedMetrics = useMemo(() => {
     return calculateNewClientMetrics(filteredData);
   }, [filteredData]);
+
   const topBottomTrainers = useMemo(() => {
     return getTopBottomTrainers(calculatedMetrics, 'newMembers', 5);
   }, [calculatedMetrics]);
@@ -182,6 +189,7 @@ export const NewClientSection: React.FC = () => {
       totalLtv: data.totalLtv
     })).sort((a, b) => b.newClients - a.newClients);
   }, [filteredData]);
+
   if (loading) {
     return <div className="min-h-screen bg-gray-50/30 flex items-center justify-center">
         <Card className="p-8 bg-white shadow-lg">
@@ -195,6 +203,7 @@ export const NewClientSection: React.FC = () => {
         </Card>
       </div>;
   }
+
   if (error) {
     return <div className="min-h-screen bg-gray-50/30 flex items-center justify-center p-4">
         <Card className="p-8 bg-white shadow-lg max-w-md">
@@ -212,6 +221,7 @@ export const NewClientSection: React.FC = () => {
         </Card>
       </div>;
   }
+
   if (!data || data.length === 0) {
     return <div className="flex items-center justify-center h-64">
         <div className="text-center">
@@ -219,25 +229,10 @@ export const NewClientSection: React.FC = () => {
         </div>
       </div>;
   }
-  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/20">
-      {/* Modern Header Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-green-600 via-emerald-600 to-teal-700 text-white">
-        <div className="absolute inset-0 bg-black/20" />
-        <div className="absolute inset-0 opacity-30">
-          <svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" className="absolute inset-0 w-full h-full">
-            <g fill="none" fillRule="evenodd">
-              <g fill="#ffffff" fillOpacity="0.05">
-                <circle cx="60" cy="60" r="30" />
-              </g>
-            </g>
-          </svg>
-        </div>
-        
-        
-      </div>
 
+  return <div className="min-h-screen bg-gradient-to-br from-slate-50 via-green-50/30 to-emerald-50/20">
       <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        {/* Enhanced Location Tabs */}
+        {/* Location Tabs at the Top */}
         <Card className="bg-white/80 backdrop-blur-sm shadow-xl border-0 overflow-hidden">
           <CardContent className="p-2">
             <Tabs value={activeLocation} onValueChange={setActiveLocation} className="w-full">
@@ -291,10 +286,10 @@ export const NewClientSection: React.FC = () => {
                     {metrics.map((metric, index) => <MetricCard key={metric.title} data={metric} delay={index * 100} />)}
                   </div>
 
-                  {/* Top/Bottom Trainers Performance */}
+                  {/* Enhanced Top/Bottom Trainers Performance */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <Card className="bg-white shadow-sm border border-gray-200">
-                      <CardHeader className="border-b border-gray-100">
+                    <Card className="bg-white shadow-xl border-0 overflow-hidden">
+                      <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
                         <CardTitle className="text-gray-800 text-xl flex items-center gap-2">
                           <TrendingUp className="w-5 h-5 text-green-600" />
                           Top Performing Trainers
@@ -302,29 +297,29 @@ export const NewClientSection: React.FC = () => {
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="space-y-4">
-                          {topBottomTrainers.top.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-600 via-gray-800 to-gray-900 rounded-xl text-green-600 shadow-md">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          {topBottomTrainers.top.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-5 bg-gradient-to-r from-gray-900 via-slate-800 to-gray-900 rounded-xl shadow-lg border border-gray-700">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
                                   {index + 1}
                                 </div>
                                 <div>
-                                  <div className="font-semibold text-white">{trainer.trainerName}</div>
-                                  <div className="text-sm text-gray-100">
+                                  <div className="font-bold text-white text-lg">{trainer.trainerName}</div>
+                                  <div className="text-sm text-gray-300">
                                     {trainer.totalNewMembers} new members • {trainer.averageConversionRate.toFixed(1)}% conversion
                                   </div>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-green-600">{formatCurrency(trainer.averageLtv)}</div>
-                                <div className="text-xs text-gray-100">Avg LTV</div>
+                                <div className="font-bold text-green-400 text-lg">{formatCurrency(trainer.averageLtv)}</div>
+                                <div className="text-xs text-gray-400">Avg LTV</div>
                               </div>
                             </div>)}
                         </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="bg-white shadow-sm border border-gray-200">
-                      <CardHeader className="border-b border-gray-100">
+                    <Card className="bg-white shadow-xl border-0 overflow-hidden">
+                      <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-orange-50 to-red-50">
                         <CardTitle className="text-gray-800 text-xl flex items-center gap-2">
                           <Target className="w-5 h-5 text-orange-600" />
                           Trainers Needing Support
@@ -332,21 +327,21 @@ export const NewClientSection: React.FC = () => {
                       </CardHeader>
                       <CardContent className="p-6">
                         <div className="space-y-4">
-                          {topBottomTrainers.bottom.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-600 via-gray-800 to-gray-900 rounded-xl text-red-600 shadow-md">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                          {topBottomTrainers.bottom.slice(0, 5).map((trainer, index) => <div key={trainer.trainerName} className="flex items-center justify-between p-5 bg-gradient-to-r from-gray-900 via-slate-800 to-gray-900 rounded-xl shadow-lg border border-gray-700">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 bg-gradient-to-r from-red-500 to-orange-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
                                   {index + 1}
                                 </div>
                                 <div>
-                                  <div className="font-semibold text-yellow-300">{trainer.trainerName}</div>
-                                  <div className="text-sm text-gray-100">
+                                  <div className="font-bold text-yellow-300 text-lg">{trainer.trainerName}</div>
+                                  <div className="text-sm text-gray-300">
                                     {trainer.totalNewMembers} new members • {trainer.averageConversionRate.toFixed(1)}% conversion
                                   </div>
                                 </div>
                               </div>
                               <div className="text-right">
-                                <div className="font-bold text-red-600">{formatCurrency(trainer.averageLtv)}</div>
-                                <div className="text-xs text-gray-100">Avg LTV</div>
+                                <div className="font-bold text-red-400 text-lg">{formatCurrency(trainer.averageLtv)}</div>
+                                <div className="text-xs text-gray-400">Avg LTV</div>
                               </div>
                             </div>)}
                         </div>
@@ -354,166 +349,209 @@ export const NewClientSection: React.FC = () => {
                     </Card>
                   </div>
 
-                  {/* Month-on-Month Performance Table */}
-                  <Card className="bg-white shadow-sm border border-gray-200 text-center">
-                    <CardHeader className="border-b border-gray-100">
-                      <CardTitle className="text-gray-800 text-xl">Month-on-Month Performance</CardTitle>
+                  {/* Premium Month-on-Month Performance Table */}
+                  <Card className="bg-white shadow-xl border-0 overflow-hidden">
+                    <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50">
+                      <CardTitle className="text-gray-800 text-xl text-center font-bold">Month-on-Month Performance</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-gray-50 text-center text-bold">
-                              <TableHead>Month</TableHead>
-                              <TableHead>New Clients</TableHead>
-                              <TableHead>Conversions</TableHead>
-                              <TableHead>Retained</TableHead>
-                              <TableHead>Conversion Rate</TableHead>
-                              <TableHead>Retention Rate</TableHead>
-                              <TableHead>Avg LTV</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {monthOnMonthData.map((row, index) => <TableRow key={row.month} className="hover:bg-gray-50">
-                                <TableCell className="font-medium">{row.month}</TableCell>
-                                <TableCell>{row.newClients}</TableCell>
-                                <TableCell>{row.conversions}</TableCell>
-                                <TableCell>{row.retained}</TableCell>
-                                <TableCell>
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(row.conversionRate) >= 60 ? 'bg-green-100 text-green-800' : parseFloat(row.conversionRate) >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                    {row.conversionRate}%
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(row.retentionRate) >= 70 ? 'bg-green-100 text-green-800' : parseFloat(row.retentionRate) >= 50 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                    {row.retentionRate}%
-                                  </span>
-                                </TableCell>
-                                <TableCell className="font-bold">{formatCurrency(parseFloat(row.avgLtv))}</TableCell>
-                              </TableRow>)}
-                            <TableRow className="bg-gray-100 font-bold">
-                              <TableCell>Total</TableCell>
-                              <TableCell>{monthOnMonthData.reduce((sum, row) => sum + row.newClients, 0)}</TableCell>
-                              <TableCell>{monthOnMonthData.reduce((sum, row) => sum + row.conversions, 0)}</TableCell>
-                              <TableCell>{monthOnMonthData.reduce((sum, row) => sum + row.retained, 0)}</TableCell>
-                              <TableCell>-</TableCell>
-                              <TableCell>-</TableCell>
-                              <TableCell>
-                                {formatCurrency(monthOnMonthData.reduce((sum, row) => sum + parseFloat(row.avgLtv), 0) / monthOnMonthData.length)}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
+                      <OptimizedTable
+                        data={[
+                          ...monthOnMonthData,
+                          {
+                            month: 'Total',
+                            newClients: monthOnMonthData.reduce((sum, row) => sum + row.newClients, 0),
+                            conversions: monthOnMonthData.reduce((sum, row) => sum + row.conversions, 0),
+                            retained: monthOnMonthData.reduce((sum, row) => sum + row.retained, 0),
+                            conversionRate: '-',
+                            retentionRate: '-',
+                            avgLtv: formatCurrency(monthOnMonthData.reduce((sum, row) => sum + parseFloat(row.avgLtv), 0) / monthOnMonthData.length)
+                          }
+                        ]}
+                        columns={[
+                          { key: 'month', header: 'Month', align: 'left' },
+                          { key: 'newClients', header: 'New Clients', align: 'center' },
+                          { key: 'conversions', header: 'Conversions', align: 'center' },
+                          { key: 'retained', header: 'Retained', align: 'center' },
+                          { 
+                            key: 'conversionRate', 
+                            header: 'Conversion Rate', 
+                            align: 'center',
+                            render: (value) => value === '-' ? '-' : (
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                parseFloat(value) >= 60 ? 'bg-green-100 text-green-800' : 
+                                parseFloat(value) >= 40 ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {value}%
+                              </span>
+                            )
+                          },
+                          { 
+                            key: 'retentionRate', 
+                            header: 'Retention Rate', 
+                            align: 'center',
+                            render: (value) => value === '-' ? '-' : (
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                parseFloat(value) >= 70 ? 'bg-green-100 text-green-800' : 
+                                parseFloat(value) >= 50 ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {value}%
+                              </span>
+                            )
+                          },
+                          { 
+                            key: 'avgLtv', 
+                            header: 'Avg LTV', 
+                            align: 'right',
+                            render: (value) => <span className="font-bold text-green-600">{typeof value === 'number' ? formatCurrency(value) : value}</span>
+                          }
+                        ]}
+                        showFooter={false}
+                        stickyHeader={true}
+                        maxHeight="500px"
+                      />
                     </CardContent>
                   </Card>
 
-                  {/* Year-on-Year Comparison Table */}
-                  <Card className="bg-white shadow-sm border border-gray-200">
-                    <CardHeader className="border-b border-gray-100">
-                      <CardTitle className="text-gray-800 text-xl">Year-on-Year Comparison</CardTitle>
+                  {/* Premium Year-on-Year Comparison Table */}
+                  <Card className="bg-white shadow-xl border-0 overflow-hidden">
+                    <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50">
+                      <CardTitle className="text-gray-800 text-xl text-center font-bold">Year-on-Year Comparison</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-gray-50">
-                              <TableHead>Year</TableHead>
-                              <TableHead>New Clients</TableHead>
-                              <TableHead>Conversions</TableHead>
-                              <TableHead>Retained</TableHead>
-                              <TableHead>Conversion Rate</TableHead>
-                              <TableHead>Retention Rate</TableHead>
-                              <TableHead>Avg LTV</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {yearOnYearData.map((row, index) => <TableRow key={row.year} className="hover:bg-gray-50">
-                                <TableCell className="font-medium">{row.year}</TableCell>
-                                <TableCell>{row.newClients}</TableCell>
-                                <TableCell>{row.conversions}</TableCell>
-                                <TableCell>{row.retained}</TableCell>
-                                <TableCell>
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(row.conversionRate) >= 60 ? 'bg-green-100 text-green-800' : parseFloat(row.conversionRate) >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                    {row.conversionRate}%
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(row.retentionRate) >= 70 ? 'bg-green-100 text-green-800' : parseFloat(row.retentionRate) >= 50 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                    {row.retentionRate}%
-                                  </span>
-                                </TableCell>
-                                <TableCell className="font-bold">{formatCurrency(parseFloat(row.avgLtv))}</TableCell>
-                              </TableRow>)}
-                            <TableRow className="bg-gray-100 font-bold">
-                              <TableCell>Total</TableCell>
-                              <TableCell>{yearOnYearData.reduce((sum, row) => sum + row.newClients, 0)}</TableCell>
-                              <TableCell>{yearOnYearData.reduce((sum, row) => sum + row.conversions, 0)}</TableCell>
-                              <TableCell>{yearOnYearData.reduce((sum, row) => sum + row.retained, 0)}</TableCell>
-                              <TableCell>-</TableCell>
-                              <TableCell>-</TableCell>
-                              <TableCell>
-                                {formatCurrency(yearOnYearData.reduce((sum, row) => sum + parseFloat(row.avgLtv), 0) / yearOnYearData.length)}
-                              </TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
+                      <OptimizedTable
+                        data={[
+                          ...yearOnYearData,
+                          {
+                            year: 'Total',
+                            newClients: yearOnYearData.reduce((sum, row) => sum + row.newClients, 0),
+                            conversions: yearOnYearData.reduce((sum, row) => sum + row.conversions, 0),
+                            retained: yearOnYearData.reduce((sum, row) => sum + row.retained, 0),
+                            conversionRate: '-',
+                            retentionRate: '-',
+                            avgLtv: formatCurrency(yearOnYearData.reduce((sum, row) => sum + parseFloat(row.avgLtv), 0) / yearOnYearData.length)
+                          }
+                        ]}
+                        columns={[
+                          { key: 'year', header: 'Year', align: 'left' },
+                          { key: 'newClients', header: 'New Clients', align: 'center' },
+                          { key: 'conversions', header: 'Conversions', align: 'center' },
+                          { key: 'retained', header: 'Retained', align: 'center' },
+                          { 
+                            key: 'conversionRate', 
+                            header: 'Conversion Rate', 
+                            align: 'center',
+                            render: (value) => value === '-' ? '-' : (
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                parseFloat(value) >= 60 ? 'bg-green-100 text-green-800' : 
+                                parseFloat(value) >= 40 ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {value}%
+                              </span>
+                            )
+                          },
+                          { 
+                            key: 'retentionRate', 
+                            header: 'Retention Rate', 
+                            align: 'center',
+                            render: (value) => value === '-' ? '-' : (
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                parseFloat(value) >= 70 ? 'bg-green-100 text-green-800' : 
+                                parseFloat(value) >= 50 ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {value}%
+                              </span>
+                            )
+                          },
+                          { 
+                            key: 'avgLtv', 
+                            header: 'Avg LTV', 
+                            align: 'right',
+                            render: (value) => <span className="font-bold text-green-600">{typeof value === 'number' ? formatCurrency(value) : value}</span>
+                          }
+                        ]}
+                        showFooter={false}
+                        stickyHeader={true}
+                        maxHeight="500px"
+                      />
                     </CardContent>
                   </Card>
 
-                  {/* Trainer Performance Detail Table */}
-                  <Card className="bg-white shadow-sm border border-gray-200">
-                    <CardHeader className="border-b border-gray-100">
-                      <CardTitle className="text-gray-800 text-xl">Trainer Performance Analysis</CardTitle>
+                  {/* Premium Trainer Performance Detail Table */}
+                  <Card className="bg-white shadow-xl border-0 overflow-hidden">
+                    <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-slate-50 to-gray-50">
+                      <CardTitle className="text-gray-800 text-xl text-center font-bold">Trainer Performance Analysis</CardTitle>
                     </CardHeader>
                     <CardContent className="p-0">
-                      <div className="overflow-x-auto">
-                        <Table>
-                          <TableHeader>
-                            <TableRow className="bg-gray-50">
-                              <TableHead>Trainer</TableHead>
-                              <TableHead>New Clients</TableHead>
-                              <TableHead>Conversions</TableHead>
-                              <TableHead>Retained</TableHead>
-                              <TableHead>Conversion Rate</TableHead>
-                              <TableHead>Retention Rate</TableHead>
-                              <TableHead>Avg LTV</TableHead>
-                              <TableHead>Total LTV</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {trainerPerformanceData.map((row, index) => <TableRow key={row.trainer} className="hover:bg-gray-50">
-                                <TableCell className="font-medium">{row.trainer}</TableCell>
-                                <TableCell>{row.newClients}</TableCell>
-                                <TableCell>{row.conversions}</TableCell>
-                                <TableCell>{row.retained}</TableCell>
-                                <TableCell>
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(row.conversionRate) >= 60 ? 'bg-green-100 text-green-800' : parseFloat(row.conversionRate) >= 40 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                    {row.conversionRate}%
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${parseFloat(row.retentionRate) >= 70 ? 'bg-green-100 text-green-800' : parseFloat(row.retentionRate) >= 50 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                                    {row.retentionRate}%
-                                  </span>
-                                </TableCell>
-                                <TableCell className="font-bold">{formatCurrency(parseFloat(row.avgLtv))}</TableCell>
-                                <TableCell className="font-bold text-green-600">{formatCurrency(row.totalLtv)}</TableCell>
-                              </TableRow>)}
-                            <TableRow className="bg-gray-100 font-bold">
-                              <TableCell>Total</TableCell>
-                              <TableCell>{trainerPerformanceData.reduce((sum, row) => sum + row.newClients, 0)}</TableCell>
-                              <TableCell>{trainerPerformanceData.reduce((sum, row) => sum + row.conversions, 0)}</TableCell>
-                              <TableCell>{trainerPerformanceData.reduce((sum, row) => sum + row.retained, 0)}</TableCell>
-                              <TableCell>-</TableCell>
-                              <TableCell>-</TableCell>
-                              <TableCell>-</TableCell>
-                              <TableCell>{formatCurrency(trainerPerformanceData.reduce((sum, row) => sum + row.totalLtv, 0))}</TableCell>
-                            </TableRow>
-                          </TableBody>
-                        </Table>
-                      </div>
+                      <OptimizedTable
+                        data={[
+                          ...trainerPerformanceData,
+                          {
+                            trainer: 'Total',
+                            newClients: trainerPerformanceData.reduce((sum, row) => sum + row.newClients, 0),
+                            conversions: trainerPerformanceData.reduce((sum, row) => sum + row.conversions, 0),
+                            retained: trainerPerformanceData.reduce((sum, row) => sum + row.retained, 0),
+                            conversionRate: '-',
+                            retentionRate: '-',
+                            avgLtv: '-',
+                            totalLtv: trainerPerformanceData.reduce((sum, row) => sum + row.totalLtv, 0)
+                          }
+                        ]}
+                        columns={[
+                          { key: 'trainer', header: 'Trainer', align: 'left' },
+                          { key: 'newClients', header: 'New Clients', align: 'center' },
+                          { key: 'conversions', header: 'Conversions', align: 'center' },
+                          { key: 'retained', header: 'Retained', align: 'center' },
+                          { 
+                            key: 'conversionRate', 
+                            header: 'Conversion Rate', 
+                            align: 'center',
+                            render: (value) => value === '-' ? '-' : (
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                parseFloat(value) >= 60 ? 'bg-green-100 text-green-800' : 
+                                parseFloat(value) >= 40 ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {value}%
+                              </span>
+                            )
+                          },
+                          { 
+                            key: 'retentionRate', 
+                            header: 'Retention Rate', 
+                            align: 'center',
+                            render: (value) => value === '-' ? '-' : (
+                              <span className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full ${
+                                parseFloat(value) >= 70 ? 'bg-green-100 text-green-800' : 
+                                parseFloat(value) >= 50 ? 'bg-yellow-100 text-yellow-800' : 
+                                'bg-red-100 text-red-800'
+                              }`}>
+                                {value}%
+                              </span>
+                            )
+                          },
+                          { 
+                            key: 'avgLtv', 
+                            header: 'Avg LTV', 
+                            align: 'right',
+                            render: (value) => value === '-' ? '-' : <span className="font-bold">{formatCurrency(parseFloat(value))}</span>
+                          },
+                          { 
+                            key: 'totalLtv', 
+                            header: 'Total LTV', 
+                            align: 'right',
+                            render: (value) => <span className="font-bold text-green-600">{formatCurrency(value)}</span>
+                          }
+                        ]}
+                        showFooter={false}
+                        stickyHeader={true}
+                        stickyFirstColumn={true}
+                        maxHeight="600px"
+                      />
                     </CardContent>
                   </Card>
                 </TabsContent>)}

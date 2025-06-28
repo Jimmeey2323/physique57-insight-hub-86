@@ -48,8 +48,8 @@ export const PaymentMethodMonthOnMonthTable: React.FC<PaymentMethodMonthOnMonthT
         return items.length > 0 ? totalRevenue / items.length : 0;
       case 'auv':
         const revenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        const uniqueMembers = new Set(items.map(item => item.memberId)).size;
-        return uniqueMembers > 0 ? revenue / uniqueMembers : 0;
+        const units = items.length; // Each sale item is one unit
+        return units > 0 ? revenue / units : 0;
       default:
         return 0;
     }
@@ -124,14 +124,26 @@ export const PaymentMethodMonthOnMonthTable: React.FC<PaymentMethodMonthOnMonthT
       const metricValue = getMetricValue(items, selectedMetric);
       const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
       const totalTransactions = items.length;
-      const avgTransactionValue = totalRevenue / totalTransactions || 0;
+      const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+      const units = items.length; // Each sale item is one unit
+      
+      // Calculate correct metrics
+      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0; // ASV = Revenue/Members
+      const upt = totalTransactions > 0 ? units / totalTransactions : 0; // UPT = Units/Transactions
+      const atv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0; // ATV = Revenue/Transactions
+      const auv = units > 0 ? totalRevenue / units : 0; // AUV = Revenue/Units
       
       return {
         paymentMethod,
         metricValue,
         totalRevenue,
         totalTransactions,
-        avgTransactionValue,
+        uniqueMembers,
+        asv,
+        upt,
+        atv,
+        auv,
+        units,
         monthlyValues,
         rawData: items
       };
@@ -164,20 +176,36 @@ export const PaymentMethodMonthOnMonthTable: React.FC<PaymentMethodMonthOnMonthT
     );
   };
 
+  // Calculate totals row with proper averages for ATV, ASV, AUV
   const totalsRow = useMemo(() => {
     const monthlyTotals: Record<string, number> = {};
     monthlyData.forEach(({ key }) => {
       monthlyTotals[key] = processedData.reduce((sum, item) => sum + (item.monthlyValues[key] || 0), 0);
     });
     
+    const totalRevenue = processedData.reduce((sum, item) => sum + item.totalRevenue, 0);
+    const totalTransactions = processedData.reduce((sum, item) => sum + item.totalTransactions, 0);
+    const totalMembers = new Set(data.map(item => item.memberId)).size;
+    const totalUnits = processedData.reduce((sum, item) => sum + item.units, 0);
+    
+    // Calculate averages for ATV, ASV, AUV (weighted averages)
+    const avgAsv = totalMembers > 0 ? totalRevenue / totalMembers : 0;
+    const avgUpt = totalTransactions > 0 ? totalUnits / totalTransactions : 0;
+    const avgAtv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+    const avgAuv = totalUnits > 0 ? totalRevenue / totalUnits : 0;
+    
     return {
       paymentMethod: 'TOTAL',
       metricValue: processedData.reduce((sum, item) => sum + item.metricValue, 0),
-      totalRevenue: processedData.reduce((sum, item) => sum + item.totalRevenue, 0),
-      totalTransactions: processedData.reduce((sum, item) => sum + item.totalTransactions, 0),
+      totalRevenue,
+      totalTransactions,
+      asv: avgAsv,
+      upt: avgUpt,
+      atv: avgAtv,
+      auv: avgAuv,
       monthlyValues: monthlyTotals
     };
-  }, [processedData, monthlyData]);
+  }, [processedData, monthlyData, data]);
 
   const saveSummary = () => {
     setIsEditingSummary(false);
@@ -226,9 +254,11 @@ export const PaymentMethodMonthOnMonthTable: React.FC<PaymentMethodMonthOnMonthT
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Payment Method</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Total Revenue</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">ATV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">ASV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">AUV</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">UPT</th>
                 <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Transactions</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Avg Value</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -260,13 +290,19 @@ export const PaymentMethodMonthOnMonthTable: React.FC<PaymentMethodMonthOnMonthT
                     </div>
                   </td>
                   <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.totalRevenue)}
+                    {formatCurrency(item.atv)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.asv)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {formatCurrency(item.auv)}
+                  </td>
+                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
+                    {item.upt.toFixed(2)}
                   </td>
                   <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
                     {formatNumber(item.totalTransactions)}
-                  </td>
-                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.avgTransactionValue)}
                   </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = item.monthlyValues[key] || 0;
@@ -288,13 +324,19 @@ export const PaymentMethodMonthOnMonthTable: React.FC<PaymentMethodMonthOnMonthT
                   TOTAL
                 </td>
                 <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.totalRevenue)}
+                  {formatCurrency(totalsRow.atv)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.asv)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {formatCurrency(totalsRow.auv)}
+                </td>
+                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
+                  {totalsRow.upt.toFixed(2)}
                 </td>
                 <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
                   {formatNumber(totalsRow.totalTransactions)}
-                </td>
-                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.totalRevenue / totalsRow.totalTransactions || 0)}
                 </td>
                 {monthlyData.map(({ key }) => (
                   <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">

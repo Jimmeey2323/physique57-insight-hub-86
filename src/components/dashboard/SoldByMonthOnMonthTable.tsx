@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { SalesData, YearOnYearMetricType } from '@/types/dashboard';
 import { YearOnYearMetricTabs } from './YearOnYearMetricTabs';
@@ -35,20 +36,28 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
 
   const getMetricValue = (items: SalesData[], metric: YearOnYearMetricType) => {
     if (!items.length) return 0;
+    const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+    const totalTransactions = items.length;
+    const uniqueMembers = new Set(items.map(item => item.memberId)).size;
+    const totalUnits = items.length;
+    
     switch (metric) {
       case 'revenue':
-        return items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
+        return totalRevenue;
       case 'transactions':
-        return items.length;
+        return totalTransactions;
       case 'members':
-        return new Set(items.map(item => item.memberId)).size;
+        return uniqueMembers;
       case 'atv':
-        const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        return items.length > 0 ? totalRevenue / items.length : 0;
+        return totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
       case 'auv':
-        const revenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
-        const uniqueMembers = new Set(items.map(item => item.memberId)).size;
-        return uniqueMembers > 0 ? revenue / uniqueMembers : 0;
+        return totalUnits > 0 ? totalRevenue / totalUnits : 0;
+      case 'asv':
+        return uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0;
+      case 'upt':
+        return totalTransactions > 0 ? totalUnits / totalTransactions : 0;
+      case 'vat':
+        return items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
       default:
         return 0;
     }
@@ -59,10 +68,14 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
       case 'revenue':
       case 'auv':
       case 'atv':
+      case 'asv':
+      case 'vat':
         return formatCurrency(value);
       case 'transactions':
       case 'members':
         return formatNumber(value);
+      case 'upt':
+        return value.toFixed(2);
       default:
         return formatNumber(value);
     }
@@ -123,19 +136,26 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
       const metricValue = getMetricValue(items, selectedMetric);
       const totalRevenue = items.reduce((sum, item) => sum + (item.paymentValue || 0), 0);
       const totalTransactions = items.length;
-      const totalVAT = items.reduce((sum, item) => sum + (item.paymentVAT || 0), 0);
       const uniqueMembers = new Set(items.map(item => item.memberId)).size;
-      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0;
-      const upt = totalTransactions > 0 ? totalTransactions / totalTransactions : 1;
+      const units = items.length; // Each sale item is one unit
+      
+      // Calculate correct metrics
+      const asv = uniqueMembers > 0 ? totalRevenue / uniqueMembers : 0; // ASV = Revenue/Members
+      const upt = totalTransactions > 0 ? units / totalTransactions : 0; // UPT = Units/Transactions
+      const atv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0; // ATV = Revenue/Transactions
+      const auv = units > 0 ? totalRevenue / units : 0; // AUV = Revenue/Units
       
       return {
         soldBy,
         metricValue,
         totalRevenue,
         totalTransactions,
-        totalVAT,
+        uniqueMembers,
         asv,
         upt,
+        atv,
+        auv,
+        units,
         monthlyValues,
         rawData: items
       };
@@ -156,20 +176,44 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
     return null;
   };
 
+  const getSoldByBadge = (soldBy: string) => {
+    return (
+      <Badge className="bg-purple-100 text-purple-800 text-xs">
+        {soldBy}
+      </Badge>
+    );
+  };
+
+  // Calculate totals row with proper averages for ATV, ASV, AUV
   const totalsRow = useMemo(() => {
     const monthlyTotals: Record<string, number> = {};
     monthlyData.forEach(({ key }) => {
       monthlyTotals[key] = processedData.reduce((sum, item) => sum + (item.monthlyValues[key] || 0), 0);
     });
     
+    const totalRevenue = processedData.reduce((sum, item) => sum + item.totalRevenue, 0);
+    const totalTransactions = processedData.reduce((sum, item) => sum + item.totalTransactions, 0);
+    const totalMembers = new Set(data.map(item => item.memberId)).size;
+    const totalUnits = processedData.reduce((sum, item) => sum + item.units, 0);
+    
+    // Calculate averages for ATV, ASV, AUV (weighted averages)
+    const avgAsv = totalMembers > 0 ? totalRevenue / totalMembers : 0;
+    const avgUpt = totalTransactions > 0 ? totalUnits / totalTransactions : 0;
+    const avgAtv = totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+    const avgAuv = totalUnits > 0 ? totalRevenue / totalUnits : 0;
+    
     return {
       soldBy: 'TOTAL',
-      metricValue: processedData.reduce((sum, item) => sum + item.metricValue, 0),
-      totalRevenue: processedData.reduce((sum, item) => sum + item.totalRevenue, 0),
-      totalTransactions: processedData.reduce((sum, item) => sum + item.totalTransactions, 0),
+      metricValue: getMetricValue(data, selectedMetric),
+      totalRevenue,
+      totalTransactions,
+      asv: avgAsv,
+      upt: avgUpt,
+      atv: avgAtv,
+      auv: avgAuv,
       monthlyValues: monthlyTotals
     };
-  }, [processedData, monthlyData]);
+  }, [processedData, monthlyData, data, selectedMetric]);
 
   const saveSummary = () => {
     setIsEditingSummary(false);
@@ -200,10 +244,10 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
             <div>
               <CardTitle className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />
-                Sales Team Month-on-Month Analysis
+                Sales Associate Month-on-Month Analysis
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
-                Monthly performance metrics by sales team member (Jun 2025 - Jan 2024)
+                Monthly performance metrics by sales associate (Jun 2025 - Jan 2024)
               </p>
             </div>
           </div>
@@ -217,12 +261,7 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
           <table className="min-w-full bg-white border-t border-gray-200 rounded-lg">
             <thead className="bg-gradient-to-r from-blue-700 to-blue-900 text-white font-semibold text-sm uppercase tracking-wider sticky top-0 z-20">
               <tr>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Sold By</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Total Revenue</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-4 py-3 text-center">Transactions</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">ASV</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">UPT</th>
-                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-3 py-3 text-center">VAT</th>
+                <th rowSpan={2} className="text-white font-semibold uppercase tracking-wider px-6 py-3 text-left rounded-tl-lg sticky left-0 bg-blue-800 z-30">Sales Associate</th>
                 {Object.entries(groupedMonths).map(([quarterKey, months]) => (
                   <th key={quarterKey} colSpan={months.length} className="text-white font-semibold text-sm uppercase tracking-wider px-4 py-2 text-center border-l border-blue-600">
                     {quarterKey}
@@ -250,23 +289,8 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
                   <td className="px-6 py-3 text-sm font-medium text-gray-900 sticky left-0 bg-white border-r border-gray-200 max-w-48">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-slate-700">#{index + 1}</span>
-                      <span className="truncate">{item.soldBy}</span>
+                      {getSoldByBadge(item.soldBy)}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.totalRevenue)}
-                  </td>
-                  <td className="px-4 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatNumber(item.totalTransactions)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.asv)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {item.upt.toFixed(1)}
-                  </td>
-                  <td className="px-3 py-3 text-center text-sm text-gray-900 font-mono">
-                    {formatCurrency(item.totalVAT)}
                   </td>
                   {monthlyData.map(({ key }, monthIndex) => {
                     const current = item.monthlyValues[key] || 0;
@@ -287,21 +311,6 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
                 <td className="px-6 py-3 text-sm font-bold text-blue-900 sticky left-0 bg-blue-100 border-r border-blue-200">
                   TOTAL
                 </td>
-                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(totalsRow.totalRevenue)}
-                </td>
-                <td className="px-4 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatNumber(totalsRow.totalTransactions)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(processedData.reduce((sum, item) => sum + item.asv, 0) / processedData.length)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {(processedData.reduce((sum, item) => sum + item.upt, 0) / processedData.length).toFixed(1)}
-                </td>
-                <td className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold">
-                  {formatCurrency(processedData.reduce((sum, item) => sum + (item.totalVAT || 0), 0))}
-                </td>
                 {monthlyData.map(({ key }) => (
                   <td key={key} className="px-3 py-3 text-center text-sm text-blue-900 font-mono font-bold border-l border-blue-200">
                     {formatMetricValue(totalsRow.monthlyValues[key] || 0, selectedMetric)}
@@ -317,7 +326,7 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
           <div className="flex justify-between items-center mb-4">
             <h4 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
               <Users className="w-5 h-5 text-blue-600" />
-              Sales Team Performance Insights
+              Sales Associate Insights
             </h4>
             {!isEditingSummary ? (
               <Button variant="outline" size="sm" onClick={() => setIsEditingSummary(true)} className="gap-2">
@@ -342,7 +351,7 @@ export const SoldByMonthOnMonthTable: React.FC<SoldByMonthOnMonthTableProps> = (
             <Textarea
               value={summaryText}
               onChange={(e) => setSummaryText(e.target.value)}
-              placeholder="Enter sales team insights using bullet points (• )"
+              placeholder="Enter sales associate insights using bullet points (• )"
               className="min-h-32 text-sm"
             />
           ) : (
